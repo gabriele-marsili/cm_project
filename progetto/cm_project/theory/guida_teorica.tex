@@ -1,0 +1,1114 @@
+\documentclass[a4paper,11pt]{article}
+
+% ── Packages ──
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[italian]{babel}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{bm}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue!70!black, citecolor=green!50!black, urlcolor=blue!60!black}
+\usepackage{enumitem}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{tcolorbox}
+\usepackage{colortbl}
+
+% ── Colored boxes ──
+\newtcolorbox{intuizione}{colback=blue!5!white, colframe=blue!50!black, title={\textbf{Intuizione}}}
+\newtcolorbox{analogia}{colback=green!5!white, colframe=green!50!black, title={\textbf{Analogia}}}
+\newtcolorbox{attenzione}{colback=red!5!white, colframe=red!50!black, title={\textbf{Attenzione}}}
+\newtcolorbox{riassunto}{colback=orange!5!white, colframe=orange!50!black, title={\textbf{In poche parole}}}
+
+% ── Theorem environments ──
+\newtheorem{theorem}{Teorema}[section]
+\newtheorem{proposition}[theorem]{Proposizione}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollario}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definizione}
+\newtheorem{remark}[theorem]{Osservazione}
+\newtheorem{example}[theorem]{Esempio}
+
+% ── Notation shortcuts ──
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\abs}[1]{\left\lvert #1 \right\rvert}
+\newcommand{\inner}[2]{\left\langle #1,\, #2 \right\rangle}
+\newcommand{\argmin}{\operatornamewithlimits{arg\,min}}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\sign}{sign}
+\DeclareMathOperator{\conv}{conv}
+\DeclareMathOperator{\dom}{dom}
+\DeclareMathOperator{\Img}{Im}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\tr}{tr}
+
+% ══════════════════════════════════════════════════════════════
+\title{\textbf{Guida Teorica --- Progetto 25}\\[6pt]
+\large Extreme Learning con regolarizzazione $L_1$:\\
+Iteratively Reweighted Least Squares e Deflected Subgradient\\[8pt]
+\normalsize Computational Mathematics for Learning and Data Analysis (646AA)}
+\author{}
+\date{A.A.\ 2025/26}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+% ══════════════════════════════════════════════════════════════
+\section{Il problema: Extreme Learning Machine con regolarizzazione \texorpdfstring{$L_1$}{L1}}
+\label{sec:problema}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Che cos'è un'Extreme Learning Machine?}
+\label{subsec:elm}
+
+\begin{intuizione}
+Immagina di voler insegnare a un computer a prevedere qualcosa --- ad esempio, il prezzo di una casa dato il numero di stanze, i metri quadri, la zona, ecc. Un modo per farlo è costruire una ``macchina'' che prende questi numeri in ingresso, li trasforma in modo complicato, e poi combina i risultati con dei ``pesi'' per ottenere la previsione.
+
+Una rete neurale classica impara \emph{tutti} i pesi --- sia quelli della trasformazione iniziale, sia quelli della combinazione finale. L'\textbf{Extreme Learning Machine} (ELM) fa una scelta drastica: i pesi della trasformazione iniziale vengono \textbf{tirati a caso e mai cambiati}. Si imparano solo i pesi finali. Sembra una follia, ma funziona sorprendentemente bene --- e soprattutto, trasforma un problema difficilissimo (imparare una rete neurale) in un problema molto più semplice che sappiamo risolvere bene: un sistema di equazioni lineari.
+\end{intuizione}
+
+Più formalmente, un'ELM è una rete neurale a singolo strato nascosto dove:
+\begin{enumerate}
+  \item Si genera una matrice di pesi casuali $W_1 \in \R^{p \times d}$ (con $p$ neuroni nascosti e $d$ input) e la si \textbf{fissa per sempre}.
+  \item Per ogni input $x$, si calcolano le ``feature nascoste'' applicando una funzione di attivazione $\sigma$ (sigmoide, ReLU, tanh\ldots): $\sigma(W_1 x) \in \R^p$.
+  \item La previsione è una combinazione lineare di queste feature: $\hat{y} = w^T\sigma(W_1 x)$, dove $w \in \R^n$ sono i \textbf{pesi da imparare}.
+\end{enumerate}
+
+Per un dataset di $m$ campioni, possiamo raccogliere tutte le feature nascoste in una matrice:
+\[
+  X = \begin{bmatrix} \sigma(W_1 x^{(1)})^T \\ \vdots \\ \sigma(W_1 x^{(m)})^T \end{bmatrix} \in \R^{m \times n}, \qquad y \in \R^m.
+\]
+
+\begin{analogia}
+Pensa a $X$ come a una tabella: ogni riga è un campione, ogni colonna è una ``feature trasformata''. I pesi $w$ dicono ``quanto conta'' ciascuna colonna per la previsione. Trovare i pesi migliori significa risolvere un problema di minimi quadrati: ``trova i pesi tali che $Xw$ sia il più vicino possibile a $y$''.
+\end{analogia}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Perché la regolarizzazione \texorpdfstring{$L_1$}{L1}?}
+\label{subsec:perche_l1}
+
+\begin{intuizione}
+Immagina di avere 1000 colonne nella tua tabella $X$ (cioè 1000 feature). Probabilmente molte sono irrilevanti o ridondanti. Se cerchi i pesi che minimizzano l'errore \emph{senza nessun vincolo}, il modello potrebbe ``impazzire'' e assegnare pesi enormi alle feature irrilevanti per compensare il rumore nei dati --- come uno studente che impara a memoria le risposte del compito senza capire la materia. Questo fenomeno si chiama \textbf{overfitting}: il modello funziona benissimo sui dati di allenamento ma malissimo su dati nuovi.
+
+La \textbf{regolarizzazione} aggiunge una ``penalità'' ai pesi troppo grandi: ``ok, cerca di prevedere bene, ma senza esagerare con i pesi''. La regolarizzazione $L_1$ (chiamata LASSO) è speciale perché non solo tiene i pesi piccoli, ma ne porta molti esattamente a \textbf{zero}. In pratica, il modello ``sceglie'' automaticamente di usare solo poche feature e ignorare le altre. Questo si chiama \textbf{feature selection} ed è estremamente utile: il modello risultante è più semplice, più interpretabile e generalizza meglio \cite[cf.\ \S5.1.2]{opt-notes}.
+\end{intuizione}
+
+\paragraph{Perché proprio la norma $L_1$ e non la $L_2$?}
+Esistono diverse possibilità per la penalità:
+\begin{itemize}
+  \item \textbf{Regolarizzazione $L_2$ (Ridge):} penalizza $\sum_i w_i^2$. Rende i pesi piccoli, ma \emph{non} li porta a zero. È liscia (differenziabile ovunque), quindi facile da ottimizzare.
+  \item \textbf{Regolarizzazione $L_0$:} penalizza il \emph{numero} di pesi non nulli. L'ideale per la sparsità, ma è una funzione orribile --- non è nemmeno continua, e ottimizzarla è NP-hard.
+  \item \textbf{Regolarizzazione $L_1$ (LASSO):} penalizza $\sum_i |w_i|$. È la \textbf{migliore approssimazione convessa} della norma $L_0$ \cite[Appendice A.8]{opt-notes}. Promuove sparsità come la $L_0$, ma è convessa come la $L_2$. Il prezzo da pagare è che non è differenziabile (ha degli ``spigoli'' dove $w_i = 0$).
+\end{itemize}
+
+\begin{analogia}
+Pensa alle palle unitarie di queste norme in 2D: la palla $L_2$ è un cerchio, la palla $L_1$ è un rombo (quadrato ruotato), la palla $L_0$\ldots non è nemmeno un insieme convesso. Il rombo $L_1$ ha dei \emph{vertici} sugli assi: quando le curve di livello della funzione di errore ``toccano'' il rombo, lo fanno spesso in corrispondenza di un vertice, cioè in un punto dove una componente di $w$ è esattamente zero. Ecco perché la $L_1$ promuove la sparsità!
+\end{analogia}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Il problema che dobbiamo risolvere}
+\label{subsec:il_problema}
+
+Il nostro obiettivo è trovare $w$ che minimizzi:
+\begin{equation}\label{eq:main_problem}
+  \boxed{\min_{w \in \R^n}\; f(w) = \underbrace{\norm{Xw - y}_2^2}_{\text{errore di previsione}} + \underbrace{\lambda\norm{w}_1}_{\text{penalità di sparsità}}}
+\end{equation}
+dove $\lambda > 0$ è un parametro scelto dall'utente che bilancia i due obiettivi: $\lambda$ piccolo $\Rightarrow$ si privilegia la precisione; $\lambda$ grande $\Rightarrow$ si privilegia la semplicità (sparsità).
+
+\begin{riassunto}
+Il problema \eqref{eq:main_problem} chiede: ``trova i pesi $w$ che prevedano bene (errore piccolo) usando il minor numero possibile di feature (pesi sparsi)''. È un problema LASSO classico.
+\end{riassunto}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Analisi della funzione obiettivo}
+\label{subsec:analisi_f}
+
+La funzione $f$ è la somma di due pezzi con proprietà molto diverse:
+
+\subsubsection*{Pezzo 1: l'errore quadratico $g(w) = \norm{Xw-y}_2^2$}
+
+\begin{intuizione}
+Questa è la parte ``facile''. Misura quanto le previsioni $Xw$ sono lontane dai valori veri $y$. È una funzione \textbf{liscia} (differenziabile quante volte vuoi) e \textbf{convessa} (ha la forma di una ``ciotola'' --- non ha minimi locali fasulli). Se $X$ ha rango pieno per colonne (cioè non ha colonne ``ridondanti''), la ciotola ha un unico punto più basso.
+\end{intuizione}
+
+Espandendo il quadrato: $g(w) = w^T X^T X w - 2y^T X w + y^T y$.
+
+Il gradiente (la ``freccia'' che indica la direzione in cui $g$ cresce più velocemente) è:
+\[
+  \nabla g(w) = 2X^T(Xw - y) = 2X^T X w - 2X^T y.
+\]
+L'Hessiano (che descrive la ``curvatura'' della ciotola) è $\nabla^2 g(w) = 2X^T X \succeq 0$: è costante e semi-definito positivo, il che conferma che $g$ è convessa.
+
+\subsubsection*{Pezzo 2: la penalità $L_1$, $h(w) = \lambda\norm{w}_1 = \lambda\sum_{i=1}^n |w_i|$}
+
+\begin{intuizione}
+Questa è la parte ``difficile''. La funzione valore assoluto $|w_i|$ è convessa, ma ha uno \textbf{spigolo} in $w_i = 0$: se disegni il grafico di $|x|$ vedi una ``V''. In quello spigolo la derivata non esiste --- il grafico ``gira a gomito'' e la pendenza a sinistra ($-1$) è diversa da quella a destra ($+1$).
+
+Questo spigolo è \emph{cruciale} per la sparsità: è come una ``buca'' che ``cattura'' i pesi e li porta a zero. Ma è anche ciò che rende il problema matematicamente più complicato, perché non possiamo usare i metodi classici che richiedono il gradiente.
+\end{intuizione}
+
+\begin{proposition}[Convessità di $f$]
+La funzione $f = g + h$ è convessa (somma di funzioni convesse). Se $X$ ha rango pieno per colonne, $f$ è strettamente convessa e ammette un unico minimo globale.
+\end{proposition}
+
+\begin{proof}
+$g$ è convessa poiché $\nabla^2 g = 2X^TX \succeq 0$. $h$ è convessa in quanto norma. La somma di funzioni convesse è convessa. Se $\rank(X)=n$ allora $X^TX \succ 0$, dunque $g$ è strettamente convessa; la somma con la convessa $h$ resta strettamente convessa, garantendo unicità del minimo \cite[slide~3, set~3]{opt-slides}.
+\end{proof}
+
+\begin{remark}[Non-differenziabilità]
+$f$ non è differenziabile ovunque. Nei punti dove $w_i \neq 0\;\forall i$, il gradiente esiste ed è $\nabla f(w) = 2X^T(Xw - y) + \lambda\,\sign(w)$, dove $\sign(w)_i = +1$ se $w_i > 0$, $-1$ se $w_i < 0$. Quando qualche $w_i = 0$, la derivata parziale non esiste e si deve ragionare in termini di \emph{subgradienti} (vedi Sezione~\ref{sec:nonsmooth_background}).
+\end{remark}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Quando abbiamo trovato la soluzione?}
+\label{subsec:ottimalita}
+
+\begin{intuizione}
+Per una funzione liscia, sappiamo di essere al minimo quando il gradiente è zero: la ``freccia'' che indica la direzione di crescita scompare. Per una funzione con spigoli come la nostra, il gradiente non esiste negli spigoli. Serve uno strumento più potente: il \textbf{subdifferenziale}, che è un \emph{insieme} di ``quasi-gradienti'' (vedi Sezione~\ref{subsec:subgradients}).
+
+La regola è: siamo al minimo di $f$ se e solo se il vettore zero ``sta dentro'' il subdifferenziale, cioè $0 \in \partial f(w^*)$.
+\end{intuizione}
+
+Per il nostro problema:
+\[
+  \partial f(w) = 2X^T(Xw - y) + \lambda\,\partial\norm{w}_1,
+\]
+dove il subdifferenziale della norma $L_1$ è:
+\[
+  [\partial\norm{w}_1]_i = \begin{cases} \{+1\} & \text{se } w_i > 0,\\ \{-1\} & \text{se } w_i < 0,\\ [-1, +1] & \text{se } w_i = 0. \end{cases}
+\]
+
+La condizione $0 \in \partial f(w^*)$ si può scrivere componente per componente: per ogni $i = 1, \ldots, n$,
+\begin{equation}\label{eq:opt_cond}
+  [2X^T(Xw^* - y)]_i + \lambda s_i = 0, \qquad s_i \in \partial |w^*_i|.
+\end{equation}
+
+\begin{intuizione}
+Cosa dice questa condizione in pratica?
+\begin{itemize}[nosep]
+  \item Se alla soluzione $w^*_i \neq 0$: la derivata della parte liscia, più $\pm\lambda$, deve fare zero. È come la condizione classica ``gradiente = 0'' con un termine costante in più.
+  \item Se alla soluzione $w^*_i = 0$: la derivata della parte liscia, in valore assoluto, deve essere \textbf{al massimo} $\lambda$. Se fosse più grande di $\lambda$, vorrebbe dire che c'è una ``spinta'' abbastanza forte da tirare $w_i$ via da zero; ma se è più piccola, la penalità $L_1$ è abbastanza forte da ``tenere'' $w_i$ bloccato a zero.
+\end{itemize}
+Ecco perché $\lambda$ controlla la sparsità: più $\lambda$ è grande, più è facile che la condizione $|[\text{derivata}]_i| \leq \lambda$ sia soddisfatta, e quindi più componenti restano a zero.
+\end{intuizione}
+
+% ══════════════════════════════════════════════════════════════
+\section{Richiami di Algebra Lineare Numerica}
+\label{sec:nla}
+
+\begin{intuizione}
+Questa sezione serve perché l'algoritmo IRLS (Sezione~\ref{sec:irls}) ad ogni iterazione deve risolvere un \textbf{sistema di equazioni lineari}. Per capire l'IRLS serve quindi capire come si risolvono questi sistemi in modo efficiente e stabile. I concetti chiave sono tre: le \emph{equazioni normali} (la formulazione del problema), la \emph{fattorizzazione di Cholesky} (il metodo diretto per risolverlo) e il \emph{gradiente coniugato} (il metodo iterativo).
+\end{intuizione}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Minimi quadrati lineari: trovare la ``retta migliore''}
+\label{subsec:leastsquares}
+
+\begin{analogia}
+Hai un foglio con dei punti sparsi e vuoi tracciare la retta che ci passa ``più vicino''. Matematicamente, stai cercando il vettore $w$ tale che $Xw$ (le previsioni) sia il più vicino possibile a $y$ (i dati veri). ``Più vicino'' nel senso dei minimi quadrati: minimizzare la somma dei quadrati degli errori.
+\end{analogia}
+
+Il problema è $\min_{w \in \R^n} \norm{Xw - y}_2^2$. La soluzione si trova imponendo che il gradiente sia zero:
+\[
+  2X^T(Xw - y) = 0 \quad\Longrightarrow\quad X^T X w = X^T y.
+\]
+
+\begin{theorem}[Equazioni normali {\cite[Lecture~4]{nla-slides}}]
+Se $X \in \R^{m \times n}$ ha rango pieno per colonne ($m \geq n$, $\rank(X) = n$), allora la soluzione unica è:
+\[
+  X^T X w^* = X^T y \qquad\Longrightarrow\qquad w^* = (X^TX)^{-1}X^Ty.
+\]
+La matrice $X^TX \in \R^{n \times n}$ è simmetrica e definita positiva.
+\end{theorem}
+
+\begin{intuizione}
+Perché ``equazioni \emph{normali}''? Il nome viene dal fatto che l'errore $Xw^* - y$ risulta \emph{ortogonale} (= ``normale'') allo spazio delle colonne di $X$. In parole povere: l'errore residuo non può essere ``spiegato'' da nessuna combinazione delle colonne di $X$ --- abbiamo estratto tutta l'informazione possibile.
+\end{intuizione}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Fattorizzazione di Cholesky: risolvere il sistema in modo furbo}
+\label{subsec:cholesky}
+
+\begin{analogia}
+Risolvere il sistema $Qw = b$ (dove $Q = X^TX$ è una matrice simmetrica definita positiva) è come smontare un cubo di Rubik: si può fare brutalmente, oppure si può sfruttare la \emph{struttura} del problema. La fattorizzazione di Cholesky sfrutta il fatto che $Q$ è simmetrica e positiva per ``spezzarla'' in un prodotto di due matrici triangolari: $Q = LL^T$.
+
+Risolvere $LL^Tw = b$ è molto più facile: prima risolvi $Lv = b$ (andando dall'alto verso il basso, visto che $L$ è triangolare inferiore), poi $L^Tw = v$ (dal basso verso l'alto). Due passi facili invece di uno difficile.
+\end{analogia}
+
+\begin{theorem}[Cholesky {\cite[Lecture~20]{nla-slides}, \cite[§1.6]{opt-notes}}]
+Se $Q \in \R^{n\times n}$ è simmetrica definita positiva, allora esiste un'unica matrice triangolare inferiore $L$ con diagonale positiva tale che $Q = LL^T$. Il costo computazionale è circa $n^3/3$ operazioni --- la metà di una fattorizzazione LU generica, perché sfruttiamo la simmetria.
+\end{theorem}
+
+Il sistema $Qw = b$ si risolve poi in due passi, ciascuno dal costo $O(n^2)$:
+\begin{enumerate}[nosep]
+  \item \emph{Forward substitution:} si risolve $Lv = b$ partendo dalla prima equazione;
+  \item \emph{Back substitution:} si risolve $L^Tw = v$ partendo dall'ultima equazione.
+\end{enumerate}
+
+\begin{riassunto}
+Per risolvere il sistema delle equazioni normali $X^TXw = X^Ty$: (1) calcola $Q = X^TX$ (costo $O(mn^2)$, da fare \textbf{una sola volta}); (2) fattorizza $Q = LL^T$ con Cholesky (costo $O(n^3/3)$); (3) risolvi con forward/back substitution (costo $O(n^2)$). Il passo (2) va rifatto ad ogni iterazione IRLS, perché la matrice $Q$ cambia.
+\end{riassunto}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Gradiente Coniugato: un'alternativa iterativa}
+\label{subsec:cg}
+
+\begin{intuizione}
+E se la matrice fosse troppo grande per la fattorizzazione di Cholesky? Ad esempio, con $n = 100\,000$ variabili, $n^3/3 \approx 3 \times 10^{14}$ operazioni sono troppe. In questi casi si può usare un metodo \emph{iterativo}: non si calcola la soluzione esatta, ma una sequenza di approssimazioni sempre migliori.
+
+Il \textbf{Gradiente Coniugato} (CG) è il metodo iterativo più elegante per sistemi con matrice simmetrica definita positiva. L'idea è: ad ogni passo, cerca la soluzione nella direzione ``migliore'' che non sia già stata esplorata. In teoria converge in al più $n$ passi (come un metodo diretto!), ma in pratica spesso bastano molti meno passi per avere una buona approssimazione.
+\end{intuizione}
+
+\begin{definition}[Direzioni $Q$-coniugate {\cite[Lecture~5]{nla-slides}}]
+I vettori $d_0, d_1, \ldots$ sono detti $Q$-coniugati se $d_i^TQd_j = 0$ per $i \neq j$.
+\end{definition}
+
+\begin{analogia}
+Pensa a un terreno collinare con una forma ellittica. Le ``direzioni coniugate'' sono come le direzioni ``indipendenti'' lungo cui la ciotola si allunga: una volta che hai minimizzato lungo una di queste direzioni, non devi più tornare indietro --- il lavoro fatto resta valido. In contrasto, il gradiente ordinario ``zig-zaga'' avanti e indietro, sprecando passi. Il CG elimina questo zig-zag.
+\end{analogia}
+
+\begin{theorem}[Convergenza di CG {\cite[Lecture~5]{nla-slides}, \cite[§1.5]{opt-notes}}]
+Il metodo CG con $Q \succ 0$ converge in al più $n$ iterazioni (in aritmetica esatta). La velocità di convergenza dipende dal \emph{numero di condizione} $\kappa(Q) = \lambda_{\max}(Q)/\lambda_{\min}(Q)$:
+\[
+  \frac{\norm{w_k - w^*}_Q}{\norm{w_0 - w^*}_Q} \leq 2\left(\frac{\sqrt{\kappa(Q)}-1}{\sqrt{\kappa(Q)}+1}\right)^k.
+\]
+\end{theorem}
+
+\begin{intuizione}
+Cosa dice questo bound? Se il numero di condizione $\kappa$ è vicino a 1 (cioè la ``ciotola'' è quasi sferica), il CG converge in pochissimi passi. Se $\kappa$ è enorme (la ciotola è molto ``schiacciata'', come un ellissoide sottile), il CG fa fatica e potrebbe servire quasi tutto $n$ passi. Il numero di condizione è il ``nemico'' di tutti i metodi iterativi.
+\end{intuizione}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Condizionamento: quanto è ``difficile'' il nostro sistema?}
+\label{subsec:conditioning}
+
+\begin{definition}[Numero di condizione {\cite[Lecture~12]{nla-slides}}]
+Per una matrice $A$ non singolare, il numero di condizione è $\kappa(A) = \norm{A}_2\norm{A^{-1}}_2 = \sigma_{\max}(A)/\sigma_{\min}(A)$: il rapporto tra il valore singolare più grande e il più piccolo.
+\end{definition}
+
+\begin{analogia}
+Il numero di condizione misura quanto il sistema è ``sensibile ai disturbi''. Immagina di stare su una cresta stretta in montagna: un piccolo spostamento laterale e cadi nel precipizio ($\kappa$ grande). Se invece sei in fondo a una valle larga e poco profonda, puoi spostarti un po' senza problemi ($\kappa$ piccolo).
+
+Nel nostro caso, $\kappa(X^TX) = \kappa(X)^2$. Se $X$ è già un po' mal condizionata, passando a $X^TX$ il condizionamento \emph{peggiora al quadrato}. Ecco perché le equazioni normali possono essere instabili, e perché alternative come la fattorizzazione QR o SVD sono a volte preferibili \cite[Lectures~10--11]{nla-slides}.
+\end{analogia}
+
+\begin{attenzione}
+Per il nostro progetto, il condizionamento di $X^TX$ dipende dalla matrice delle feature dell'ELM, che a sua volta dipende dai pesi casuali $W_1$ e dalla funzione di attivazione. Se il condizionamento è cattivo, l'IRLS potrebbe convergere lentamente o dare risultati numericamente imprecisi.
+\end{attenzione}
+
+% ══════════════════════════════════════════════════════════════
+\section{Algoritmo A1: Iteratively Reweighted Least Squares (IRLS)}
+\label{sec:irls}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{L'idea: trasformare un problema difficile in tanti problemi facili}
+\label{subsec:irls_idea}
+
+\begin{intuizione}
+Il nostro problema è difficile perché la norma $L_1$ ha degli spigoli. La parte quadratica $\norm{Xw-y}^2$ da sola sarebbe facilissima --- basterebbe risolvere un sistema di equazioni lineari. Ma la norma $\norm{w}_1$ rovina tutto.
+
+L'idea geniale dell'IRLS è: \textbf{ad ogni iterazione, approssima la norma $L_1$ con una funzione quadratica} (cioè ``liscia'', senza spigoli) costruita usando la soluzione corrente. In questo modo, ad ogni passo si deve risolvere solo un problema di minimi quadrati --- cosa che sappiamo fare benissimo con Cholesky o CG.
+
+Ovviamente l'approssimazione è imperfetta, quindi si ripete: con la nuova soluzione si costruisce un'approssimazione migliore, si risolve, e così via. Da qui il nome: ``Iteratively Reweighted'' --- i pesi (weights) cambiano ad ogni iterazione.
+\end{intuizione}
+
+\paragraph{Come si approssima $|w_i|$ con un quadratico?}
+L'osservazione chiave è quasi banale. Se conosco il valore corrente $w_{k,i} \neq 0$, posso scrivere:
+\[
+  |w_i| = \frac{w_i^2}{|w_i|} \approx \frac{w_i^2}{|w_{k,i}|}.
+\]
+Questa è un'approssimazione di $|w_i|$ che è \emph{quadratica} in $w_i$ (il denominatore $|w_{k,i}|$ è un numero fisso, non una variabile). Dunque:
+\[
+  \norm{w}_1 = \sum_i |w_i| \approx \sum_i \frac{w_i^2}{|w_{k,i}|} = w^T W_k w,
+\]
+dove $W_k$ è una matrice diagonale con $(W_k)_{ii} = |w_{k,i}|^{-1/2}$.
+
+\begin{analogia}
+È come approssimare una V (il grafico di $|x|$) con una parabola che la ``tocca'' nel punto corrente. La parabola non è perfetta --- in particolare, vicino a zero, $|x|$ ha lo spigolo mentre la parabola è liscia --- ma è una buona approssimazione locale. Iterando, la parabola si ``adatta'' alla V sempre meglio.
+\end{analogia}
+
+\begin{attenzione}
+\textbf{Problema: cosa succede se $w_{k,i} \approx 0$?} Il peso $|w_{k,i}|^{-1/2}$ esplode! Per evitare divisioni per (quasi) zero, si introduce un \textbf{threshold di sicurezza} $\varepsilon_{\text{thr}} > 0$:
+\[
+  (W_k)_{ii} = \max(|w_{k,i}|, \varepsilon_{\text{thr}})^{-1/2}.
+\]
+Valori tipici: $\varepsilon_{\text{thr}} \in [10^{-6}, 10^{-10}]$. È un parametro algoritmico cruciale: troppo grande e l'approssimazione è grossolana; troppo piccolo e si rischiano instabilità numeriche.
+\end{attenzione}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Il sotto-problema: minimi quadrati pesati}
+\label{subsec:irls_sub}
+
+Ad ogni iterazione $k$, sostituendo l'approssimazione quadratica, si risolve:
+\begin{equation}\label{eq:irls_sub}
+  w_{k+1} = \argmin_w\; \norm{Xw - y}_2^2 + 2\lambda\norm{W_k w}_2^2.
+\end{equation}
+
+\begin{intuizione}
+Questo è un problema di minimi quadrati con un termine di regolarizzazione $L_2$ (Ridge) ``pesato''. La matrice $W_k$ gioca il ruolo di ``pesi personalizzati'' per ogni componente: le componenti di $w_k$ che sono piccole ricevono pesi grandi (forte penalizzazione), incoraggiandole ad andare a zero; le componenti grandi ricevono pesi piccoli (debole penalizzazione), lasciandole libere.
+\end{intuizione}
+
+\begin{proposition}[Equazioni normali pesate]
+La soluzione di \eqref{eq:irls_sub} soddisfa:
+\begin{equation}\label{eq:normal_weighted}
+  (X^TX + 2\lambda W_k^T W_k)\,w_{k+1} = X^Ty.
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+Il gradiente del sotto-problema è $\nabla f_k(w) = 2X^T(Xw-y) + 4\lambda W_k^TW_kw$. Ponendo a zero e dividendo per 2: $(X^TX + 2\lambda W_k^TW_k)w = X^Ty$. La matrice è simmetrica definita positiva (somma di $X^TX \succeq 0$ e $2\lambda W_k^TW_k \succ 0$ se $\varepsilon_{\text{thr}} > 0$), dunque la soluzione è unica.
+\end{proof}
+
+\begin{riassunto}
+Ogni iterazione IRLS = risolvere un sistema lineare $n \times n$ con matrice SPD. Si può usare Cholesky ($O(n^3/3)$) o CG. Il trucco: $X^TX$ si pre-calcola \textbf{una sola volta}. Ad ogni iterazione cambia solo la diagonale $2\lambda W_k^TW_k$ --- un'operazione $O(n)$.
+\end{riassunto}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Algoritmo completo}
+\label{subsec:irls_algo}
+
+\begin{algorithm}[H]
+\caption{Iteratively Reweighted Least Squares (IRLS) per LASSO}
+\label{alg:irls}
+\begin{algorithmic}[1]
+\Require $X \in \R^{m \times n}$, $y \in \R^m$, $\lambda > 0$, $\varepsilon_{\text{thr}} > 0$, $\varepsilon_{\text{stop}} > 0$, $k_{\max}$
+\State Pre-calcola $A = X^TX$ e $b = X^Ty$
+\State Inizializza $w_0$ (es.\ soluzione minimi quadrati: $w_0 = A^{-1}b$)
+\For{$k = 0, 1, 2, \ldots, k_{\max}$}
+  \State Calcola $W_k = \diag\!\big(\max(|w_{k,1}|, \varepsilon_{\text{thr}})^{-1/2}, \ldots, \max(|w_{k,n}|, \varepsilon_{\text{thr}})^{-1/2}\big)$
+  \State Risolvi $(A + 2\lambda W_k^TW_k)\,w_{k+1} = b$ \hfill\emph{(Cholesky o CG)}
+  \If{$\norm{w_{k+1} - w_k} / \max(1, \norm{w_k}) < \varepsilon_{\text{stop}}$}
+    \State \textbf{break} \hfill\emph{(convergenza raggiunta)}
+  \EndIf
+\EndFor
+\State \Return $w_{k+1}$
+\end{algorithmic}
+\end{algorithm}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Perché converge? E quanto velocemente?}
+\label{subsec:irls_convergence}
+
+\begin{intuizione}
+L'IRLS è un caso di \emph{Majorization-Minimization} (MM): ad ogni passo costruiamo una funzione (il sotto-problema quadratico) che ``sta sopra'' alla funzione originale e la ``tocca'' nel punto corrente. Minimizzando questa funzione ``che sta sopra'', si garantisce di fare almeno altrettanto bene quanto il punto corrente sul sotto-problema. Iterando, la sequenza dei valori converge.
+
+Un punto tecnico: la convergenza è garantita rispetto ai \emph{sotto-problemi}, non necessariamente rispetto alla funzione $f$ originale. In pratica $f(w_k)$ potrebbe fare qualche oscillazione, ma alla fine converge.
+\end{intuizione}
+
+\begin{theorem}[Consistenza al punto fisso]
+Se la sequenza $\{w_k\}$ generata da IRLS converge a un punto $w^*$ con $|(w^*)_i| > \varepsilon_{\text{thr}}$ per ogni $i$, allora $w^*$ soddisfa le condizioni di ottimalità \eqref{eq:opt_cond} del problema originale.
+\end{theorem}
+
+\begin{proof}[Sketch]
+Se $w_k = w_{k+1} = w^*$ (punto fisso), dalle equazioni normali pesate: $X^T(Xw^* - y) + 2\lambda W_*^TW_* w^* = 0$. Poiché $|w^*_i| > \varepsilon_{\text{thr}}$, il peso è $(W_*)_{ii} = |w^*_i|^{-1/2}$, e $(W_*^TW_*w^*)_i = |w^*_i|^{-1}w^*_i = \sign(w^*_i)$. Sostituendo si ottiene la condizione di ottimalità.
+\end{proof}
+
+\begin{remark}[Velocità di convergenza]
+IRLS converge tipicamente in modo \textbf{lineare}: ad ogni iterazione l'errore si riduce approssimativamente di un fattore costante (es.\ l'errore si dimezza ad ogni passo). In un grafico logaritmico, questo appare come una \textbf{retta}. La velocità dipende dal condizionamento di $X^TX$ e dalla scelta di $\varepsilon_{\text{thr}}$.
+\end{remark}
+
+\begin{remark}[Costo per iterazione]
+\begin{itemize}[nosep]
+  \item Aggiornamento di $W_k$: $O(n)$ --- basta scorrere le componenti di $w_k$.
+  \item Modifica della matrice: $O(n)$ --- si aggiunge la diagonale a $X^TX$ (pre-calcolata).
+  \item Risoluzione del sistema: $O(n^3/3)$ con Cholesky, oppure $O(kn^2)$ con CG.
+\end{itemize}
+Le iterazioni sono \emph{poche} (tipicamente 10--50) ma \emph{costose} ($O(n^3)$ ciascuna).
+\end{remark}
+
+% ══════════════════════════════════════════════════════════════
+\section{Richiami di Ottimizzazione Non-Smooth}
+\label{sec:nonsmooth_background}
+
+\begin{intuizione}
+Questa sezione prepara il terreno per l'algoritmo A2 (deflected subgradient). Il problema è: la nostra funzione $f$ non è differenziabile ovunque. I metodi classici (gradiente, Newton, CG\ldots) richiedono tutti il gradiente. Che si fa?
+
+La risposta è: si usa una generalizzazione del gradiente chiamata \textbf{subgradiente}. È meno preciso del gradiente, e i metodi basati su di esso sono più lenti. Ma funzionano! E per il nostro problema (dove la non-differenziabilità è ``relativamente semplice'' --- solo degli spigoli) si comportano ragionevolmente bene.
+\end{intuizione}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Subgradienti: il gradiente per funzioni con spigoli}
+\label{subsec:subgradients}
+
+\begin{analogia}
+Hai presente quando il professore dice ``il gradiente è la direzione di massima crescita''? Beh, per una funzione liscia c'è \emph{una sola} direzione di massima crescita in ogni punto. Ma per una funzione con uno spigolo (come la V di $|x|$), nello spigolo ci sono \emph{tante} possibili ``pendenze''.
+
+Immagina di stare sulla punta della V: la pendenza a sinistra è $-1$, la pendenza a destra è $+1$. Quale usi? Qualsiasi numero tra $-1$ e $+1$ è un ``subgradiente valido''. In punti dove la funzione è liscia, c'è un solo subgradiente e coincide col gradiente.
+\end{analogia}
+
+\begin{definition}[Subgradiente {\cite[slide~5, set~5]{opt-slides}}]
+Sia $f: \R^n \to \R$ convessa. Un vettore $s \in \R^n$ è un \emph{subgradiente} di $f$ in $x$ se
+\[
+  f(z) \geq f(x) + \inner{s}{z - x} \quad \forall z \in \R^n.
+\]
+L'insieme di tutti i subgradienti $\partial f(x) = \{s : s \text{ è subgradiente in } x\}$ si chiama \emph{subdifferenziale}.
+\end{definition}
+
+\begin{intuizione}
+La definizione dice: $s$ è un subgradiente se il piano $f(x) + \inner{s}{z-x}$ ``sta sotto'' al grafico di $f$ ovunque. Per funzioni lisce questo è il piano tangente (unico). Per funzioni con spigoli, ci sono tanti piani che stanno sotto: il subdifferenziale è l'insieme di tutte le ``pendenze'' di questi piani.
+\end{intuizione}
+
+\begin{proposition}[Proprietà del subdifferenziale {\cite[slide~5--7, set~5]{opt-slides}}]
+\mbox{}
+\begin{enumerate}[nosep]
+  \item $\partial f(x)$ è un insieme convesso e compatto (chiuso e limitato).
+  \item Se $f$ è differenziabile in $x$, allora $\partial f(x) = \{\nabla f(x)\}$ --- il subdifferenziale contiene solo il gradiente.
+  \item $x^*$ è minimo globale se e solo se $0 \in \partial f(x^*)$.
+  \item Regola della somma: $\partial(f+g)(x) = \partial f(x) + \partial g(x)$ se $f$ e $g$ sono convesse.
+\end{enumerate}
+\end{proposition}
+
+\begin{example}[Subdifferenziale della norma $L_1$ {\cite[slide~7, set~5]{opt-slides}}]
+Per $h(w) = \norm{w}_1 = \sum_i |w_i|$, il subdifferenziale è separabile (si calcola componente per componente):
+\[
+  [\partial h(w)]_i = \begin{cases} \{+1\} & w_i > 0 \text{ (pendenza della V a destra)},\\ \{-1\} & w_i < 0 \text{ (pendenza della V a sinistra)},\\ [-1,+1] & w_i = 0 \text{ (nello spigolo: qualsiasi pendenza tra $-1$ e $+1$)}. \end{cases}
+\]
+\end{example}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Perché l'ottimizzazione non-smooth è più difficile}
+\label{subsec:nonsmooth_hard}
+
+\begin{intuizione}
+Il gradiente è un'informazione molto precisa: ti dice esattamente dove andare per scendere più velocemente. Il subgradiente è un'informazione più ``vaga'': ti dice che ``da qualche parte in questa zona si scende'', ma non necessariamente ti indica la direzione migliore. Peggio: un subgradiente potrebbe \textbf{non essere una direzione di discesa}! (Vedi l'esempio in \cite[\S5.1.2]{opt-notes}: nello spigolo di $|x|$, il subgradiente $s = 0$ non punta da nessuna parte).
+
+Questa imprecisione ha conseguenze gravi sulla velocità di convergenza: i metodi basati sui subgradienti sono \emph{intrinsecamente} più lenti di quelli basati sui gradienti.
+\end{intuizione}
+
+\begin{theorem}[Complessità dell'ottimizzazione {\cite[slide~8, set~5]{opt-slides}, \cite{bubeck2015}}]
+\mbox{}
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+\textbf{Regolarità} & \textbf{Convessità} & \textbf{Complessità} & \textbf{In pratica} \\
+\midrule
+Liscia, fortemente convessa & migliore & $O(\log(1/\varepsilon))$ & Molto veloce \\
+Non-smooth, fortemente convessa & peggiore & $\Omega(1/\varepsilon)$ & Lento \\
+Liscia, solo convessa & & $O(1/\sqrt{\varepsilon})$ & Veloce \\
+Non-smooth, solo convessa & peggiore & $\Omega(1/\varepsilon^2)$ & Molto lento \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{theorem}
+
+\begin{analogia}
+Per raggiungere un errore $\varepsilon = 10^{-6}$:
+\begin{itemize}[nosep]
+  \item Nel caso \textbf{liscio e fortemente convesso}: circa $\log(10^6) \approx 14$ iterazioni.
+  \item Nel caso \textbf{non-smooth e solo convesso}: circa $(10^6)^2 = 10^{12}$ iterazioni!!
+\end{itemize}
+Ecco perché non ci si aspetta che l'algoritmo A2 raggiunga la stessa precisione dell'IRLS con un numero ragionevole di iterazioni. Il gap di complessità è \emph{abissale}.
+\end{analogia}
+
+Due altre conseguenze importanti della non-smoothness \cite[slide~8--9, set~5]{opt-slides}:
+\begin{itemize}
+  \item \textbf{Il passo fisso non funziona:} a differenza del gradiente, il metodo del subgradiente con stepsize costante non converge (oscilla attorno alla soluzione senza mai raggiungerla).
+  \item \textbf{La norma del subgradiente non è un criterio di arresto:} per funzioni lisce, $\norm{\nabla f(x^*)} = 0$ al minimo. Per funzioni non-smooth, $\norm{g}$ può essere grande anche nel punto ottimo (perché il subdifferenziale è un \emph{intervallo}, non un punto).
+\end{itemize}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Metodi del subgradiente: la relazione fondamentale}
+\label{subsec:subgradient_methods}
+
+\begin{intuizione}
+Il metodo del subgradiente ha la stessa struttura del metodo del gradiente: ``fai un passo nella direzione opposta al (sub)gradiente''. Ma le sue proprietà sono radicalmente diverse. Il risultato fondamentale è la \textbf{relazione fondamentale}, che dice: anche se il valore della funzione può \emph{peggiorare} ad un passo, la \emph{distanza dal minimo} diminuisce (a patto che il passo sia scelto bene).
+
+Questa è una differenza concettuale enorme rispetto ai metodi smooth: lì ogni passo migliora il valore della funzione; qui ogni passo avvicina al minimo, ma può peggiorare il valore.
+\end{intuizione}
+
+\begin{theorem}[Relazione fondamentale {\cite[slide~10, set~5]{opt-slides}}]
+Per $f$ convessa, $g^i \in \partial f(x^i)$, e $x^{i+1} = x^i - \alpha^i g^i$:
+\begin{equation}\label{eq:fundamental}
+  \norm{x^{i+1} - x^*}^2 \leq \norm{x^i - x^*}^2 + \underbrace{2\alpha^i(f^* - f(x^i))}_{\leq 0 \text{ (buono!)}} + \underbrace{(\alpha^i)^2\norm{g^i}^2}_{\geq 0 \text{ (cattivo!)}}.
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Espandendo il quadrato:
+\begin{align*}
+  \norm{x^{i+1}-x^*}^2 &= \norm{x^i - \alpha^ig^i - x^*}^2 \\
+  &= \norm{x^i-x^*}^2 - 2\alpha^i\inner{g^i}{x^i-x^*} + (\alpha^i)^2\norm{g^i}^2.
+\end{align*}
+Dalla disuguaglianza del subgradiente: $f(x^*) \geq f(x^i) + \inner{g^i}{x^*-x^i}$, cioè $\inner{g^i}{x^i-x^*} \geq f(x^i) - f^*$. Sostituendo: $\leq \norm{x^i-x^*}^2 - 2\alpha^i(f(x^i)-f^*) + (\alpha^i)^2\norm{g^i}^2$.
+\end{proof}
+
+\begin{intuizione}
+Come leggere la formula \eqref{eq:fundamental}:
+\begin{itemize}[nosep]
+  \item Il termine $2\alpha^i(f^* - f(x^i))$ è \textbf{negativo} (perché $f^* \leq f(x^i)$): questo è il termine ``buono'' che ci avvicina al minimo. Più siamo lontani dall'ottimo ($f(x^i) \gg f^*$), più ci avviciniamo.
+  \item Il termine $(\alpha^i)^2\norm{g^i}^2$ è \textbf{positivo}: questo è il ``rumore'' introdotto dal passo. Più il passo è grande, più rumore c'è.
+\end{itemize}
+Per convergere, bisogna che il termine buono domini quello cattivo. Questo richiede che il passo $\alpha^i$ sia ``né troppo grande né troppo piccolo'' e che tenda a zero abbastanza lentamente.
+\end{intuizione}
+
+\paragraph{Come scegliere il passo (stepsize)?} Le principali regole \cite[slide~10--14, set~5]{opt-slides}:
+
+\begin{enumerate}
+  \item \textbf{Diminishing-Square Summable (DSS):} $\alpha^i = c/i$ (il passo diminuisce nel tempo). \emph{Converge, ma è estremamente lento.} L'unico vantaggio: non richiede nessuna informazione a priori.
+
+  \item \textbf{Polyak stepsize:} $\alpha^i = (f(x^i) - f^*) / \norm{g^i}^2$.
+  \begin{intuizione}
+  Questa è la scelta ``perfetta'': annulla il termine positivo nella relazione fondamentale, garantendo che la distanza dal minimo diminuisca ad ogni passo. Il problema? Richiede il valore $f^*$ ottimo, che è proprio ciò che stiamo cercando!
+  \end{intuizione}
+
+  \item \textbf{Target level stepsize:} stima iterativamente $f^*$ con un ``target'' che viene aggiornato man mano. È l'approccio usato nel nostro Algoritmo A2.
+\end{enumerate}
+
+% ══════════════════════════════════════════════════════════════
+\section{Algoritmo A2: Deflected Subgradient Method}
+\label{sec:deflected}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Il problema del subgradiente puro e l'idea della deflection}
+\label{subsec:defl_idea}
+
+\begin{intuizione}
+Il metodo del subgradiente ``puro'' ha un grosso difetto: ad ogni passo usa \emph{solo} l'informazione locale (il subgradiente nel punto corrente) e \emph{dimentica tutto} ciò che ha fatto prima. È come un escursionista che decide dove andare guardando solo i suoi piedi, senza ricordare da dove è venuto.
+
+Il risultato è un comportamento a ``zig-zag'': il metodo oscilla avanti e indietro, perdendo tempo. Lo stesso problema affligge il metodo del gradiente per funzioni lisce, ed è stato risolto con le \textbf{direzioni coniugate}: mescolare la direzione corrente con quella precedente per creare un percorso più ``dritto'' verso il minimo.
+
+L'idea dei \textbf{deflected subgradient methods} \cite{dantonio2009,opt-slides-5} è la stessa: non usare il subgradiente puro $g^i$ come direzione, ma ``deviarlo'' (deflect) mescolandolo con la direzione precedente $d^{i-1}$:
+\end{intuizione}
+
+\begin{equation}\label{eq:deflected_dir}
+  d^i = \gamma^i g^i + (1 - \gamma^i) d^{i-1}, \qquad x^{i+1} = x^i - \alpha^i d^i,
+\end{equation}
+dove $g^i \in \partial f(x^i)$, $d^0 = g^0$, e $\gamma^i \in (0, 1]$ controlla il livello di deflection.
+
+\begin{analogia}
+Pensa a una barca a vela. Il vento (il subgradiente) soffia in una direzione, ma la barca ha anche la sua \emph{inerzia} (la direzione precedente). La rotta effettiva è un compromesso tra le due.
+\begin{itemize}[nosep]
+  \item $\gamma^i = 1$: segui solo il vento (subgradiente puro), ignori l'inerzia. Massima reattività, ma zig-zag.
+  \item $\gamma^i$ piccolo: segui soprattutto l'inerzia, ``filtrando'' il vento. Percorso più liscio, ma rischi di ignorare informazioni importanti.
+  \item $\gamma^i$ intermedio: il compromesso migliore.
+\end{itemize}
+\end{analogia}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Come scegliere la deflection e il passo}
+\label{subsec:defl_convergence}
+
+\begin{intuizione}
+La scelta di $\gamma^i$ (quanto deflettere) e $\alpha^i$ (quanto è lungo il passo) deve essere fatta con cura: se defletti troppo e fai passi troppo grandi, l'algoritmo diverge. Le regole di convergenza garantiscono che le due scelte siano ``bilanciate''. Ci sono due filosofie: o scegli prima la deflection e poi adatti il passo, o viceversa.
+\end{intuizione}
+
+Per garantire la convergenza teorica \cite[slide~15, set~5]{opt-slides}, \cite{dantonio2009}:
+
+\paragraph{Approccio 1: Stepsize-restricted (``scegli prima la deflection'').}
+Si sceglie $\gamma^i$ liberamente, poi il passo è vincolato a essere ``abbastanza piccolo'':
+\[
+  \alpha^i = \frac{\beta^i(f(x^i) - f^*)}{\norm{d^i}^2}, \qquad \beta^i \leq \gamma^i.
+\]
+\begin{intuizione}
+La regola $\beta^i \leq \gamma^i$ dice: ``più defletti (più $\gamma^i$ è piccolo), più devi ridurre il passo''. Ha senso: la deflection introduce una direzione ``vecchia'' che potrebbe non essere più di discesa, quindi per sicurezza fai un passo più corto.
+\end{intuizione}
+
+\paragraph{Approccio 2: Deflection-restricted (``scegli prima il passo'').}
+Si sceglie lo stepsize (es.\ DSS), poi la deflection è vincolata:
+\[
+  \gamma^i \geq \frac{\alpha^{i-1}\norm{d^{i-1}}^2}{(f(x^i) - f^*) + \alpha^{i-1}\norm{d^{i-1}}^2}.
+\]
+\begin{intuizione}
+Man mano che ci avviciniamo all'ottimo ($f(x^i) \to f^*$), il numeratore e il denominatore diventano quasi uguali, quindi $\gamma^i \to 1$: vicino alla soluzione, la deflection scompare e si ricade nel subgradiente puro. Ha senso: lontano dalla soluzione la deflection aiuta a ``velocizzare'' il percorso, ma vicino alla soluzione serve la precisione del subgradiente locale.
+\end{intuizione}
+
+\paragraph{Scelta ottimale della deflection:} Per ogni $i$, si può scegliere il $\gamma^i$ che minimizza la norma della direzione deflessa:
+\begin{equation}\label{eq:gamma_opt}
+  \gamma^i \in \argmin\left\{\norm{\gamma g^i + (1-\gamma)d^{i-1}}^2 : \gamma \in [0, 1]\right\}.
+\end{equation}
+
+\begin{intuizione}
+Perché minimizzare la norma della direzione? Perché nelle formule del Polyak stepsize il denominatore è $\norm{d^i}^2$: più la direzione è ``corta'', più il passo è lungo (e quindi più progresso si fa). Trovare il $\gamma$ che rende $d^i$ il più corto possibile è come trovare la direzione ``più efficiente'' mescolando il subgradiente corrente con la memoria.
+
+Il problema \eqref{eq:gamma_opt} è un problema quadratico in una variabile vincolata a $[0,1]$: ha una formula chiusa. Sia $\phi(\gamma) = \gamma^2\norm{g}^2 + 2\gamma(1-\gamma)\inner{g}{d^{-}} + (1-\gamma)^2\norm{d^{-}}^2$. Il minimo non vincolato è:
+\[
+  \gamma^* = \frac{\norm{d^{-}}^2 - \inner{g}{d^{-}}}{\norm{g - d^{-}}^2}.
+\]
+Poi si proietta su $[0,1]$: $\gamma^i = \min(1, \max(0, \gamma^*))$.
+\end{intuizione}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{L'algoritmo completo con target level}
+\label{subsec:target_level}
+
+\begin{intuizione}
+Il Polyak stepsize richiede $f^*$, che non conosciamo. Il meccanismo di \textbf{target level} è un modo furbo per aggirare il problema: si mantiene una \emph{stima} $f_{\text{ref}} - \delta$ di $f^*$ (dove $f_{\text{ref}}$ è il miglior valore trovato finora e $\delta > 0$ è una ``speranza di miglioramento'') e si usa questa stima al posto di $f^*$.
+
+Se la stima è buona (cioè $f_{\text{ref}} - \delta \approx f^*$), l'algoritmo fa progressi buoni. Se la stima è troppo ottimista ($f_{\text{ref}} - \delta < f^*$, cioè speriamo troppo), i passi diventano troppo piccoli e non si progredisce. In quel caso, dopo un po' di iterazioni senza miglioramento, si riduce $\delta$ (``abbasso le aspettative'') e si riprova.
+\end{intuizione}
+
+\begin{algorithm}[H]
+\caption{Deflected Subgradient con Target Level}
+\label{alg:deflected}
+\begin{algorithmic}[1]
+\Require $f$, $w_0$, $i_{\max}$, $\beta \in (0, 2)$, $\delta_0 > 0$, $R > 0$, $\rho \in (0,1)$
+\State $r \gets 0$; $\delta \gets \delta_0$; $f_{\text{ref}} \gets \bar{f} \gets f(w_0)$; $d_{-1} \gets 0$
+\For{$i = 0, 1, \ldots, i_{\max}$}
+  \State Calcola $g \in \partial f(w_i)$ \hfill\emph{(un subgradiente qualsiasi)}
+  \State Calcola $\gamma_i$ tramite \eqref{eq:gamma_opt} (o altra regola)
+  \State $d_i \gets \gamma_i g + (1 - \gamma_i) d_{i-1}$ \hfill\emph{(direzione deflessa)}
+  \State $\alpha_i \gets \beta\, (f(w_i) - (f_{\text{ref}} - \delta)) / \norm{d_i}^2$ \hfill\emph{(Polyak con target level)}
+  \State $w_{i+1} \gets w_i - \alpha_i d_i$ \hfill\emph{(passo)}
+  \If{$f(w_{i+1}) \leq f_{\text{ref}} - \delta/2$} \hfill\emph{(miglioramento significativo)}
+    \State $f_{\text{ref}} \gets \bar{f}$; $r \gets 0$ \hfill\emph{(aggiorna target, azzera contatore)}
+  \ElsIf{$r > R$} \hfill\emph{(troppo a lungo senza miglioramenti)}
+    \State $\delta \gets \delta \rho$; $r \gets 0$ \hfill\emph{(riduci $\delta$: ``abbassa le aspettative'')}
+  \Else
+    \State $r \gets r + \alpha_i\norm{d_i}$ \hfill\emph{(accumula ``distanza percorsa'')}
+  \EndIf
+  \State $\bar{f} \gets \min(\bar{f},\, f(w_{i+1}))$ \hfill\emph{(aggiorna il record)}
+\EndFor
+\State \Return $w_{\text{best}}$ (il punto con il miglior $\bar{f}$)
+\end{algorithmic}
+\end{algorithm}
+
+\begin{riassunto}
+L'algoritmo mantiene tre quantità chiave:
+\begin{itemize}[nosep]
+  \item $\bar{f}$: il \textbf{record value} --- il miglior valore di $f$ trovato finora. Questo è il vero ``output'' dell'algoritmo.
+  \item $f_{\text{ref}} - \delta$: il \textbf{target level} --- la stima di $f^*$ usata per il Polyak stepsize.
+  \item $r$: un contatore di ``cammino percorso'' senza miglioramenti, per decidere quando ridurre $\delta$.
+\end{itemize}
+\end{riassunto}
+
+\begin{remark}[Parametri]
+I parametri critici sono:
+\begin{itemize}
+  \item $\delta_0$: stima iniziale del gap $f(w_0) - f^*$. Se troppo grande, il target è troppo basso e i passi sono enormi (instabilità); se troppo piccolo, i passi sono minuscoli e non si progredisce.
+  \item $\rho \in (0,1)$: tasso di riduzione di $\delta$ (tipicamente $\rho = 0.95$).
+  \item $R$: soglia di ``pazienza'' prima di ridurre $\delta$.
+  \item $\beta \in (0,2)$: modula l'ampiezza del passo. $\beta = 1$ è la scelta naturale.
+\end{itemize}
+\end{remark}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Calcolo pratico del subgradiente per il nostro problema}
+\label{subsec:subgrad_computation}
+
+Per il nostro problema specifico, $f(w) = \norm{Xw-y}_2^2 + \lambda\norm{w}_1$, un subgradiente è:
+\begin{equation}\label{eq:subgrad_f}
+  g = 2X^T(Xw - y) + \lambda\, s, \quad \text{con } s_i \in \partial|w_i|.
+\end{equation}
+
+\begin{intuizione}
+In pratica, per ogni componente:
+\begin{itemize}[nosep]
+  \item Se $w_i > 0$: $s_i = +1$ (unica scelta).
+  \item Se $w_i < 0$: $s_i = -1$ (unica scelta).
+  \item Se $w_i = 0$: $s_i$ può essere qualsiasi valore in $[-1, +1]$. La scelta più comune è $s_i = 0$, che corrisponde all'elemento del subdifferenziale con norma minima e punta verso la ``direzione di massima discesa''.
+\end{itemize}
+Nota: la parte ``costosa'' è il prodotto $X^T(Xw - y)$, che richiede due moltiplicazioni matrice-vettore: prima $Xw$ (costo $O(mn)$), poi $X^T(\cdots)$ (costo $O(mn)$). Totale: $O(mn)$ per iterazione --- molto meno dei $O(n^3)$ dell'IRLS.
+\end{intuizione}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Convergenza: cosa aspettarsi}
+\label{subsec:defl_convergence_props}
+
+\begin{theorem}[Convergenza del deflected subgradient {\cite{dantonio2009}}]
+Sotto le condizioni di convergenza (stepsize-restricted o deflection-restricted) e assumendo $f$ convessa e Lipschitz-continua, la sequenza dei \emph{record values} $\bar{f}^i = \min_{h \leq i} f(w_h)$ converge al valore ottimo $f^*$. La complessità nel caso peggiore è $O(1/\varepsilon^2)$, come per il subgradiente standard.
+\end{theorem}
+
+\begin{intuizione}
+Notare che converge la sequenza dei \textbf{record values} $\bar{f}^i$, non necessariamente la sequenza delle iterate $w_i$. Questo perché il metodo non è monotono: $f(w_{i+1}) > f(w_i)$ può accadere. Per questo, l'algoritmo restituisce il \emph{miglior punto trovato}, non l'ultimo.
+
+Anche se la complessità \emph{nel caso peggiore} ($O(1/\varepsilon^2)$) è identica a quella del subgradiente puro, la deflection migliora \emph{drammaticamente} il comportamento pratico riducendo lo zig-zag e sfruttando la ``memoria'' delle iterazioni precedenti.
+
+Tuttavia, non illudiamoci: per le ragioni spiegate nella Sezione~\ref{subsec:nonsmooth_hard}, raggiungere accuratezze elevate ($\varepsilon < 10^{-4}$) con un metodo del subgradiente richiede un numero proibitivo di iterazioni.
+\end{intuizione}
+
+% ══════════════════════════════════════════════════════════════
+\section{Proprietà attese dalla teoria}
+\label{sec:expected_properties}
+
+\begin{intuizione}
+Questa sezione riassume cosa ci aspettiamo di vedere quando eseguiamo gli esperimenti. Conoscere le proprietà teoriche \emph{prima} di implementare è fondamentale: se il codice si comporta diversamente dalla teoria, c'è un bug!
+\end{intuizione}
+
+\subsection{Per l'algoritmo A1 (IRLS)}
+\begin{itemize}
+  \item \textbf{Convergenza:} $f(w_k)$ converge, ma possibilmente non in modo monotono (i valori possono oscillare leggermente, specialmente all'inizio).
+  \item \textbf{Velocità:} convergenza tipicamente \textbf{lineare}. In un grafico con asse $y$ logaritmico (log di $f(w_k) - f^*$) contro iterazioni, dovremmo vedere una \textbf{retta} (o quasi).
+  \item \textbf{Accuratezza:} può raggiungere soluzioni molto accurate, limitata solo dal threshold $\varepsilon_{\text{thr}}$.
+  \item \textbf{Costo:} poche iterazioni (10--50), ma costose ($O(n^3/3)$ ciascuna con Cholesky).
+  \item \textbf{Sparsità:} la soluzione tende ad avere molte componenti a zero (o molto vicine a zero), come ci si aspetta dalla regolarizzazione $L_1$.
+\end{itemize}
+
+\subsection{Per l'algoritmo A2 (Deflected Subgradient)}
+\begin{itemize}
+  \item \textbf{Convergenza:} il record value $\bar{f}^i$ converge a $f^*$, ma la sequenza è \textbf{non monotona}: $f(w_{i+1}) > f(w_i)$ è possibile (e frequente!).
+  \item \textbf{Velocità:} convergenza \textbf{sublineare}. Nel grafico logaritmico, la curva ``si appiattisce'' man mano (al contrario della retta di IRLS). Complessità nel caso peggiore: $O(1/\varepsilon^2)$.
+  \item \textbf{Accuratezza:} difficile raggiungere $\varepsilon < 10^{-4}$ con un numero ragionevole di iterazioni.
+  \item \textbf{Costo:} molte iterazioni (migliaia), ma economiche ($O(mn)$ ciascuna).
+  \item \textbf{Criterio di arresto:} non c'è un criterio affidabile; si monitora il record value e il ``budget'' di iterazioni.
+\end{itemize}
+
+\subsection{Chi ``vince''? Confronto A1 vs A2}
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+& \textbf{A1 (IRLS)} & \textbf{A2 (Defl.\ Subgradient)} \\
+\midrule
+Tipo & Smooth (sotto-problema) & Non-smooth \\
+Costo/iterazione & Alto ($O(n^3)$ o $O(kn^2)$) & Basso ($O(mn)$) \\
+Num.\ iterazioni & Poche (10--50) & Molte (migliaia) \\
+Convergenza & Tipicamente lineare & Sublineare $O(1/\varepsilon^2)$ \\
+Alta accuratezza & Sì & Molto difficile \\
+Parametri & $\varepsilon_{\text{thr}}$, solver lineare & $\delta_0, \rho, R, \beta, \gamma$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{riassunto}
+\textbf{IRLS} e \textbf{deflected subgradient} sono complementari:
+\begin{itemize}[nosep]
+  \item IRLS fa poche iterazioni costose e raggiunge alta precisione. È come un chirurgo: lento e preciso.
+  \item Il deflected subgradient fa tante iterazioni economiche ma fatica ad arrivare in fondo. È come un corridore: veloce all'inizio ma si stanca.
+\end{itemize}
+In pratica, per soluzioni a \emph{bassa} accuratezza ($\varepsilon \sim 10^{-2}$), il deflected subgradient potrebbe essere competitivo in tempo CPU. Per soluzioni ad \emph{alta} accuratezza ($\varepsilon < 10^{-6}$), IRLS domina nettamente.
+\end{riassunto}
+
+% ══════════════════════════════════════════════════════════════
+\section{Considerazioni aggiuntive}
+\label{sec:extra}
+
+\subsection{Scelta della funzione di attivazione}
+
+\begin{intuizione}
+La funzione $\sigma(\cdot)$ trasforma i dati di input attraverso lo strato nascosto dell'ELM. La scelta influisce sulla matrice $X$ e quindi sulle proprietà numeriche del problema (condizionamento, rango, ecc.).
+\end{intuizione}
+
+\begin{itemize}
+  \item \textbf{Sigmoide:} $\sigma(z) = 1/(1+e^{-z})$. Output in $(0,1)$, quindi le colonne di $X$ sono limitate. Possibili problemi di saturazione: se $W_1x$ è molto grande o molto piccolo, tutti gli output diventano $\approx 0$ o $\approx 1$, e le colonne di $X$ sono quasi uguali (cattivo condizionamento).
+  \item \textbf{ReLU:} $\sigma(z) = \max(0, z)$. Semplice e veloce, ma se i pesi $W_1$ sono tali che $W_1x < 0$ per molti campioni, le colonne corrispondenti sono tutte zero (``neuroni morti'', e $X$ perde rango).
+  \item \textbf{Tanh:} $\sigma(z) = \tanh(z)$. Output in $(-1,1)$, centrata in zero. Spesso un buon compromesso.
+\end{itemize}
+
+\subsection{Confronto con solutori di riferimento}
+
+\begin{intuizione}
+Il testo del progetto dice ``no off-the-shelf solvers allowed'' per risolvere il LASSO. Ma confrontare i risultati con un solutore esterno è \textbf{essenziale per la validazione}: se il nostro algoritmo e \texttt{sklearn.linear\_model.Lasso} danno la stessa soluzione (o quasi), possiamo essere ragionevolmente sicuri che il codice è corretto.
+
+In particolare, il solutore esterno fornisce un valore di riferimento $f^*_{\text{ref}}$ che serve per calcolare il gap $f(w_k) - f^*$ nei grafici di convergenza. Senza questo riferimento, non potremmo tracciare i grafici!
+\end{intuizione}
+
+\subsection{Smoothness e strong convexity del nostro problema}
+
+\begin{definition}[$L$-smoothness {\cite[slide~4, set~4]{opt-slides}}]
+$f \in C^1$ è $L$-smooth se $\norm{\nabla f(x) - \nabla f(z)} \leq L\norm{x-z}$ per ogni $x, z$. Informalmente: il gradiente ``non cambia troppo velocemente''.
+\end{definition}
+
+\begin{definition}[$\tau$-convessità forte {\cite[slide~4, set~4]{opt-slides}}]
+$f$ è $\tau$-fortemente convessa se $f(z) \geq f(x) + \inner{\nabla f(x)}{z-x} + \frac{\tau}{2}\norm{z-x}^2$. Informalmente: la ciotola non è troppo ``piatta'' --- ha una curvatura minima garantita.
+\end{definition}
+
+Per la \emph{parte quadratica} del nostro problema, $g(w) = \norm{Xw-y}_2^2$:
+\begin{itemize}[nosep]
+  \item $L = 2\lambda_{\max}(X^TX)$ --- la smoothness è determinata dal più grande autovalore di $X^TX$.
+  \item $\tau = 2\lambda_{\min}(X^TX)$ --- la strong convexity è determinata dal più piccolo autovalore. Se $X$ non ha rango pieno, $\tau = 0$ e $g$ non è fortemente convessa.
+  \item Il numero di condizione è $\kappa = L/\tau = \kappa(X)^2$.
+\end{itemize}
+
+\begin{attenzione}
+La funzione \emph{totale} $f = g + h$ non è smooth (a causa del termine $L_1$), anche se la parte $g$ lo è. Questo è il motivo fondamentale per cui servono metodi non-smooth per risolvere il problema direttamente (come il deflected subgradient), oppure trucchi per ``aggirare'' la non-smoothness (come l'IRLS).
+\end{attenzione}
+
+% ══════════════════════════════════════════════════════════════
+% ══════════════════════════════════════════════════════════════
+\newpage
+\section{Mappa delle lezioni: cosa studiare e dove trovarlo}
+\label{sec:mappa_lezioni}
+
+\begin{intuizione}
+Questa sezione è una guida allo studio: per ogni argomento necessario al progetto, indica \textbf{esattamente} in quali file PDF delle lezioni trovarlo, con le pagine/slide rilevanti. Le lezioni sono divise in due gruppi: \textbf{Ottimizzazione} (set 0--7, prof.\ Frangioni) e \textbf{Algebra Lineare Numerica} (lectures 0--21, prof.\ Cortinovis). Non serve studiare tutto: i file sono classificati come \textbf{essenziali}, \textbf{utili} o \textbf{non necessari}.
+\end{intuizione}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Lezioni di Ottimizzazione}
+
+\subsubsection*{\fcolorbox{red!70!black}{red!10!white}{\textbf{ESSENZIALE}} \quad \texttt{5-nonsmooth unconstrained optimization.pdf} (98 pagine)}
+
+Questo è \textbf{il file più importante per il progetto}. Contiene la teoria di base dell'algoritmo A2 e la motivazione del problema LASSO.
+
+\begin{itemize}
+  \item \textbf{Slide 1--2: Motivazione I --- Stochastic Gradient.} Contesto ML: perché servono metodi che funzionino con informazione di primo ordine imprecisa. Background utile, non strettamente necessario.
+
+  \item \textbf{Slide 3: Motivazione II --- Regolarizzazione non-differenziabile.} \emph{Fondamentale.} Introduce la regolarizzazione LASSO $\norm{w}_1$ come alternativa convessa alla norma $L_0$. Spiega perché la $L_1$ promuove sparsità e perché è non-differenziabile. È la motivazione diretta del nostro problema.
+
+  \item \textbf{Slide 4--5: I metodi smooth falliscono.} Esempio concreto (LASSO con $\mu=10$) che mostra come il gradiente standard si blocca nei punti di non-differenziabilità. Spiega \emph{perché} servono metodi diversi.
+
+  \item \textbf{Slide 5--7: Subgradienti e subdifferenziale.} \emph{Fondamentale.} Definizione di subgradiente, subdifferenziale $\partial f(x)$, proprietà (insieme convesso e compatto, regola della somma), calcolo per la norma $L_1$. Condizione di ottimalità $0 \in \partial f(x^*)$.
+
+  \item \textbf{Slide 8: Complessità dell'ottimizzazione non-smooth.} \emph{Fondamentale.} Tabella comparativa smooth vs.\ non-smooth: mostra il salto drammatico di complessità ($O(\log 1/\varepsilon)$ vs.\ $O(1/\varepsilon^2)$). Da citare nel report per giustificare le prestazioni attese dell'algoritmo A2.
+
+  \item \textbf{Slide 9: Passo fisso e criterio di arresto.} Il passo fisso ``non funziona'' per l'ottimizzazione non-smooth. La norma del subgradiente non è un criterio di arresto valido ($\norm{g}$ può essere grande anche in $x^*$).
+
+  \item \textbf{Slide 10: Relazione fondamentale e stepsize DSS.} \emph{Fondamentale.} La disuguaglianza $\norm{x^{i+1}-x^*}^2 \leq \norm{x^i-x^*}^2 + 2\alpha^i(f^*-f^i) + (\alpha^i)^2\norm{g^i}^2$ e la regola DSS ($\alpha^i = c/i$).
+
+  \item \textbf{Slide 12--13: Polyak stepsize.} \emph{Fondamentale.} Formula $\alpha^i = (f^i - f^*)/\norm{g^i}^2$, proprietà (ogni passo riduce la distanza da $x^*$), complessità $O(1/\varepsilon^2)$. Record value $\bar{f}^i$.
+
+  \item \textbf{Slide 14: Target level stepsize.} \emph{Fondamentale.} Meccanismo per stimare $f^*$ iterativamente: $f_{\text{ref}}$, soglia $\delta$, regole di aggiornamento. Direttamente usato nell'Algoritmo A2.
+
+  \item \textbf{Slide 15: Deflected subgradient.} \emph{Fondamentale.} Formula $d^i = \gamma^i g^i + (1-\gamma^i)d^{i-1}$, le due regole di convergenza (stepsize-restricted e deflection-restricted), formula chiusa per $\gamma^i$. Riferimento a d'Antonio--Frangioni 2009. È il cuore dell'algoritmo A2.
+
+  \item \textbf{Slide 16--18: Smoothed gradient methods.} Approccio alternativo (non richiesto dal progetto). Utile per capire il confronto nella slide di wrap-up.
+
+  \item \textbf{Slide 19--21: Bundle methods.} Non necessari per il progetto, ma utili per contesto: rappresentano l'approccio ``sofisticato'' all'ottimizzazione non-smooth.
+
+  \item \textbf{Slide 22 (wrap-up): Confronto finale.} ``Forget high accuracy unless you fight hard'': conferma che i metodi del subgradiente non possono raggiungere accuratezze elevate.
+\end{itemize}
+
+\subsubsection*{\fcolorbox{red!70!black}{red!10!white}{\textbf{ESSENZIALE}} \quad \texttt{4-smooth unconstrained optimization.pdf} (98 pagine)}
+
+Contiene la teoria dei metodi di discesa smooth, necessaria per capire sia i sotto-problemi dell'IRLS sia il concetto di ``deflection''.
+
+\begin{itemize}
+  \item \textbf{Slide 1--3: Metodo del gradiente.} Struttura base: $x \leftarrow x - \alpha \nabla f(x)$. Convergenza con exact line search.
+
+  \item \textbf{Slide 4--8: Line search inesatta (Armijo, Wolfe).} Non direttamente usato nel progetto (l'IRLS risolve sotto-problemi esatti), ma utile come background.
+
+  \item \textbf{Slide 9--10: L-smoothness e convessità forte.} \emph{Fondamentale.} Definizioni di $L$-smoothness ($\norm{\nabla f(x) - \nabla f(z)} \leq L\norm{x-z}$), $\tau$-convessità forte, e numero di condizione $\kappa = L/\tau$. Servono per analizzare la convergenza di entrambi gli algoritmi.
+
+  \item \textbf{Slide 11--14: Metodo del gradiente con passo fisso.} Convergenza con $\alpha = 1/L$: $O(1/\varepsilon)$ per funzioni convesse, $O(\log 1/\varepsilon)$ per funzioni fortemente convesse. Da confrontare con la complessità dei metodi non-smooth.
+
+  \item \textbf{Slide 15--16: Metodi twisted (Newton, quasi-Newton).} Background: come l'Hessiano migliora la convergenza. Non direttamente necessario.
+
+  \item \textbf{Slide 17--19: Deflected gradient methods (NCG, Heavy Ball, Accelerated Gradient).} \emph{Molto utile.} Il concetto di \emph{deflection} nel caso smooth: $d^i = -\nabla f(x^i) + \beta^i d^{i-1}$. I metodi NCG (4 formule per $\beta$: Fletcher-Reeves, Polak-Ribière, Hestenes-Stiefel, Dai-Yuan) e Heavy Ball (convergenza non-monotona, tasso $r = (\sqrt{\kappa}-1)/(\sqrt{\kappa}+1)$). Questi sono gli \emph{analoghi smooth} del deflected subgradient --- capirli aiuta enormemente a capire A2.
+\end{itemize}
+
+\subsubsection*{\fcolorbox{orange!70!black}{orange!10!white}{\textbf{UTILE}} \quad \texttt{3-unconstrained optimality.pdf} (76 pagine)}
+
+Prerequisiti teorici: ottimalità e convessità.
+
+\begin{itemize}
+  \item \textbf{Slide 1--3: Norme.} Definizione di $p$-norme, inclusa la norma $L_1$ (Lasso) e $L_0$. Le palle unitarie in $\R^2$. Utile per capire la geometria della regolarizzazione.
+
+  \item \textbf{Slide 4--8: Gradiente, Hessiano, Jacobiano.} Definizioni fondamentali. Gradiente come direzione di massima crescita, Hessiano come matrice di curvatura.
+
+  \item \textbf{Slide 9--12: Condizioni di ottimalità.} Condizione necessaria $\nabla f(x^*) = 0$, condizione sufficiente $\nabla^2 f(x^*) \succ 0$. Caso convesso: $\nabla f(x^*) = 0 \Leftrightarrow$ minimo globale.
+
+  \item \textbf{Slide 13--16: Funzioni convesse.} Definizione, proprietà (somma di convesse è convessa, livelli convessi), matrici semi-definite positive. \emph{Importante} per giustificare che il nostro problema ha un unico minimo.
+\end{itemize}
+
+\subsubsection*{\fcolorbox{green!50!black}{green!10!white}{\textbf{NON NECESSARIO}} \quad Altri set di ottimizzazione}
+
+\begin{itemize}
+  \item \textbf{\texttt{0-introduction.pdf} (56 pagine):} Introduzione al corso, motivazioni, tipologie di problemi. Solo background generale --- da sfogliare, non da studiare.
+
+  \item \textbf{\texttt{1-simple problems.pdf} (310 pagine):} Problemi semplici, funzioni lineari/quadratiche, metodo del gradiente per quadratiche. Molto lungo; le parti rilevanti (quadratiche, gradiente) sono coperte meglio nel set~4.
+
+  \item \textbf{\texttt{2-univariate optimization.pdf} (94 pagine):} Ottimizzazione univariata (line search, golden section, \ldots). Non direttamente necessario per il progetto.
+
+  \item \textbf{\texttt{6-constrained optimality and duality.pdf} (201 pagine):} Ottimizzazione vincolata, KKT, dualità lagrangiana. Non rilevante: il nostro problema è \emph{non vincolato}.
+
+  \item \textbf{\texttt{7-constrained optimization.pdf} (75 pagine):} Algoritmi per ottimizzazione vincolata (active set, projected gradient, barrier). Non rilevante.
+\end{itemize}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Lezioni di Algebra Lineare Numerica}
+
+\subsubsection*{\fcolorbox{red!70!black}{red!10!white}{\textbf{ESSENZIALE}} \quad \texttt{4-leastsquares-normal.pdf} (10 pagine)}
+
+\emph{Il file NLA più importante per il progetto.} Copre le equazioni normali $X^TX w = X^Ty$, che sono il cuore del sotto-problema IRLS.
+
+\begin{itemize}
+  \item Condizione di rango pieno per l'unicità della soluzione.
+  \item Pseudoinversa $X^+ = (X^TX)^{-1}X^T$.
+  \item Collegamento con la proiezione ortogonale.
+  \item Costo computazionale: $O(mn^2 + n^3/3)$.
+\end{itemize}
+
+\subsubsection*{\fcolorbox{red!70!black}{red!10!white}{\textbf{ESSENZIALE}} \quad \texttt{20-chol.pdf} (10 pagine)}
+
+Fattorizzazione di Cholesky $Q = LL^T$ per matrici simmetriche definite positive. \emph{Direttamente usata} nell'IRLS per risolvere il sistema $(X^TX + 2\lambda W_k^TW_k)w = X^Ty$.
+
+\begin{itemize}
+  \item Derivazione dalla fattorizzazione LU sfruttando la simmetria.
+  \item $Q = LDL^T$ e poi $Q = LL^T$ con $L \leftarrow L\sqrt{D}$.
+  \item Costo: $n^3/3$ (metà di LU).
+  \item Esistenza garantita per $Q \succ 0$.
+\end{itemize}
+
+\subsubsection*{\fcolorbox{red!70!black}{red!10!white}{\textbf{ESSENZIALE}} \quad \texttt{5-CG.pdf} (34 pagine)}
+
+Il Gradiente Coniugato: metodo iterativo alternativo per risolvere i sotto-problemi IRLS, specialmente per $n$ grande.
+
+\begin{itemize}
+  \item \textbf{Pagine 1--4:} Motivazione (matrici sparse e grandi), formulazione come problema di ottimizzazione $\min \frac{1}{2}x^TQx - v^Tx$.
+  \item \textbf{Pagine 5--12:} Direzioni $Q$-coniugate, costruzione iterativa, implementazione dell'algoritmo CG.
+  \item \textbf{Pagine 13--18:} Spazi di Krylov $\mathcal{K}_n(Q, v) = \text{span}(v, Qv, \ldots, Q^{n-1}v)$. Il CG come ``best approximation in Krylov space''.
+  \item \textbf{Pagine 19--26:} \emph{Convergenza.} Dipendenza dalla distribuzione degli autovalori di $Q$. Bound $\leq 2((\sqrt{\kappa}-1)/(\sqrt{\kappa}+1))^k$. Convergenza in cluster di autovalori. Convergenza lineare con rate dipendente da $\kappa(Q)$.
+  \item \textbf{Pagine 27--34:} Esempi pratici, \texttt{pcg} in Matlab.
+\end{itemize}
+
+\subsubsection*{\fcolorbox{red!70!black}{red!10!white}{\textbf{ESSENZIALE}} \quad \texttt{3-intro-leastsquares.pdf} (13 pagine)}
+
+Introduzione ai problemi dei minimi quadrati. Spiega \emph{cosa} stiamo risolvendo.
+
+\begin{itemize}
+  \item Il problema $\min\norm{Ax - y}$ come ``trovare la combinazione lineare di colonne di $A$ più vicina a $y$''.
+  \item Solvibilità: quando $n < m$ (sistema sovradeterminato), la soluzione esatta in generale non esiste.
+  \item Proiezione ortogonale: $Ax^*$ è la proiezione di $y$ sullo spazio colonna di $A$.
+  \item Residuo $r = y - Ax^*$ ortogonale allo spazio colonna: $A^Tr = 0$.
+\end{itemize}
+
+\subsubsection*{\fcolorbox{orange!70!black}{orange!10!white}{\textbf{UTILE}} \quad \texttt{12-conditioning.pdf} (13 pagine)}
+
+Il numero di condizione e il confronto tra algoritmi per i minimi quadrati.
+
+\begin{itemize}
+  \item Confronto di costo: equazioni normali ($\frac{4}{3}n^3$ se $m \approx n$, $mn^2$ se $m \gg n$) vs.\ QR ($2mn^2$) vs.\ SVD ($\approx 13n^3$).
+  \item \emph{Fondamentale:} esempio numerico che mostra come le equazioni normali possono dare risultati imprecisi quando $\kappa(A)$ è grande, mentre QR e SVD sono più stabili.
+  \item Motivo: $\kappa(A^TA) = \kappa(A)^2$, quindi le equazioni normali ``peggiorano il condizionamento al quadrato''.
+\end{itemize}
+
+\subsubsection*{\fcolorbox{orange!70!black}{orange!10!white}{\textbf{UTILE}} \quad \texttt{13-conditioning-least-squares.pdf} (10 pagine)}
+
+Condizionamento specifico del problema dei minimi quadrati.
+
+\begin{itemize}
+  \item Definizione formale di $\kappa(A) = \norm{A}\norm{A^{-1}} = \sigma_{\max}/\sigma_{\min}$.
+  \item Bound sull'errore relativo: $\norm{\tilde{x}-x}/\norm{x} \leq \kappa(A) \cdot \norm{\tilde{y}-y}/\norm{y}$.
+  \item Utile per capire \emph{quando} l'IRLS potrebbe dare risultati imprecisi.
+\end{itemize}
+
+\subsubsection*{\fcolorbox{orange!70!black}{orange!10!white}{\textbf{UTILE}} \quad \texttt{19-lu.pdf} (22 pagine)}
+
+Fattorizzazione LU (eliminazione di Gauss). Background per capire la fattorizzazione di Cholesky (lecture~20).
+
+\begin{itemize}
+  \item $A = LU$: fattorizzazione in matrice triangolare inferiore $\times$ superiore.
+  \item Pivoting per la stabilità numerica.
+  \item Costo: $\frac{2}{3}n^3$ (il doppio di Cholesky, che sfrutta la simmetria).
+\end{itemize}
+
+\subsubsection*{\fcolorbox{orange!70!black}{orange!10!white}{\textbf{UTILE}} \quad \texttt{21-largescale-examples.pdf} (12 pagine)}
+
+Esempi pratici di risoluzione di sistemi lineari di grandi dimensioni.
+
+\begin{itemize}
+  \item Confronto tra Cholesky denso, Cholesky sparso (con riordinamento \texttt{symrcm}), e CG (\texttt{pcg}).
+  \item Mostra che CG può essere ordini di grandezza più veloce di Cholesky per matrici sparse grandi.
+  \item Rilevante per decidere quale solver usare nell'IRLS al variare di $n$.
+\end{itemize}
+
+\subsubsection*{\fcolorbox{orange!70!black}{orange!10!white}{\textbf{UTILE}} \quad \texttt{2-orthogonality.pdf} (14 pagine)}
+
+Norme vettoriali, matrici ortogonali. Background.
+
+\begin{itemize}
+  \item Definizione di norma 2 e norme $p$.
+  \item Matrici ortogonali: $U^TU = I$, preservano la norma 2.
+  \item Proiezioni ortogonali.
+\end{itemize}
+
+\subsubsection*{\fcolorbox{orange!70!black}{orange!10!white}{\textbf{UTILE}} \quad \texttt{7-matrixnorm.pdf} (6 pagine)}
+
+Norme matriciali indotte, norma di Frobenius.
+
+\begin{itemize}
+  \item Definizione di $\norm{A}_2 = \max_{\norm{v}=1} \norm{Av}$.
+  \item $\norm{A}_2 = \sigma_{\max}(A)$ (il più grande valore singolare).
+  \item Proprietà: sub-moltiplicatività $\norm{AB} \leq \norm{A}\norm{B}$.
+\end{itemize}
+
+\subsubsection*{\fcolorbox{green!50!black}{green!10!white}{\textbf{NON NECESSARIO}} \quad Lectures NLA non rilevanti per il progetto}
+
+\begin{itemize}
+  \item \textbf{\texttt{0-intro.pdf} (9 pag.):} Informazioni sul corso. Solo introduttivo.
+  \item \textbf{\texttt{1-linalg.pdf} (18 pag.):} Ripasso di algebra lineare (prodotti matrice-vettore, combinazioni lineari). Prerequisito.
+  \item \textbf{\texttt{6-SVD.pdf} (8 pag.), \texttt{8-lab-SVD.pdf} (22 pag.), \texttt{11-leastsquares-SVD.pdf} (18 pag.):} SVD e applicazioni. Non usata direttamente nel progetto (usiamo Cholesky/CG, non SVD).
+  \item \textbf{\texttt{9-QR.pdf} (16 pag.), \texttt{10-leastsquares-QR.pdf} (6 pag.):} Fattorizzazione QR. Alternativa alle equazioni normali ma non usata nel nostro progetto.
+  \item \textbf{\texttt{14-stability.pdf} (13 pag.), \texttt{15-stability-and-residual.pdf} (10 pag.), \texttt{16-stability-least-squares.pdf} (8 pag.):} Stabilità degli algoritmi, analisi del residuo. Utile per capire se il codice è corretto, ma non necessario per l'implementazione.
+  \item \textbf{\texttt{17-arnoldi.pdf} (11 pag.), \texttt{18-GMRES.pdf} (11 pag.):} Metodi di Krylov per sistemi non-SPD (Arnoldi, GMRES). Non rilevanti: il nostro sistema è sempre SPD.
+\end{itemize}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Tabella riassuntiva: priorità di studio}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{|c|l|c|l|}
+\hline
+\textbf{Prior.} & \textbf{File} & \textbf{Pag.} & \textbf{Argomento per il progetto} \\
+\hline\hline
+\multicolumn{4}{|c|}{\cellcolor{red!10}\textbf{ESSENZIALI --- studiare a fondo}} \\
+\hline
+1 & \texttt{OPT/5-nonsmooth.pdf} & 98 & Subgradiente, deflection, target level \\
+2 & \texttt{OPT/4-smooth.pdf} & 98 & Smooth methods, deflected gradient, $L$-smooth \\
+3 & \texttt{NLA/4-leastsquares-normal.pdf} & 10 & Equazioni normali (cuore IRLS) \\
+4 & \texttt{NLA/20-chol.pdf} & 10 & Cholesky (solver per IRLS) \\
+5 & \texttt{NLA/5-CG.pdf} & 34 & Gradiente Coniugato (solver alternativo) \\
+6 & \texttt{NLA/3-intro-leastsquares.pdf} & 13 & Cosa sono i minimi quadrati \\
+\hline
+\multicolumn{4}{|c|}{\cellcolor{orange!10}\textbf{UTILI --- leggere per contesto}} \\
+\hline
+7 & \texttt{OPT/3-unconstrained.pdf} & 76 & Norme, convessità, condizioni di ottimalità \\
+8 & \texttt{NLA/12-conditioning.pdf} & 13 & Condizionamento, confronto metodi \\
+9 & \texttt{NLA/13-conditioning-LS.pdf} & 10 & $\kappa(A)$, errore relativo \\
+10 & \texttt{NLA/19-lu.pdf} & 22 & LU (background per Cholesky) \\
+11 & \texttt{NLA/21-largescale.pdf} & 12 & Cholesky vs CG in pratica \\
+\hline
+\multicolumn{4}{|c|}{\cellcolor{green!10}\textbf{NON NECESSARI --- saltare}} \\
+\hline
+-- & \texttt{OPT/0,1,2,6,7} & 736 & Intro, univariata, vincolata \\
+-- & \texttt{NLA/0,1,6,8,9,10,11,14--18} & 174 & SVD, QR, GMRES, stabilità \\
+\hline
+\end{tabular}
+\end{center}
+
+\begin{riassunto}
+\textbf{Percorso di studio consigliato:}
+\begin{enumerate}[nosep]
+  \item Inizia da \texttt{OPT/3} (slide 1--16): norme, gradiente, Hessiano, convessità.
+  \item Poi \texttt{NLA/3} e \texttt{NLA/4}: minimi quadrati ed equazioni normali.
+  \item Poi \texttt{NLA/20}: Cholesky. Ora capisci il sotto-problema dell'IRLS.
+  \item Poi \texttt{OPT/4} (slide 9--19): $L$-smoothness, convessità forte, deflected gradient.
+  \item Poi \texttt{NLA/5}: Gradiente Coniugato. Ora capisci i solver alternativi.
+  \item Infine \texttt{OPT/5} (tutte): subgradienti, Polyak, target level, deflected subgradient.
+  \item Opzionale: \texttt{NLA/12-13} per il condizionamento, \texttt{NLA/21} per gli esempi pratici.
+\end{enumerate}
+Totale: circa \textbf{280 pagine} (di slides, non di testo denso), di cui le essenziali sono circa \textbf{175}.
+\end{riassunto}
+
+\begin{thebibliography}{99}
+
+\bibitem{bubeck2015}
+S.\ Bubeck, \emph{Convex Optimization: Algorithms and Complexity}, Foundations and Trends in Machine Learning 8(3--4), 231--357, 2015. arXiv:1405.4980v2.
+
+\bibitem{dantonio2009}
+G.\ d'Antonio, A.\ Frangioni, \emph{Convergence Analysis of Deflected Conditional Approximate Subgradient Methods}, SIAM Journal on Optimization 20(1), 357--386, 2009.
+
+\bibitem{frangioni2020}
+A.\ Frangioni, \emph{Standard Bundle Methods: Untrusted Models and Duality}, in: Numerical Nonsmooth Optimization, Springer, 2020.
+
+\bibitem{nocedal2006}
+J.\ Nocedal, S.J.\ Wright, \emph{Numerical Optimization}, 2nd edition, Springer, 2006.
+
+\bibitem{opt-slides}
+A.\ Frangioni, Slides del corso \emph{Computational Mathematics for Learning and Data Analysis}, sezione Ottimizzazione, A.A.\ 2025/26. In particolare: set~0 (Introduction), set~3 (Unconstrained optimality), set~5 (Nonsmooth unconstrained optimization).
+
+\bibitem{opt-slides-5}
+A.\ Frangioni, \emph{Nonsmooth unconstrained optimization} (slide set~5), Slides del corso CM, A.A.\ 2025/26.
+
+\bibitem{nla-slides}
+F.\ Poloni, Slides del corso \emph{Computational Mathematics for Learning and Data Analysis}, sezione Algebra Lineare Numerica, A.A.\ 2025/26. In particolare: lectures~3--4 (Least squares, Normal equations), lecture~5 (CG), lecture~20 (Cholesky).
+
+\bibitem{opt-notes}
+A.\ Frangioni, \emph{Optimization and Learning --- Notes 25/26}, dispense del corso. Cap.~5: Nonsmooth Convex Unconstrained Optimization (\S5.1.2: Lasso regularisation, \S5.4: Subgradient methods). Cap.~4: Smooth optimization (\S4.3: Deflected gradient methods).
+
+\bibitem{trefethen1997}
+L.N.\ Trefethen, D.\ Bau, \emph{Numerical Linear Algebra}, SIAM, 1997.
+
+\end{thebibliography}
+
+\end{document}

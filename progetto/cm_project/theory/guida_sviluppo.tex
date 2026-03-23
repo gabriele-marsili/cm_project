@@ -1,0 +1,614 @@
+\documentclass[a4paper,11pt]{article}
+
+% ── Packages ──
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[italian]{babel}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{bm}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue!70!black, citecolor=green!50!black, urlcolor=blue!60!black}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{tikz}
+\usepackage{float}
+
+% ── Colored boxes ──
+\newtcolorbox{phasebox}[1]{colback=blue!5!white, colframe=blue!60!black, title={\textbf{#1}}, fonttitle=\large}
+\newtcolorbox{tipbox}{colback=green!5!white, colframe=green!50!black, title={\textbf{Suggerimento}}}
+\newtcolorbox{warnbox}{colback=red!5!white, colframe=red!50!black, title={\textbf{Attenzione}}}
+\newtcolorbox{splitbox}[1]{colback=orange!5!white, colframe=orange!60!black, title={\textbf{Divisione del lavoro: #1}}}
+
+% ── Notation ──
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\sign}{sign}
+\newcommand{\argmin}{\operatornamewithlimits{arg\,min}}
+
+% ══════════════════════════════════════════════════════════════
+\title{\textbf{Guida allo Sviluppo --- Progetto 25}\\[6pt]
+\large Piano di lavoro, struttura del codice e suddivisione tra due persone\\[8pt]
+\normalsize Computational Mathematics for Learning and Data Analysis (646AA)}
+\author{}
+\date{A.A.\ 2025/26}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+% ══════════════════════════════════════════════════════════════
+\section{Panoramica del progetto}
+\label{sec:overview}
+
+Il Progetto~25 richiede di:
+\begin{enumerate}
+  \item \textbf{(M)} Costruire un modello \emph{Extreme Learning Machine} (ELM): una rete neurale a uno strato nascosto con pesi casuali fissi e strato di output appreso tramite un problema LASSO ($L_1$-regolarizzato).
+  \item \textbf{(A1)} Implementare l'algoritmo \emph{Iteratively Reweighted Least Squares} (IRLS) per risolvere il LASSO.
+  \item \textbf{(A2)} Implementare un algoritmo della classe \emph{Deflected Subgradient Methods} per risolvere lo stesso problema.
+  \item Confrontare i due algoritmi in termini di convergenza, accuratezza e efficienza.
+\end{enumerate}
+
+\begin{warnbox}
+\textbf{Vincoli importanti (dal testo del progetto):}
+\begin{itemize}[nosep]
+  \item ``No off-the-shelf solvers allowed'' per la risoluzione del problema LASSO. Si possono usare librerie per operazioni di base (es.\ \texttt{numpy.linalg.solve} per i sotto-sistemi lineari dell'IRLS).
+  \item Il report deve seguire la struttura indicata nelle istruzioni del corso.
+  \item Il codice deve essere ben organizzato, non tutto in un singolo notebook.
+\end{itemize}
+\end{warnbox}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Linguaggio e strumenti consigliati}
+\label{subsec:tools}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{Aspetto} & \textbf{Consiglio} \\
+\midrule
+Linguaggio & Python (con NumPy/SciPy) \\
+Algebra lineare & \texttt{numpy.linalg}, \texttt{scipy.linalg} \\
+Grafici & \texttt{matplotlib} \\
+Dati & \texttt{scikit-learn} (solo per dataset e confronto) \\
+Versioning & \texttt{git} (repo privato!) \\
+Report & \LaTeX \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ══════════════════════════════════════════════════════════════
+\section{Struttura dei file}
+\label{sec:structure}
+
+\begin{verbatim}
+cm_project/
++-- src/
+|   +-- elm.py                  # Classe ELM (modello M)
+|   +-- irls.py                 # Algoritmo A1 (IRLS)
+|   +-- deflected_subgradient.py # Algoritmo A2
+|   +-- lasso_utils.py          # Funzioni comuni (f, grad, ...)
+|   +-- linear_solvers.py       # Cholesky, CG per IRLS
+|   +-- data_generation.py      # Generazione/caricamento dati
++-- experiments/
+|   +-- experiment_convergence.py  # Test convergenza e plot
+|   +-- experiment_comparison.py   # Confronto A1 vs A2
+|   +-- experiment_scalability.py  # Scalabilita'
+|   +-- experiment_params.py       # Studio parametri
++-- notebooks/
+|   +-- workflow.ipynb           # Notebook riassuntivo
++-- results/
+|   +-- figures/                 # Grafici generati
+|   +-- tables/                  # Tabelle CSV con risultati
++-- theory/
+|   +-- guida_teorica.tex
+|   +-- guida_sviluppo.tex
++-- report/
+|   +-- report.tex               # Report finale
++-- README.md
++-- requirements.txt
+\end{verbatim}
+
+% ══════════════════════════════════════════════════════════════
+\section{Piano di lavoro suddiviso in fasi}
+\label{sec:phases}
+
+Il progetto si divide naturalmente in \textbf{6 fasi}. Per ciascuna fase indichiamo i task, le dipendenze, e una proposta di suddivisione del lavoro tra \textbf{Persona A} e \textbf{Persona B}.
+
+% ──────────────────────────────────────────────────────────────
+\begin{phasebox}{Fase 0: Setup e comprensione (1 settimana)}
+
+\textbf{Obiettivi:}
+\begin{itemize}[nosep]
+  \item Comprendere a fondo il testo del progetto e la teoria sottostante.
+  \item Impostare l'ambiente di sviluppo e la struttura dei file.
+  \item Scrivere la sezione teorica del report (``Setting the stage'').
+\end{itemize}
+
+\textbf{Task:}
+\begin{enumerate}[nosep]
+  \item Leggere il testo del progetto e i riferimenti citati (soprattutto d'Antonio--Frangioni 2009 per i deflected subgradient).
+  \item Creare il repository git e la struttura dei file.
+  \item Implementare le funzioni di base in \texttt{lasso\_utils.py}:
+  \begin{itemize}[nosep]
+    \item $f(w) = \norm{Xw - y}_2^2 + \lambda\norm{w}_1$
+    \item Gradiente della parte smooth: $\nabla g(w) = 2X^T(Xw - y)$
+    \item Subgradiente di $f$: $\partial f(w)$
+    \item Metrica di gap/residuo
+  \end{itemize}
+  \item Scrivere le prime sezioni del report (\S 4.2 delle istruzioni).
+\end{enumerate}
+
+\begin{splitbox}{Fase 0}
+\begin{tabularx}{\textwidth}{lX}
+\textbf{Persona A:} & Setup repo, struttura file, implementazione \texttt{lasso\_utils.py}, test unitari. \\
+\textbf{Persona B:} & Studio teoria, prima bozza sezione teorica del report (definizioni, formulazione del problema, condizioni di ottimalità). \\
+\textbf{Insieme:} & Discussione e comprensione del progetto.
+\end{tabularx}
+\end{splitbox}
+\end{phasebox}
+
+% ──────────────────────────────────────────────────────────────
+\begin{phasebox}{Fase 1: Modello ELM e generazione dati (1 settimana)}
+
+\textbf{Obiettivi:}
+\begin{itemize}[nosep]
+  \item Implementare la classe ELM completa.
+  \item Preparare dataset sintetici e reali per i test.
+\end{itemize}
+
+\textbf{Task:}
+\begin{enumerate}[nosep]
+  \item \textbf{Classe ELM} (\texttt{elm.py}):
+  \begin{itemize}[nosep]
+    \item \texttt{\_\_init\_\_(d, p, activation='sigmoid')}: genera $W_1$ casuale.
+    \item \texttt{transform(X\_raw)}: calcola $\sigma(W_1 X_{\text{raw}}^T)$, restituisce la matrice delle feature nascoste.
+    \item \texttt{fit(X\_hidden, y, solver)}: chiama il solver scelto (IRLS o deflected subgradient).
+    \item \texttt{predict(X\_raw)}: applica il modello completo.
+  \end{itemize}
+  \item \textbf{Generazione dati} (\texttt{data\_generation.py}):
+  \begin{itemize}[nosep]
+    \item Dataset sintetici: generare $w^*$ sparso, $X$ casuale, $y = Xw^* + \text{noise}$.
+    \item Variare: dimensione ($n$, $m$), sparsità di $w^*$, livello di rumore.
+    \item Opzionale: dataset reali (es.\ da UCI, sklearn).
+  \end{itemize}
+\end{enumerate}
+
+\begin{tipbox}
+Per la generazione dei dati sintetici, è utile conoscere la soluzione ottima $w^*$ (o almeno $f^*$) per poter valutare il gap. Un modo: generare $w^*$ sparso, calcolare $y = Xw^*$, e usare un solutore esterno (es.\ \texttt{sklearn.linear\_model.Lasso}) per ottenere un riferimento $f^*_{\text{ref}}$.
+\end{tipbox}
+
+\begin{splitbox}{Fase 1}
+\begin{tabularx}{\textwidth}{lX}
+\textbf{Persona A:} & Classe ELM, scelta della funzione di attivazione, test. \\
+\textbf{Persona B:} & Generazione dati sintetici, eventuale importazione dati reali, utilità per il calcolo di $f^*_{\text{ref}}$. \\
+\end{tabularx}
+\end{splitbox}
+\end{phasebox}
+
+% ──────────────────────────────────────────────────────────────
+\begin{phasebox}{Fase 2: Implementazione di A1 --- IRLS (2 settimane)}
+
+\textbf{Obiettivi:}
+\begin{itemize}[nosep]
+  \item Implementare l'algoritmo IRLS completo.
+  \item Implementare i solutori lineari necessari (Cholesky, CG).
+  \item Testare su piccole istanze.
+\end{itemize}
+
+\textbf{Task dettagliati:}
+
+\paragraph{2a. Solutori lineari (\texttt{linear\_solvers.py}):}
+\begin{enumerate}[nosep]
+  \item \textbf{Risoluzione via equazioni normali + Cholesky:}
+  \begin{itemize}[nosep]
+    \item Input: $Q \succ 0$, $b$. Output: $w$ tale che $Qw = b$.
+    \item Si può usare \texttt{scipy.linalg.cho\_factor} / \texttt{cho\_solve}, oppure implementare la propria fattorizzazione.
+    \item \emph{Nota:} \texttt{numpy.linalg.solve} è permesso come sotto-passo.
+  \end{itemize}
+  \item \textbf{Gradiente Coniugato (opzionale ma consigliato):}
+  \begin{itemize}[nosep]
+    \item Implementare CG come descritto nelle slide di NLA, Lecture~5.
+    \item Vantaggioso per grandi $n$ poiché evita di formare $X^TX$ esplicitamente.
+    \item Operazione dominante: prodotto matrice-vettore $Q v$.
+  \end{itemize}
+\end{enumerate}
+
+\paragraph{2b. IRLS (\texttt{irls.py}):}
+\begin{enumerate}[nosep]
+  \item Implementare l'Algoritmo~1 della guida teorica.
+  \item Parametri: $\varepsilon_{\text{thr}}$, $\varepsilon_{\text{stop}}$, $k_{\max}$, tipo di solver lineare.
+  \item Registrare ad ogni iterazione: $f(w_k)$, $\norm{w_{k+1}-w_k}$, tempo CPU.
+  \item \textbf{Inizializzazione:} $w_0 = (X^TX)^{-1}X^Ty$ (minimi quadrati standard) è una buona scelta.
+\end{enumerate}
+
+\paragraph{2c. Test e debug:}
+\begin{enumerate}[nosep]
+  \item Verificare su un piccolo esempio ($n=5$, $m=20$) che IRLS converge.
+  \item Confrontare la soluzione con \texttt{sklearn.linear\_model.Lasso} per validare.
+  \item Verificare che $0 \in \partial f(w^*)$ alla convergenza (controllare le condizioni di ottimalità componentwise).
+\end{enumerate}
+
+\begin{splitbox}{Fase 2}
+\begin{tabularx}{\textwidth}{lX}
+\textbf{Persona A:} & Solutori lineari (Cholesky + CG), test unitari dei solutori. \\
+\textbf{Persona B:} & IRLS completo, integrazione con solutori, test di convergenza e confronto con solutori di riferimento. \\
+\textbf{Insieme:} & Debug, revisione codice reciproca.
+\end{tabularx}
+\end{splitbox}
+
+\begin{warnbox}
+Aspetti critici dell'IRLS:
+\begin{itemize}[nosep]
+  \item Il threshold $\varepsilon_{\text{thr}}$ influenza pesantemente la convergenza e la qualità della soluzione. Testare diversi valori ($10^{-6}$, $10^{-8}$, $10^{-10}$).
+  \item Se $X$ non ha rango pieno, $X^TX$ è singolare: il termine $2\lambda W_k^TW_k$ regolarizza, ma attenzione al condizionamento.
+  \item Pre-calcolare $X^TX$ e $X^Ty$ una volta per tutte (\emph{non} ricalcolarli ad ogni iterazione).
+\end{itemize}
+\end{warnbox}
+\end{phasebox}
+
+% ──────────────────────────────────────────────────────────────
+\begin{phasebox}{Fase 3: Implementazione di A2 --- Deflected Subgradient (2 settimane)}
+
+\textbf{Obiettivi:}
+\begin{itemize}[nosep]
+  \item Implementare l'algoritmo deflected subgradient con target level.
+  \item Calibrare i parametri.
+  \item Testare su piccole istanze e confrontare con A1.
+\end{itemize}
+
+\textbf{Task dettagliati:}
+
+\paragraph{3a. Subgradiente puro (baseline):}
+\begin{enumerate}[nosep]
+  \item Implementare il subgradiente standard con stepsize decrescente ($\alpha^i = c/i$) come baseline di confronto.
+  \item Implementare il Polyak stepsize (usando $f^*_{\text{ref}}$ dal solutore di riferimento).
+  \item Implementare il target level stepsize.
+\end{enumerate}
+
+\paragraph{3b. Deflected subgradient (\texttt{deflected\_subgradient.py}):}
+\begin{enumerate}[nosep]
+  \item Implementare l'Algoritmo~2 della guida teorica.
+  \item Implementare le regole di deflection:
+  \begin{itemize}[nosep]
+    \item Deflection ottimale \eqref{eq:gamma_opt}: formula chiusa come proiezione del minimo quadratico su $[0,1]$.
+    \item Stepsize-restricted con $\beta^i \leq \gamma^i$.
+    \item Deflection-restricted.
+  \end{itemize}
+  \item Registrare ad ogni iterazione: $f(w_i)$, $\bar{f}^i$, target level, $\norm{d^i}$, tempo CPU.
+\end{enumerate}
+
+\paragraph{3c. Formula chiusa per $\gamma^i$:}
+Il problema $\min_{\gamma \in [0,1]} \norm{\gamma g + (1-\gamma) d^{-}}^2$ è un problema quadratico univariato in $\gamma$:
+\[
+  \phi(\gamma) = \gamma^2\norm{g}^2 + 2\gamma(1-\gamma)\langle g, d^{-}\rangle + (1-\gamma)^2\norm{d^{-}}^2.
+\]
+Il minimo non vincolato è:
+\[
+  \gamma^* = \frac{\norm{d^{-}}^2 - \langle g, d^{-}\rangle}{\norm{g}^2 - 2\langle g, d^{-}\rangle + \norm{d^{-}}^2} = \frac{\norm{d^{-}}^2 - \langle g, d^{-}\rangle}{\norm{g - d^{-}}^2}.
+\]
+Poi si proietta su $[0, 1]$: $\gamma^i = \min(1, \max(0, \gamma^*))$.
+
+\paragraph{3d. Test e calibrazione:}
+\begin{enumerate}[nosep]
+  \item Testare su piccole istanze con $f^*$ noto.
+  \item Studiare l'effetto dei parametri $\delta_0$, $\rho$, $R$, $\beta$ sulla convergenza.
+  \item Confrontare subgradiente puro vs.\ deflected subgradient.
+\end{enumerate}
+
+\begin{splitbox}{Fase 3}
+\begin{tabularx}{\textwidth}{lX}
+\textbf{Persona A:} & Subgradiente puro (baseline), implementazione delle diverse stepsize rules. \\
+\textbf{Persona B:} & Deflected subgradient, regole di deflection, formula chiusa per $\gamma$. \\
+\textbf{Insieme:} & Calibrazione parametri, confronti iniziali A1 vs A2.
+\end{tabularx}
+\end{splitbox}
+
+\begin{tipbox}
+Suggerimenti per il debugging del deflected subgradient:
+\begin{itemize}[nosep]
+  \item Verificare che il record value $\bar{f}^i$ sia sempre $\leq f(w_0)$.
+  \item Verificare che la direzione $d^i$ sia una combinazione convessa di $g^i$ e $d^{i-1}$ (se $\gamma^i \in [0,1]$).
+  \item Plottare l'evoluzione di $\gamma^i$ e $\alpha^i$ nel tempo: se $\gamma^i \to 1$ rapidamente, la deflection non sta aiutando.
+  \item Confrontare con il Polyak stepsize (che richiede $f^*$) per verificare che il target level sta funzionando.
+\end{itemize}
+\end{tipbox}
+\end{phasebox}
+
+% ──────────────────────────────────────────────────────────────
+\begin{phasebox}{Fase 4: Esperimenti e analisi (2 settimane)}
+
+\textbf{Obiettivi:}
+\begin{itemize}[nosep]
+  \item Condurre esperimenti sistematici.
+  \item Produrre grafici e tabelle significative.
+  \item Analizzare e commentare i risultati.
+\end{itemize}
+
+\textbf{Esperimenti da condurre:}
+
+\paragraph{4a. Convergenza:}
+\begin{itemize}[nosep]
+  \item Plottare $f(w_k) - f^*$ (o $\bar{f}^k - f^*$) vs.\ iterazioni in scala log-lineare.
+  \item Plottare $f(w_k) - f^*$ vs.\ tempo CPU.
+  \item Verificare il tasso di convergenza (lineare per IRLS, sublineare per deflected subgradient).
+  \item \textbf{Scala logaritmica:} essenziale per osservare la convergenza lineare (appare come retta nel grafico log-lineare).
+\end{itemize}
+
+\paragraph{4b. Scalabilità:}
+\begin{itemize}[nosep]
+  \item Variare $n$ (dimensione del problema): $n = 50, 100, 500, 1000, 5000$.
+  \item Variare $m$ (numero di campioni): $m = 2n, 5n, 10n$.
+  \item Misurare tempo CPU totale e per iterazione.
+  \item Identificare il massimo $n$ risolvibile in tempo ragionevole.
+\end{itemize}
+
+\paragraph{4c. Effetto dei parametri:}
+\begin{itemize}[nosep]
+  \item Per IRLS: effetto di $\varepsilon_{\text{thr}}$ ($10^{-4}$, $10^{-6}$, $10^{-8}$, $10^{-10}$, $10^{-12}$).
+  \item Per A2: effetto di $\delta_0$, $\rho$, $R$, tipo di deflection.
+  \item Effetto di $\lambda$ (regolarizzazione) sulla sparsità e sulla convergenza.
+  \item Per ELM: effetto di $p$ (numero di neuroni nascosti) e della funzione di attivazione.
+\end{itemize}
+
+\paragraph{4d. Confronto A1 vs A2:}
+\begin{itemize}[nosep]
+  \item Confronto iterazioni necessarie per raggiungere $f(w) - f^* \leq \varepsilon$ per diversi $\varepsilon$.
+  \item Confronto tempo CPU per raggiungere la stessa accuratezza.
+  \item Confronto su diverse dimensioni del problema.
+  \item A1 ha iterazioni costose ma poche; A2 ha iterazioni economiche ma molte: chi ``vince''?
+\end{itemize}
+
+\paragraph{4e. Validazione:}
+\begin{itemize}[nosep]
+  \item Confronto con \texttt{sklearn.linear\_model.Lasso} per verificare la correttezza del valore $f^*$.
+  \item Confronto della soluzione $w^*$ (norma della differenza).
+  \item Verifica delle condizioni di ottimalità \eqref{eq:opt_cond}.
+\end{itemize}
+
+\begin{splitbox}{Fase 4}
+\begin{tabularx}{\textwidth}{lX}
+\textbf{Persona A:} & Esperimenti di convergenza e scalabilità per A1 (IRLS). Confronto solutori lineari (Cholesky vs CG). \\
+\textbf{Persona B:} & Esperimenti di convergenza e calibrazione parametri per A2 (deflected subgradient). \\
+\textbf{Insieme:} & Confronto A1 vs A2, grafici finali, analisi dei risultati.
+\end{tabularx}
+\end{splitbox}
+
+\begin{tipbox}
+Per i grafici, seguire le indicazioni del corso (\S 4.6 delle istruzioni):
+\begin{itemize}[nosep]
+  \item Usare scale logaritmiche per residui e gap.
+  \item La convergenza lineare appare come retta in un grafico log-lineare.
+  \item Pochi grafici significativi sono meglio di molti grafici illeggibili.
+  \item Ogni grafico deve avere un \emph{purpose} chiaro.
+\end{itemize}
+\end{tipbox}
+\end{phasebox}
+
+% ──────────────────────────────────────────────────────────────
+\begin{phasebox}{Fase 5: Report e consegna (1--2 settimane)}
+
+\textbf{Obiettivi:}
+\begin{itemize}[nosep]
+  \item Completare il report seguendo la struttura richiesta.
+  \item Preparare il pacchetto di consegna (codice + dati + risultati + report).
+\end{itemize}
+
+\textbf{Struttura del report} (dalle istruzioni del corso, \S 4):
+\begin{enumerate}
+  \item \textbf{Frontespizio:} numero del gruppo, numero del progetto, testo esatto della richiesta.
+  \item \textbf{Descrizione del problema e degli algoritmi (\S 4.2):}
+  \begin{itemize}[nosep]
+    \item Formulazione del problema (ELM + LASSO).
+    \item Breve richiamo della teoria necessaria (non ricopiare le slides!).
+    \item Descrizione degli algoritmi con i dettagli matematici dell'adattamento al problema specifico.
+    \item Motivazione delle scelte fatte.
+  \end{itemize}
+  \item \textbf{Proprietà attese (\S 4.3):}
+  \begin{itemize}[nosep]
+    \item Risultati di convergenza: quali teoremi si applicano? Le ipotesi sono soddisfatte?
+    \item Velocità di convergenza attesa.
+    \item Complessità computazionale.
+  \end{itemize}
+  \item \textbf{Setup sperimentale (\S 4.5):}
+  \begin{itemize}[nosep]
+    \item Descrizione dei dati (sintetici e/o reali).
+    \item Scelta dei parametri algoritmici.
+  \end{itemize}
+  \item \textbf{Risultati sperimentali (\S 4.6):}
+  \begin{itemize}[nosep]
+    \item Grafici e tabelle con commenti.
+    \item Confronto tra gli algoritmi.
+    \item Confronto con solutori di riferimento.
+  \end{itemize}
+\end{enumerate}
+
+\begin{splitbox}{Fase 5}
+\begin{tabularx}{\textwidth}{lX}
+\textbf{Persona A:} & Sezioni del report su A1, risultati sperimentali di IRLS, revisione finale codice. \\
+\textbf{Persona B:} & Sezioni del report su A2, risultati sperimentali del deflected subgradient, README e documentazione. \\
+\textbf{Insieme:} & Sezioni introduttive e conclusive, revisione incrociata completa, preparazione del pacchetto di consegna.
+\end{tabularx}
+\end{splitbox}
+
+\begin{warnbox}
+Dalle istruzioni del corso:
+\begin{itemize}[nosep]
+  \item \textbf{Non} copiare testo da slides, libri, internet. Scrivere con parole proprie.
+  \item \textbf{Non} scrivere lunghi paragrafi su argomenti non rilevanti (es.\ applicazioni pratiche del modello, teoria del ML). Concentrarsi sulla parte \emph{matematica e algoritmica}.
+  \item Citare sempre le fonti: ``Questo teorema è da [X, Theorem Y]''.
+  \item Si consiglia di inviare il report \emph{parziale} ai docenti per feedback prima di completare tutto.
+\end{itemize}
+\end{warnbox}
+\end{phasebox}
+
+% ══════════════════════════════════════════════════════════════
+\section{Riepilogo della divisione del lavoro}
+\label{sec:summary_split}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|c|X|X|c|}
+\hline
+\textbf{Fase} & \textbf{Persona A} & \textbf{Persona B} & \textbf{Durata} \\
+\hline\hline
+0 & Setup, utilities, test & Teoria, bozza report & 1 sett.\ \\
+\hline
+1 & Classe ELM & Dati sintetici e reali & 1 sett.\ \\
+\hline
+2 & Solutori lineari (Cholesky, CG) & IRLS completo & 2 sett.\ \\
+\hline
+3 & Subgradiente puro (baseline) & Deflected subgradient & 2 sett.\ \\
+\hline
+4 & Esperimenti A1 + scalabilità & Esperimenti A2 + parametri & 2 sett.\ \\
+\hline
+5 & Report A1 + revisione & Report A2 + README & 1--2 sett.\ \\
+\hline
+\multicolumn{3}{|r|}{\textbf{Totale stimato}} & \textbf{9--10 sett.} \\
+\hline
+\end{tabularx}
+\end{center}
+
+\begin{tipbox}
+La suddivisione è indicativa. L'aspetto cruciale è che entrambe le persone comprendano \emph{entrambi} gli algoritmi, poiché l'esame orale può vertere su qualsiasi parte del progetto.
+\end{tipbox}
+
+% ══════════════════════════════════════════════════════════════
+\section{Dettagli implementativi}
+\label{sec:implementation}
+
+\subsection{Funzioni comuni (\texttt{lasso\_utils.py})}
+\label{subsec:lasso_utils}
+
+\begin{verbatim}
+import numpy as np
+
+def f_lasso(X, y, w, lam):
+    """Funzione obiettivo: ||Xw - y||^2 + lambda * ||w||_1"""
+    residual = X @ w - y
+    return np.dot(residual, residual) + lam * np.sum(np.abs(w))
+
+def grad_smooth(X, y, w):
+    """Gradiente della parte smooth: 2 X^T (Xw - y)"""
+    return 2 * X.T @ (X @ w - y)
+
+def subgradient_f(X, y, w, lam):
+    """Un subgradiente di f in w"""
+    g_smooth = grad_smooth(X, y, w)
+    # Per w_i != 0, sign(w_i); per w_i = 0, scegli 0
+    s = np.sign(w)  # np.sign(0) = 0
+    return g_smooth + lam * s
+
+def optimality_gap(X, y, w, lam, f_star):
+    """Gap rispetto all'ottimo (se noto)"""
+    return f_lasso(X, y, w, lam) - f_star
+\end{verbatim}
+
+\subsection{Pre-calcolo di \texorpdfstring{$X^TX$}{XTX} e \texorpdfstring{$X^Ty$}{XTy}}
+Per l'IRLS, pre-calcolare:
+\begin{verbatim}
+XtX = X.T @ X      # O(mn^2), fatto una sola volta
+Xty = X.T @ y      # O(mn), fatto una sola volta
+\end{verbatim}
+Ad ogni iterazione IRLS, il sistema diventa $(X^TX + 2\lambda W_k^2) w = X^Ty$, dove $W_k^2$ è diagonale e va solo aggiunta alla diagonale di $X^TX$.
+
+\subsection{Criteri di arresto}
+
+\paragraph{Per IRLS:}
+\begin{itemize}[nosep]
+  \item Convergenza relativa: $\norm{w_{k+1} - w_k} / \max(1, \norm{w_k}) < \varepsilon$.
+  \item Numero massimo di iterazioni.
+  \item (Opzionale) Variazione relativa di $f$: $|f(w_{k+1}) - f(w_k)| / |f(w_k)| < \varepsilon$.
+\end{itemize}
+
+\paragraph{Per Deflected Subgradient:}
+\begin{itemize}[nosep]
+  \item Numero massimo di iterazioni (principale).
+  \item Gap stimato $\bar{f}^i - (f_{\text{ref}} - \delta) < \varepsilon$ (poco affidabile in pratica).
+  \item Tempo CPU massimo.
+\end{itemize}
+
+\subsection{Suggerimenti numerici}
+
+\begin{enumerate}
+  \item \textbf{Evitare la formazione esplicita di $X^TX$ se possibile.} Per CG, il prodotto $(X^TX + D)v$ si può calcolare come $X^T(Xv) + Dv$ senza mai formare $X^TX$.
+
+  \item \textbf{Seed casuale fisso.} Per la riproducibilità, fissare \texttt{np.random.seed(42)} (o usare \texttt{np.random.RandomState}).
+
+  \item \textbf{Misura del tempo.} Usare \texttt{time.perf\_counter()} per misurare i tempi CPU. Non includere il tempo di generazione dei dati o di calcolo delle metriche nel tempo dell'algoritmo.
+
+  \item \textbf{Warm starting.} Usare la soluzione dell'esecuzione precedente come punto iniziale quando si cambia un parametro (es.\ $\lambda$).
+
+  \item \textbf{Normalizzazione dei dati.} Normalizzare le colonne di $X$ (media 0, varianza 1) può migliorare il condizionamento e la convergenza.
+\end{enumerate}
+
+% ══════════════════════════════════════════════════════════════
+\section{Checklist finale}
+\label{sec:checklist}
+
+Prima della consegna, verificare:
+\begin{enumerate}[label=\fbox{\phantom{X}}, leftmargin=2cm]
+  \item Il codice gira senza errori partendo da zero (testare su una macchina ``pulita'').
+  \item Il README spiega come eseguire il codice e riprodurre i risultati.
+  \item I grafici nel report sono leggibili e con scale logaritmiche dove appropriato.
+  \item Ogni grafico ha un ``purpose'' chiaro e viene commentato nel testo.
+  \item Le fonti teoriche sono citate con precisione (numero di teorema/pagina).
+  \item Le condizioni dei teoremi usati sono discusse (ipotesi soddisfatte o no?).
+  \item Il confronto con un solutore di riferimento è presente per validazione.
+  \item I parametri algoritmici sono stati studiati e le scelte sono motivate.
+  \item Il report è stato inviato parzialmente ai docenti per feedback (consigliato!).
+  \item Il questionario di valutazione del corso è stato compilato.
+  \item Il repository \textbf{non} è pubblico.
+\end{enumerate}
+
+% ══════════════════════════════════════════════════════════════
+\section{Timeline visuale}
+\label{sec:timeline}
+
+\begin{center}
+\begin{tikzpicture}[x=1.4cm, y=0.8cm]
+  % Grid
+  \foreach \x in {0,...,10} {
+    \draw[gray!30] (\x, -0.5) -- (\x, 6.5);
+    \node[below, font=\footnotesize] at (\x, -0.5) {Sett.\ \x};
+  }
+
+  % Bars
+  \fill[blue!30] (0, 5.5) rectangle (1, 6.2);
+  \node[right, font=\small] at (0.05, 5.85) {Fase 0: Setup};
+
+  \fill[green!30] (1, 4.5) rectangle (2, 5.2);
+  \node[right, font=\small] at (1.05, 4.85) {Fase 1: ELM + Dati};
+
+  \fill[orange!30] (2, 3.5) rectangle (4, 4.2);
+  \node[right, font=\small] at (2.05, 3.85) {Fase 2: IRLS (A1)};
+
+  \fill[red!30] (3, 2.5) rectangle (5, 3.2);
+  \node[right, font=\small] at (3.05, 2.85) {Fase 3: Defl.\ Subgrad (A2)};
+
+  \fill[purple!30] (5, 1.5) rectangle (7, 2.2);
+  \node[right, font=\small] at (5.05, 1.85) {Fase 4: Esperimenti};
+
+  \fill[cyan!30] (7, 0.5) rectangle (9, 1.2);
+  \node[right, font=\small] at (7.05, 0.85) {Fase 5: Report};
+
+  % Milestones
+  \draw[thick, dashed, red] (4, -0.3) -- (4, 6.5);
+  \node[above, font=\footnotesize\bfseries, red] at (4, 6.5) {Invio parziale};
+
+  \draw[thick, dashed, red] (9, -0.3) -- (9, 6.5);
+  \node[above, font=\footnotesize\bfseries, red] at (9, 6.5) {Consegna};
+\end{tikzpicture}
+\end{center}
+
+\begin{tipbox}
+Le fasi 2 e 3 sono parzialmente sovrapponibili: A e B possono lavorare in parallelo sui due algoritmi. Si consiglia di inviare il report parziale (sezione teorica + primi risultati di A1) dopo la settimana 4 per ricevere feedback.
+\end{tipbox}
+
+\end{document}

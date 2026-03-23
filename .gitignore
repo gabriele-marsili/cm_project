@@ -1,0 +1,9 @@
+.DS_Store
+.bg-shell/
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+__pycache__/
+*.pyc
