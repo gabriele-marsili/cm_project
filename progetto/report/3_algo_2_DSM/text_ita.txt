@@ -1,0 +1,235 @@
+Capitolo 3 – Algoritmo 2: Deflected Subgradient Method
+=====================================================
+
+
+[3.1 Motivazione: i limiti del metodo del subgradiente puro]
+
+Il punto di partenza per l'algoritmo A2 è il metodo del subgradiente, l'estensione naturale del metodo del gradiente a funzioni convesse non differenziabili. La regola di aggiornamento è analoga a quella del gradiente:
+    x^{i+1} = x^i - alpha^i * g^i,    g^i in partial_f(x^i),
+dove g^i è un subgradiente qualsiasi di f nel punto corrente.
+
+Questo metodo presenta però un problema strutturale: utilizza esclusivamente l'informazione locale (il subgradiente nel punto corrente) e non conserva alcuna memoria delle iterazioni precedenti. Il risultato è un comportamento a zig-zag, in cui l'algoritmo oscilla ripetutamente tra direzioni opposte, causando una convergenza estremamente lenta.
+
+Questo difetto è analogo a quello del metodo del gradiente per funzioni lisce mal condizionate, dove le direzioni coniugate (Heavy Ball, gradiente coniugato) risolvono il problema mescolando la direzione corrente con quella precedente. Nel caso non-smooth, l'analogo è la deflection.
+
+
+[3.2 L'idea della deflection]
+
+I metodi basati su Deflected Subgradient (cf. d'Antonio-Frangioni 2009; OPT slide 15, set 5) sostituiscono il subgradiente puro g^i con una direzione deflessa d^i, definita come combinazione convessa tra il subgradiente corrente e la direzione al passo precedente:
+
+    d^i = gamma^i * g^i + (1 - gamma^i) * d^{i-1},    d^0 = g^0
+
+con gamma^i in (0, 1] detto parametro di deflection. L'aggiornamento dell'iterata diventa:
+
+    x^{i+1} = x^i - alpha^i * d^i
+
+Il parametro gamma^i controlla il bilanciamento tra informazione corrente e memoria:
+• gamma^i = 1: si utilizza solo il subgradiente corrente (subgradiente puro). Massima reattività all'informazione locale, ma comportamento oscillatorio.
+• gamma^i piccolo: la direzione è dominata da d^{i-1}, producendo un percorso più liscio ma con il rischio di ignorare informazioni rilevanti provenienti dal subgradiente corrente.
+• gamma^i intermedio: rappresenta il miglior compromesso tra reattività e regolarità del percorso.
+
+
+[3.3 Condizioni di convergenza: bilanciare deflection e stepsize]
+
+La scelta congiunta di gamma^i (deflection) e alpha^i (stepsize) deve essere fatta con attenzione: se entrambi i parametri sono troppo grandi, l'algoritmo può divergere. Le condizioni di convergenza garantiscono che le due scelte siano bilanciate. Esistono due approcci complementari (cf. OPT slide 15, set 5).
+
+--- Approccio 1: Stepsize-restricted ---
+
+La deflection gamma^i viene scelta liberamente, ed è lo stepsize alpha^i ad essere vincolato mediante una forma di Polyak stepsize:
+
+    alpha^i = beta^i * (f(x^i) - f*) / ||d^i||^2,    con beta^i <= gamma^i
+
+La condizione beta^i <= gamma^i impone che il passo sia tanto più piccolo quanto più la deflection è forte (gamma^i piccolo). La motivazione è che una deflection elevata (gamma piccolo) introduce nella direzione una componente "vecchia" d^{i-1}, che potrebbe non essere più una direzione di discesa: è quindi necessario compensare con un passo più cauto.
+
+--- Approccio 2: Deflection-restricted ---
+
+Lo stepsize alpha^i viene scelto a priori (ad esempio tramite una regola DSS), e la deflection gamma^i è vincolata dal basso:
+
+    gamma^i >= (alpha^{i-1} * ||d^{i-1}||^2) / ((f(x^i) - f*) + alpha^{i-1} * ||d^{i-1}||^2)
+
+È istruttivo analizzare il comportamento asintotico di questa formula. Quando l'algoritmo converge (f(x^i) -> f*), il numeratore (f(x^i) - f*) tende a zero, per cui numeratore e denominatore della frazione divengono pressoché uguali. Di conseguenza gamma^i -> 1, il che significa che vicino alla soluzione la deflection scompare e ci si ricade nel subgradiente puro. Questo è coerente: lontano dalla soluzione la deflection aiuta a "lisciare" il percorso, ma vicino alla soluzione è preferibile sfruttare l'informazione locale del subgradiente.
+
+
+[3.4 Scelta ottimale della deflection gamma^i]
+
+Per ogni iterazione, il parametro di deflection ottimale può essere determinato minimizzando la norma della direzione deflessa:
+
+    gamma^i in argmin { ||gamma * g^i + (1 - gamma) * d^{i-1}||^2 : gamma in [0, 1] }
+
+La motivazione è la seguente: nelle formule del Polyak stepsize, lo stepsize è inversamente proporzionale a ||d^i||^2. Pertanto, minimizzare la norma della direzione massimizza la lunghezza del passo e quindi il progresso per iterazione. Si cerca cioè la direzione "più efficiente" tra tutte le combinazioni convesse di g^i e d^{i-1}.
+
+Il problema è un problema quadratico in una singola variabile vincolata a [0, 1] e ammette soluzione in forma chiusa. Definendo phi(gamma) = ||gamma * g + (1 - gamma) * d^{-}||^2, si ha:
+
+    phi(gamma) = gamma^2 * ||g||^2 + 2 * gamma * (1 - gamma) * <g, d^{-}> + (1 - gamma)^2 * ||d^{-}||^2
+
+Il minimo non vincolato si ottiene ponendo phi'(gamma) = 0:
+
+    gamma* = (||d^{-}||^2 - <g, d^{-}>) / (||g - d^{-}||^2)
+
+La soluzione vincolata è data dalla proiezione su [0, 1]:
+
+    gamma^i = min(1, max(0, gamma*))
+
+
+[3.5 Il problema di f* e il meccanismo di target level]
+
+Il Polyak stepsize nella sua formulazione originale richiede la conoscenza del valore ottimo f*, che è esattamente la quantità che si sta cercando di determinare. Dalla relazione fondamentale (OPT slide 10, set 5):
+
+    ||x^{i+1} - x*||^2 <= ||x^i - x*||^2 - 2 * alpha^i * (f(x^i) - f*) + (alpha^i)^2 * ||g^i||^2
+
+la scelta alpha^i = (f(x^i) - f*) / ||g^i||^2 è quella che garantisce la massima riduzione della distanza dal minimo ad ogni passo. Tuttavia, per poterla utilizzare, f* deve essere noto.
+
+Il meccanismo di target level (cf. OPT slide 14, set 5) risolve questo problema mantenendo una stima f_lev = f_ref - delta di f*, dove:
+• f_ref è il miglior valore di f trovato fino all'iterazione corrente (record value);
+• delta > 0 è un margine di miglioramento atteso, che rappresenta la "speranza" di quanto ancora si possa migliorare.
+
+Il comportamento del meccanismo è il seguente:
+• Se la stima è accurata, ossia f_ref - delta è circa f*, l'algoritmo fa progressi normali.
+• Se la stima è troppo ottimista, ossia f_ref - delta < f*, i passi nella formula di Polyak divengono negativi o estremamente piccoli (poiché f(x^i) - f_lev potrebbe essere negativo o quasi nullo) e l'algoritmo non progredisce. In questo caso, dopo un certo numero di iterazioni senza miglioramento significativo, delta viene ridotto (moltiplicandolo per rho < 1) e si riprova con un target meno ambizioso.
+
+
+[3.6 L'algoritmo completo]
+
+L'algoritmo Deflected Subgradient con Target Level è il seguente (cf. OPT slide 14, set 5; d'Antonio-Frangioni 2009):
+
+Input: f, w_0, i_max, beta in (0, 2), delta_0 > 0, R > 0, rho in (0, 1)
+Inizializzazione: r <- 0; delta <- delta_0; f_ref <- f_bar <- f(w_0); d_{-1} <- 0
+
+Per i = 0, 1, ..., i_max:
+    1. Calcolare g in partial_f(w_i)                            [subgradiente]
+    2. Calcolare gamma_i tramite la formula di ottimizzazione    [deflection ottimale]
+    3. d_i <- gamma_i * g + (1 - gamma_i) * d_{i-1}             [direzione deflessa]
+    4. alpha_i <- beta * (f(w_i) - (f_ref - delta)) / ||d_i||^2 [Polyak con target level]
+    5. w_{i+1} <- w_i - alpha_i * d_i                            [aggiornamento iterata]
+    6. Se f(w_{i+1}) <= f_ref - delta/2:                         [miglioramento significativo]
+           f_ref <- f_bar; r <- 0
+       Altrimenti, se r > R:                                     [troppo senza miglioramenti]
+           delta <- delta * rho; r <- 0
+       Altrimenti:
+           r <- r + alpha_i * ||d_i||                             [accumula distanza percorsa]
+    7. f_bar <- min(f_bar, f(w_{i+1}))                           [aggiorna record value]
+
+Output: w_best, il punto corrispondente al miglior f_bar.
+
+L'algoritmo mantiene tre quantità chiave:
+• f_bar: il record value, ossia il miglior valore di f trovato durante l'intera esecuzione. Poiché il metodo è non monotono, è questa la quantità che converge ed è l'output effettivo dell'algoritmo.
+• f_ref - delta: il target level, ossia la stima corrente di f* utilizzata nella formula del Polyak stepsize.
+• r: un contatore della distanza percorsa lungo il cammino senza miglioramenti significativi. Quando r supera la soglia R, il target viene considerato troppo ottimista e delta viene ridotto.
+
+
+[3.7 Parametri e relativa importanza]
+
+All'interno dell'algoritmo vengono utilizzati diversi parametri la cui calibrazione è cruciale per le prestazioni:
+
+• delta_0 (stima iniziale del gap): stima di f(w_0) - f*. Se impostato troppo grande, il target f_ref - delta risulta troppo basso, producendo passi enormi e instabilità; se troppo piccolo, i passi sono insufficienti a garantire progressi significativi. Una scelta ragionevole è delta_0 = c * f(w_0) con c in [0.01, 0.5], oppure basata su una stima grossolana del gap.
+
+• rho in (0, 1) (tasso di riduzione di delta): controlla la velocità con cui il target viene reso meno ambizioso. Valori tipici sono rho = 0.95 (riduzione lenta, più iterazioni ma target più accurato) o rho = 0.9 (riduzione più aggressiva). Il valore ottimale dipende dal problema.
+
+• R > 0 (soglia di pazienza): misura la distanza percorsa senza miglioramenti prima di ridurre delta. Un valore troppo piccolo causa riduzioni premature di delta (target troppo conservativo); troppo grande ritarda l'adattamento del target.
+
+• beta in (0, 2) (modulazione del passo): scala l'ampiezza del passo di Polyak. La scelta naturale è beta = 1. Valori in (1, 2) producono passi più aggressivi (potenzialmente più veloci ma meno stabili); valori in (0, 1) passi più conservativi.
+
+
+[3.8 Applicazione al nostro problema: calcolo del subgradiente]
+
+Per applicare il Deflected Subgradient Method al problema del progetto, ossia
+
+    f(w) = ||Xw - y||_2^2 + lambda * ||w||_1
+
+è necessario calcolare un subgradiente g in partial_f(w) ad ogni iterazione. Poiché f è somma di due funzioni convesse, per la regola della somma del subdifferenziale (cf. OPT slide 7, set 5) si ha:
+
+    partial_f(w) = nabla g(w) + lambda * partial ||w||_1
+
+dove nabla g(w) = 2 * X^T(Xw - y) è il gradiente della parte liscia (che esiste ovunque), e partial ||w||_1 è il subdifferenziale della norma L_1, calcolato componente per componente.
+
+Un subgradiente di f in w è quindi:
+
+    g = 2 * X^T(Xw - y) + lambda * s
+
+dove s in R^n ha componenti:
+
+    s_i = +1          se w_i > 0
+    s_i = -1          se w_i < 0
+    s_i in [-1, +1]   se w_i = 0
+
+Quando w_i = 0, la scelta standard è s_i = 0. Questa corrisponde all'elemento di norma minima del subdifferenziale partial |w_i| e punta nella direzione di massima discesa per la componente i-esima (cf. OPT slide 5, set 5: la steepest descent direction è s_* = -argmin{||s|| : s in partial_f(x)}).
+
+Calcolo passo per passo:
+
+1. Si calcola il residuo: r = Xw - y                               [costo O(mn)]
+   Questo richiede il prodotto matrice-vettore Xw (m moltiplicazioni scalari per ognuna delle n colonne) e poi la sottrazione di y.
+
+2. Si calcola il gradiente della parte liscia: nabla g = 2 * X^T r  [costo O(mn)]
+   Questo è il secondo prodotto matrice-vettore, con la trasposta X^T.
+
+3. Si calcola il vettore s componente per componente:                [costo O(n)]
+   Per ogni i: s_i = sign(w_i) se w_i != 0, s_i = 0 se w_i = 0.
+
+4. Si assembla il subgradiente: g = nabla g + lambda * s            [costo O(n)]
+
+Il costo totale per iterazione è O(mn), dominato dai due prodotti matrice-vettore. Questo è significativamente inferiore al costo O(n^3/3) di una singola iterazione IRLS, che richiede la fattorizzazione di Cholesky di un sistema n x n (o O(k * n^2) con il gradiente coniugato troncato a k iterazioni).
+
+
+[3.9 Convergenza]
+
+La convergenza del Deflected Subgradient Method è garantita dal seguente risultato.
+
+Teorema (Convergenza del Deflected Subgradient; cf. d'Antonio-Frangioni 2009; OPT slide 13-15, set 5).
+Sia f : R^n -> R convessa e sia {w_i} la sequenza generata dall'algoritmo con le condizioni di convergenza soddisfatte (stepsize-restricted con beta^i <= gamma^i, oppure deflection-restricted). Assumendo che i subgradienti siano uniformemente limitati, ossia esiste L > 0 tale che ||g^i|| <= L per ogni i, allora la sequenza dei record values
+
+    f_bar^i = min_{h <= i} f(w_h)
+
+converge al valore ottimo f*, ossia f_bar^i -> f* per i -> infinito.
+
+La complessità nel caso peggiore è O(1/epsilon^2): per ottenere f_bar^i - f* <= epsilon sono necessarie al più O(L^2 / epsilon^2) iterazioni.
+
+Dimostrazione (schema). La dimostrazione si basa sulla relazione fondamentale adattata al caso deflesso. La relazione fondamentale per il subgradiente puro (OPT slide 10, set 5) afferma:
+
+    ||x^{i+1} - x*||^2 = ||x^i - alpha^i * g^i - x*||^2
+                        = ||x^i - x*||^2 - 2 * alpha^i * <g^i, x^i - x*> + (alpha^i)^2 * ||g^i||^2
+                        <= ||x^i - x*||^2 - 2 * alpha^i * (f(x^i) - f*) + (alpha^i)^2 * ||g^i||^2
+
+dove l'ultimo passaggio utilizza la disuguaglianza del subgradiente: f(x*) >= f(x^i) + <g^i, x* - x^i>, da cui <g^i, x^i - x*> >= f(x^i) - f*.
+
+Nel caso deflesso, la direzione d^i sostituisce g^i. Le condizioni di convergenza (stepsize-restricted o deflection-restricted) garantiscono che la relazione fondamentale continui a valere in forma analoga per la direzione deflessa, ossia che il termine "buono" -2 * alpha^i * (f(x^i) - f*) domini il termine "cattivo" (alpha^i)^2 * ||d^i||^2 in media.
+
+Con il Polyak stepsize e sotto la condizione beta^i <= gamma^i:
+• Il record value f_bar^i è non crescente per costruzione.
+• Sommando la relazione fondamentale su i = 1, ..., k e usando il fatto che ||x^{k+1} - x*||^2 >= 0, si ottiene il bound di convergenza (cf. OPT slide 13, set 5):
+
+    f_bar^k - f* <= L * ||x^1 - x*|| / sqrt(k)
+
+che, risolvendo per k, dà k >= L^2 * ||x^1 - x*||^2 / epsilon^2 = O(1/epsilon^2).
+
+Osservazioni:
+• Converge la sequenza dei record values f_bar^i, non necessariamente la sequenza delle iterate w_i. Il metodo è intrinsecamente non monotono: f(w_{i+1}) > f(w_i) può accadere frequentemente. Ciò discende dalla relazione fondamentale: la distanza dal minimo ||x^i - x*|| diminuisce, ma il valore f(x^i) può oscillare. Per questo motivo l'algoritmo restituisce il miglior punto trovato, non l'ultimo.
+
+• La complessità O(1/epsilon^2) è identica a quella del metodo del subgradiente puro. Questo è un limite intrinseco dell'ottimizzazione non differenziabile (cf. OPT slide 8, set 5): per funzioni convesse non in C^1, Lipschitz-continue, il lower bound è Omega(L^2/epsilon^2), e il metodo è quindi ottimale nel caso peggiore. La deflection non migliora la complessità worst-case, ma migliora significativamente il comportamento pratico riducendo le oscillazioni.
+
+• Per confronto, nel caso smooth e fortemente convesso la complessità è O(log(1/epsilon)), ossia esponenzialmente migliore. In concreto (cf. OPT slide 12, set 5): passare da epsilon = 10^{-3} a epsilon = 10^{-4} con un metodo a subgradiente richiede (10^{-3}/10^{-4})^2 = 100 volte più iterazioni.
+
+
+Verifica delle ipotesi per il nostro problema:
+
+1) Convessità: f(w) = ||Xw - y||_2^2 + lambda * ||w||_1 è convessa, essendo somma di una funzione convessa liscia (g, con Hessiano 2 * X^T X >= 0) e di una norma (convessa). Se X ha rango pieno per colonne, f è strettamente convessa e il minimo è unico.
+
+2) Limitatezza dei subgradienti: il termine lambda * s ha norma limitata da lambda * sqrt(n) (poiché |s_i| <= 1 per ogni i). Il termine 2 * X^T(Xw - y) cresce linearmente con ||w||, per cui f non è globalmente Lipschitz-continua su tutto R^n. Tuttavia, l'analisi di convergenza richiede solo che i subgradienti siano uniformemente limitati lungo la sequenza generata dall'algoritmo, ossia ||g^i|| <= L per ogni i (cf. OPT slide 11, set 5). Questa condizione è soddisfatta nella pratica: le iterate restano confinate in un insieme limitato (il target level impedisce passi arbitrariamente grandi), e quindi ||g^i|| è uniformemente limitato.
+
+
+[3.10 Proprietà attese dalla teoria]
+
+Sulla base dell'analisi teorica, ci si attende il seguente comportamento dall'algoritmo:
+
+• Convergenza non monotona: il valore f(w_i) oscilla, potenzialmente anche in modo significativo, durante l'esecuzione. La quantità da monitorare è il record value f_bar^i, che decresce monotonamente per costruzione. In un grafico di convergenza è essenziale tracciare f_bar^i e non f(w_i).
+
+• Convergenza sublineare: in un grafico semilogaritmico (log(f_bar^i - f*) contro iterazioni), la curva tende ad "appiattirsi" progressivamente: i miglioramenti iniziali sono rapidi, ma il progresso rallenta ad ogni decade di precisione. Questo è in contrasto con la convergenza tipicamente lineare dell'IRLS, che in scala semilogaritmica produce una retta. La ragione è la complessità O(1/epsilon^2): raddoppiare la precisione richiede circa quadruplicare il numero di iterazioni.
+
+• Difficoltà ad alta accuratezza: raggiungere gap f_bar^i - f* inferiori a 10^{-4} richiede un numero proibitivo di iterazioni, a causa della complessità O(1/epsilon^2). Concretamente (OPT slide 12, set 5): se per raggiungere epsilon = 10^{-3} servono N iterazioni, per epsilon = 10^{-4} ne servono circa 100 * N. Questo è un limite teorico dell'approccio, non un difetto implementativo.
+
+• Costo per iterazione basso: ogni iterazione costa O(mn), dominato dai due prodotti matrice-vettore. Questo rende il metodo competitivo in termini di tempo CPU quando è sufficiente una bassa accuratezza, in particolare per problemi di grandi dimensioni dove il costo O(n^3) dell'IRLS diventa proibitivo.
+
+• Sensibilità ai parametri: le prestazioni dipendono dalla calibrazione di delta_0, rho, R e beta. Una cattiva scelta può portare a convergenza estremamente lenta (delta troppo piccolo, passi insufficienti) o a instabilità (delta troppo grande, passi eccessivi). È raccomandabile una fase di tuning sui parametri.
+
+• Assenza di un criterio di arresto affidabile: a differenza dei metodi smooth dove ||nabla f(x*)|| = 0 al minimo e la norma del gradiente è un criterio di arresto naturale, nel caso non-smooth la norma del subgradiente ||g^i|| può rimanere grande anche in prossimità dell'ottimo (cf. OPT slide 9, set 5). L'unico criterio pratico è monitorare il progresso del record value e interrompere dopo un budget prefissato di iterazioni o quando f_bar^i non migliora più in modo apprezzabile.
+
+• Sparsità approssimata: a differenza dell'IRLS (che, grazie alla struttura dei minimi quadrati pesati, tende a produrre componenti esattamente zero), il DSM produce soluzioni in cui le componenti "piccole" sono prossime a zero ma raramente esattamente nulle. Può essere necessaria una soglia di post-processing per azzerare le componenti al di sotto di una certa tolleranza.

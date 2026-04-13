@@ -1,0 +1,106 @@
+\documentclass{report}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{hyperref}
+\usepackage{emptypage}
+\usepackage{amssymb}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{scrlayer-scrpage}
+\usepackage{hyperref}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{afterpage}
+\usepackage{emptypage}
+\usepackage{amsthm}
+\usepackage{mathtools}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{algorithm,algpseudocode}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\abs}[1]{\left\lvert #1 \right\rvert}
+\newcommand{\inner}[2]{\left\langle #1,\, #2 \right\rangle}
+\newcommand{\T}{^{\top}}
+\DeclareMathOperator{\sign}{sign}
+\newcommand{\argmin}{\operatornamewithlimits{arg\,min}}
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand\blankpage{%
+    \null
+    \thispagestyle{empty}%
+    \addtocounter{page}{-1}%
+    \newpage}
+\ifoot[]{}
+\cfoot[]{}
+\ofoot[\pagemark]{\pagemark}
+\pagestyle{scrplain}
+
+
+\graphicspath{{../images/}}
+
+\begin{document}
+
+\begin{titlepage}
+\begin{figure}
+    \centering\includegraphics[scale=0.5]{cherubino_pant541.png}
+\end{figure}
+
+
+\begin{center}
+    {\LARGE{\textsc{ University of Pisa \\}}}
+    {\Large{\textsc{ Master's Degree in Computer Science, Artificial Intelligence \\}}}
+    \vspace{2cm}
+\end{center}
+
+\begin{center}
+    {\Large { \textbf{Computational Mathematics for Learning \& Data Analysis (646AA)} }}
+    
+    % \vspace{1cm}
+
+    % {\Large { \textbf{} }}
+\end{center}
+
+\vspace{2cm}
+
+\begin{minipage}[t]{0.47\textwidth}
+	{\large{\bf Group number: 63\\\\Members: \\ Matthew Bernardi\\ Gabriele Marsili }}
+\end{minipage}
+
+\vspace{25mm}
+
+\centering{\large{\textsc{Academic Year: 2025/2026}}}
+\end{titlepage}
+
+\tableofcontents
+\thispagestyle{empty}
+
+
+
+\setcounter{page}{1}
+\addtocontents{toc}{\protect\thispagestyle{empty}}
+
+
+
+\input{1_introduction/report}
+
+\input{2_algo_1_IRLS/algo1}
+
+\input{3_algo_2_DSM/chapter3}
+
+\input{4_algo_comparison/comparison}
+
+\input{implementation}
+
+\input{results}
+
+\input{conclusions}
+
+
+\end{document}

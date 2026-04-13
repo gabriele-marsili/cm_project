@@ -1,0 +1,206 @@
+\chapter{Experimental Results}
+\label{chap:results}
+
+This chapter reports numerical experiments that validate the theoretical
+predictions of Chapters~\ref{chap:irls}--\ref{chap:comparison} and characterise
+the practical behaviour of IRLS and DSM on the ELM LASSO problem.
+All experiments use the synthetic data generator described in
+Section~\ref{sec:impl_data} and are reproducible via the scripts in
+\texttt{experiments/}.
+
+% ------------------------------------------------------------------
+\section{Experimental setup}
+\label{sec:results_setup}
+
+Unless stated otherwise, the base configuration is:
+\begin{itemize}[nosep]
+    \item Problem size: $n = 100$ features (hidden neurons), $M = 300$--$400$ samples.
+    \item Sparsity: $10\%$ non-zero components in $\mathbf{w}_{\mathrm{true}}$.
+    \item Noise: $\sigma = 0.05$.
+    \item Regularisation: $\lambda = 0.1$.
+    \item IRLS: $\varepsilon_{\mathrm{thr}} = 10^{-8}$, $\varepsilon_{\mathrm{stop}} = 10^{-10}$,
+    $k_{\max} = 100$, Cholesky solver.
+    \item DSM: $\beta = 1.0$, $\delta_0 = 0.1 f^*$, $\rho = 0.95$, $i_{\max} = 8000$.
+\end{itemize}
+The reference optimum $f^*$ is computed once by scikit-learn's \texttt{Lasso}
+to machine precision (Section~\ref{sec:impl_data}).
+
+% ------------------------------------------------------------------
+\section{Convergence analysis}
+\label{sec:results_convergence}
+
+\paragraph{Gap vs.\ iterations.}
+Figure~\ref{fig:conv_iter} shows the optimality gap $f(\mathbf{w}_k) - f^*$ on a
+semilogarithmic scale.
+IRLS exhibits the expected \textbf{linear convergence}: the curve is nearly straight,
+confirming the geometric decrease predicted by the MM framework
+(Section~\ref{sec:irls_mm}).
+High accuracy ($f - f^* < 10^{-8}$) is reached in fewer than 50 iterations.
+
+DSM converges \textbf{sublinearly}: the semilog curve bends progressively, consistent
+with the $O(1/\varepsilon^2)$ bound of Theorem~\ref{thm:dsm_convergence}.
+Even with 8\,000 iterations, the final gap is several orders of magnitude larger than
+IRLS's final gap.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\textwidth]{figures/convergence_vs_iter.pdf}
+    \caption{Optimality gap $f(w_k)-f^*$ vs.\ iterations.
+    Left: IRLS (linear convergence on semilog scale).
+    Right: DSM record value $\bar{f}^{\,i} - f^*$ (sublinear).}
+    \label{fig:conv_iter}
+\end{figure}
+
+\paragraph{Gap vs.\ CPU time.}
+Figure~\ref{fig:conv_time} overlays both algorithms on the same axes, with CPU
+time on the horizontal axis.
+Because each IRLS iteration is more expensive ($O(H^3)$ Cholesky) but far fewer
+iterations are needed, IRLS reaches any given accuracy threshold \emph{faster} than
+DSM in this small-to-moderate regime ($H = 100$, $M = 300$).
+The crossover point — where DSM's cheap iterations compensate for slower convergence
+— is not observed until $H$ is much larger (see Section~\ref{sec:results_scalability}).
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.75\textwidth]{figures/convergence_vs_time.pdf}
+    \caption{Optimality gap vs.\ CPU time for IRLS and DSM on the same problem.}
+    \label{fig:conv_time}
+\end{figure}
+
+\paragraph{Monotonicity of DSM.}
+Figure~\ref{fig:dsm_nonmonotone} illustrates the non-monotone behaviour of DSM
+iterates $f(\mathbf{w}_i)$ and the monotone record $\bar{f}^{\,i}$.
+The raw iterates oscillate significantly around the record, confirming
+Section~\ref{sec:comp_convergence}: tracking $\bar{f}^{\,i}$ rather than
+$f(\mathbf{w}_i)$ is essential to assess convergence.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\textwidth]{figures/dsm_nonmonotone.pdf}
+    \caption{DSM: non-monotone iterates $f(w_i)$ (red, semi-transparent)
+    vs.\ monotone record $\bar{f}^{\,i}$ (black) vs.\ $f^*$ (green dashed).}
+    \label{fig:dsm_nonmonotone}
+\end{figure}
+
+% ------------------------------------------------------------------
+\section{Scalability study}
+\label{sec:results_scalability}
+
+We vary $n \in \{50, 100, 500, 1000, 3000\}$ with $M = 5n$ and record
+total CPU time for both algorithms.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\textwidth]{figures/scalability.pdf}
+    \caption{Left: total CPU time vs.\ $n$ on a log-log scale.
+    Right: per-iteration time vs.\ $n$.}
+    \label{fig:scalability}
+\end{figure}
+
+The results confirm the theoretical cost analysis of
+Section~\ref{sec:comp_cost}:
+\begin{itemize}
+    \item \textbf{IRLS}: total time grows approximately as $O(n^3)$ (the slope on
+    the log-log plot is close to 3), dominated by Cholesky factorisation for large $n$.
+    Per-iteration time follows the same trend.
+    \item \textbf{DSM}: total time grows approximately as $O(Mn) = O(n^2)$
+    (slope close to 2 since $M = 5n$), reflecting the $O(MH)$ per-iteration cost.
+    Per-iteration time grows linearly with $n$.
+\end{itemize}
+The two curves cross in the range $n \approx 1000$--$3000$: for larger hidden
+layers, DSM's cheaper iterations offset its slower convergence in terms of wall-clock
+time, provided moderate accuracy suffices.
+
+% ------------------------------------------------------------------
+\section{Parameter sensitivity}
+\label{sec:results_params}
+
+\paragraph{Effect of $\varepsilon_{\mathrm{thr}}$ on IRLS.}
+Figure~\ref{fig:params_irls} (left) shows IRLS convergence for
+$\varepsilon_{\mathrm{thr}} \in \{10^{-4}, 10^{-6}, 10^{-8}, 10^{-10}, 10^{-12}\}$.
+Smaller thresholds yield sparser solutions and slightly faster convergence to lower
+final gaps. Very small thresholds ($10^{-12}$) do not provide additional benefit over
+$10^{-10}$ due to floating-point limits.
+A value of $10^{-8}$ is a robust default.
+
+\paragraph{Effect of $\lambda$.}
+Figure~\ref{fig:params_irls} (right) shows IRLS convergence for
+$\lambda \in \{0.01, 0.05, 0.1, 0.5, 1.0\}$.
+Larger $\lambda$ produces sparser solutions (fewer active components) and, due to
+the stronger regularisation conditioning $\mathbf{Q}_k$, tends to converge in fewer
+iterations. Smaller $\lambda$ produces denser solutions but requires more iterations
+to reach the same relative accuracy.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\textwidth]{figures/params_irls.pdf}
+    \caption{IRLS parameter sensitivity.
+    Left: effect of $\varepsilon_{\mathrm{thr}}$.
+    Right: effect of $\lambda$ (sparsity indicated in legend).}
+    \label{fig:params_irls}
+\end{figure}
+
+\paragraph{Effect of $\delta_0$ and $\rho$ on DSM.}
+Figure~\ref{fig:params_dsm} illustrates the sensitivity of DSM to its
+target-level parameters.
+An overestimated $\delta_0$ (e.g.\ $\delta_0 = f^*$) causes large initial steps that
+overshoot, producing slow early progress. An underestimated $\delta_0$ (e.g.\
+$\delta_0 = 0.01 f^*$) triggers frequent delta reductions, slowing adaptation.
+The recommended value $\delta_0 = 0.1 f^*$ balances aggressiveness and stability.
+A smaller $\rho$ (faster target reduction) speeds up early convergence but may
+stall the algorithm prematurely; $\rho = 0.95$ is a reliable default.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\textwidth]{figures/params_dsm.pdf}
+    \caption{DSM parameter sensitivity.
+    Left: effect of initial gap estimate $\delta_0$.
+    Right: effect of reduction rate $\rho$.}
+    \label{fig:params_dsm}
+\end{figure}
+
+% ------------------------------------------------------------------
+\section{Head-to-head comparison}
+\label{sec:results_comparison}
+
+Table~\ref{tab:comparison} reports, for a problem with $n = 100$, $M = 400$,
+the number of iterations and CPU time each algorithm needs to reach several
+accuracy thresholds $\varepsilon = f - f^*$.
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{ccccc}
+\toprule
+$\varepsilon$ & IRLS iters & IRLS time (s) & DSM iters & DSM time (s) \\
+\midrule
+$10^{-2}$ & 3   & 0.0003 & $>10\,000$ & N/A \\
+$10^{-3}$ & 8   & 0.0005 & $>10\,000$ & N/A \\
+$10^{-4}$ & 21  & 0.0011 & $>10\,000$ & N/A \\
+$10^{-6}$ & 113 & 0.0054 & $>10\,000$ & N/A \\
+\bottomrule
+\end{tabular}
+\caption{Iterations and wall-clock time to reach gap $\varepsilon$ for IRLS and DSM
+($n=100$, $M=400$, $\lambda=0.1$, $10\,000$ DSM iterations).
+DSM never reaches any threshold within the iteration budget.}
+\label{tab:comparison}
+\end{table}
+
+IRLS dominates DSM by every metric.
+At the hardest threshold ($\varepsilon = 10^{-6}$) IRLS needs only 113 iterations and
+5\,ms; DSM does not reach $10^{-2}$ even with 10\,000 iterations (its best gap is
+$\approx 7\% \cdot f^* \approx 0.073$).
+The solution quality difference is equally stark: IRLS recovers the true sparsity
+pattern (57\% zeros vs.\ 60\% true) and achieves $\|\mathbf{w}_{\mathrm{IRLS}} -
+\mathbf{w}^*\| = 2.5 \times 10^{-4}$, while DSM produces a dense vector with
+$\|\mathbf{w}_{\mathrm{DSM}} - \mathbf{w}^*\| = 0.23$.
+
+Figure~\ref{fig:comparison} overlays both convergence curves (gap vs.\ iterations
+and vs.\ CPU time), confirming the quantitative picture of Table~\ref{tab:comparison}.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\textwidth]{figures/comparison_irls_dsm.pdf}
+    \caption{IRLS vs.\ DSM convergence on the same problem ($n=100$, $M=400$).
+    Left: gap vs.\ iterations. Right: gap vs.\ CPU time.}
+    \label{fig:comparison}
+\end{figure}

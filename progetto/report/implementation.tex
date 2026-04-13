@@ -1,0 +1,222 @@
+\chapter{Implementation}
+\label{chap:implementation}
+
+This chapter describes the Python implementation of the two algorithms and
+the Extreme Learning Machine model. All source code lives under
+\texttt{progetto/code/src/} and is organised into five modules.
+
+% ------------------------------------------------------------------
+\section{Repository structure}
+\label{sec:impl_structure}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{Module} & \textbf{Contents} \\
+\midrule
+\texttt{lasso\_utils.py}          & Objective $f$, smooth gradient, subgradient, optimality check \\
+\texttt{linear\_solvers.py}       & Cholesky and Conjugate Gradient solvers for SPD systems \\
+\texttt{irls.py}                  & Algorithm A1 (IRLS) \\
+\texttt{deflected\_subgradient.py}& Algorithm A2 (DSM with target level) \\
+\texttt{elm.py}                   & ELM class: random feature map, \texttt{fit}, \texttt{predict} \\
+\texttt{data\_generation.py}      & Synthetic problem generator \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The \texttt{experiments/} directory contains four scripts that reproduce all
+numerical results reported in Chapter~\ref{chap:results}.
+
+% ------------------------------------------------------------------
+\section{Utility functions (\texttt{lasso\_utils.py})}
+\label{sec:impl_utils}
+
+All algorithms share a common set of building blocks:
+
+\begin{itemize}
+    \item \textbf{\texttt{f\_lasso(X, y, w, lam)}}: evaluates the LASSO objective
+    $f(\mathbf{w}) = \|\mathbf{Xw}-\mathbf{y}\|_2^2 + \lambda\|\mathbf{w}\|_1$.
+
+    \item \textbf{\texttt{grad\_smooth(X, y, w)}}: computes the gradient of the smooth part
+    $g(\mathbf{w}) = \|\mathbf{Xw}-\mathbf{y}\|_2^2$, i.e.\
+    $\nabla g(\mathbf{w}) = 2\mathbf{X}^T(\mathbf{Xw}-\mathbf{y})$.
+
+    \item \textbf{\texttt{subgradient\_f(X, y, w, lam)}}: returns one element of
+    $\partial f(\mathbf{w})$, using $\mathrm{sign}(w_i)$ for $w_i \neq 0$ and $0$
+    for $w_i = 0$.
+
+    \item \textbf{\texttt{check\_optimality(X, y, w, lam)}}: measures the optimality
+    violation $\|\min(|2\mathbf{X}^T(\mathbf{Xw}-\mathbf{y})| - \lambda, 0)\|_\infty$
+    for non-zero components, providing a quantitative stopping check independent of
+    the algorithm.
+\end{itemize}
+
+% ------------------------------------------------------------------
+\section{Linear solvers (\texttt{linear\_solvers.py})}
+\label{sec:impl_solvers}
+
+Each IRLS iteration requires solving the SPD system
+$\mathbf{Q}_k\mathbf{w}_{k+1} = \mathbf{b}$
+(Section~\ref{sec:irls_subproblem}). Two solvers are provided.
+
+\paragraph{Cholesky (\texttt{cholesky\_solve}).}
+Wraps \texttt{scipy.linalg.cho\_factor} / \texttt{cho\_solve} with \texttt{lower=True}.
+The factorisation $\mathbf{Q}_k = \mathbf{L}\mathbf{L}^T$ is computed once per call,
+followed by two triangular back-substitutions. Cost: $O(H^3/3) + O(H^2)$.
+This is the default solver and is used in all experiments with $H \leq 5000$.
+
+\paragraph{Conjugate Gradient (\texttt{conjugate\_gradient}).}
+A standard CG loop, terminating when the relative residual
+$\|\mathbf{r}_k\| / \|\mathbf{b}\| < \texttt{tol}$ (default $10^{-10}$).
+Converges in at most $H$ steps in exact arithmetic.
+Preferred for large $H$ where the $O(H^3)$ Cholesky cost becomes prohibitive.
+
+A unified interface \texttt{solve\_spd(Q, b, method)} accepts \texttt{'cholesky'}
+or \texttt{'cg'} and dispatches accordingly.
+
+% ------------------------------------------------------------------
+\section{Algorithm A1: IRLS (\texttt{irls.py})}
+\label{sec:impl_irls}
+
+The function signature is:
+\begin{center}
+\texttt{irls(X, y, lam, eps\_thr, eps\_stop, k\_max, solver, w0, f\_star)}
+\end{center}
+
+\paragraph{Pre-computation.}
+$\mathbf{A} = \mathbf{X}^T\mathbf{X}$ and $\mathbf{b} = \mathbf{X}^T\mathbf{y}$
+are computed once before the loop at cost $O(MH^2)$ and $O(MH)$ respectively.
+This avoids redundant matrix multiplications across iterations.
+
+\paragraph{Weight matrix.}
+The diagonal entries of $\mathbf{W}_k$ are computed as
+\[
+    (\mathbf{D}_k)_i = \frac{1}{\max(|w_{k,i}|,\,\varepsilon_{\mathrm{thr}})}
+\]
+and stored as a 1-D array \texttt{diag\_D}. The system matrix is assembled as
+\[
+    \mathbf{Q}_k = \mathbf{A} + \frac{\lambda}{2}\,\mathrm{diag}(\mathbf{D}_k)
+\]
+by adding \texttt{0.5 * lam * diag\_D} only to the diagonal of a copy of $\mathbf{A}$.
+This is $O(H)$ per iteration.
+
+\paragraph{Coefficient correction.}
+The project specification writes the objective as $\|\mathbf{Xw}-\mathbf{y}\|^2 +
+\lambda\|\mathbf{w}\|_1$ (without a factor $1/2$). The IRLS surrogate for
+this formulation has the coefficient $\lambda/2$ (not $2\lambda$) in front of the
+diagonal regulariser; the code uses exactly this coefficient.
+
+\paragraph{Stopping criterion.}
+The loop terminates when
+$\|\mathbf{w}_{k+1}-\mathbf{w}_k\| / \max(1, \|\mathbf{w}_k\|) < \varepsilon_{\mathrm{stop}}$.
+
+\paragraph{Return value.}
+A dictionary with keys \texttt{'w'}, \texttt{'f\_vals'}, \texttt{'gaps'},
+\texttt{'times'}, \texttt{'n\_iter'}, \texttt{'converged'}.
+The \texttt{'gaps'} list is populated only when \texttt{f\_star} is provided.
+
+% ------------------------------------------------------------------
+\section{Algorithm A2: Deflected Subgradient (\texttt{deflected\_subgradient.py})}
+\label{sec:impl_dsm}
+
+The function signature is:
+\begin{center}
+\texttt{deflected\_subgradient(X, y, lam, w0, i\_max, beta, delta0, R, rho, f\_star)}
+\end{center}
+
+\paragraph{Optimal deflection parameter.}
+At each iteration, the deflection weight $\gamma_i$ is computed via the
+closed-form minimiser of $\|\gamma_i \mathbf{g}_i + (1-\gamma_i)\mathbf{d}_{i-1}\|^2$:
+\[
+    \gamma_i^* = \frac{\|\mathbf{d}_{i-1}\|^2 - \langle\mathbf{g}_i,\mathbf{d}_{i-1}\rangle}
+    {\|\mathbf{g}_i - \mathbf{d}_{i-1}\|^2},
+    \quad \text{projected onto } [0,1].
+\]
+When $\mathbf{g}_i = \mathbf{d}_{i-1}$ (denominator near zero), the function returns
+$\gamma_i = 1$ (pure subgradient), avoiding division by zero.
+At the first iteration ($i=0$) the direction $\mathbf{d}_{-1} = \mathbf{0}$ is
+initialised to zero and $\gamma_0 = 1$ is forced.
+
+\paragraph{Target-level step.}
+The Polyak-like stepsize with target level is:
+\[
+    \alpha_i = \frac{\beta(f(\mathbf{w}_i) - (f_{\mathrm{ref}} - \delta))}
+    {\|\mathbf{d}_i\|^2}
+\]
+If the numerator is $\leq 0$ (current point already below the target), delta is
+reduced immediately by $\delta \leftarrow \rho\delta$ and the iterate is not updated.
+This prevents taking a negative step, which would move away from the optimum.
+
+\paragraph{Target-level update rules.}
+After each step:
+\begin{itemize}[nosep]
+    \item if $f(\mathbf{w}_{i+1}) \leq f_{\mathrm{ref}} - \delta/2$: significant
+    improvement; reset $f_{\mathrm{ref}} \leftarrow \bar{f}^{\,i+1}$ and $r \leftarrow 0$;
+    \item else if $r > R$: stalled; reduce $\delta \leftarrow \rho\delta$ and $r \leftarrow 0$;
+    \item else: accumulate travel distance $r \leftarrow r + \alpha_i\|\mathbf{d}_i\|$.
+\end{itemize}
+
+\paragraph{Record tracking.}
+The best iterate $\mathbf{w}_{\mathrm{best}}$ and record value $\bar{f}^{\,i}$ are
+updated whenever $f(\mathbf{w}_{i+1}) < \bar{f}^{\,i}$. The returned \texttt{'w'} is
+$\mathbf{w}_{\mathrm{best}}$, not the last iterate.
+
+\paragraph{Return value.}
+A dictionary with keys \texttt{'w'}, \texttt{'f\_vals'}, \texttt{'f\_bar'},
+\texttt{'gaps'}, \texttt{'times'}, \texttt{'n\_iter'}, \texttt{'delta\_hist'}.
+
+% ------------------------------------------------------------------
+\section{Extreme Learning Machine (\texttt{elm.py})}
+\label{sec:impl_elm}
+
+The \texttt{ELM} class encapsulates the full two-stage pipeline.
+
+\paragraph{Architecture.}
+Given input dimension $d$ and hidden layer size $p$, the random weight matrix
+$\mathbf{W}_1 \in \mathbb{R}^{p \times d}$ is drawn from $\mathcal{N}(0,1)$ at
+construction time using a fixed \texttt{random\_state} for reproducibility.
+
+\paragraph{Activation functions.}
+Three activations are supported: \texttt{'sigmoid'}, \texttt{'relu'}, \texttt{'tanh'}.
+The sigmoid is implemented with input clipping to $[-500, 500]$ to suppress
+\texttt{RuntimeWarning} for large pre-activations, which arise when $\mathbf{W}_1$
+entries and input features are both large.
+
+\paragraph{Transform.}
+\texttt{elm.transform(X\_raw)} computes
+$\mathbf{X}_{\mathrm{hidden}} = \sigma(\mathbf{X}_{\mathrm{raw}}\mathbf{W}_1^T)
+\in \mathbb{R}^{M \times p}$.
+
+\paragraph{Fit.}
+\texttt{elm.fit(X\_raw, y, solver)} calls \texttt{transform}, then dispatches to
+\texttt{irls} (\texttt{solver='irls'}) or \texttt{deflected\_subgradient}
+(\texttt{solver='dsm'}) to find the output weights $\mathbf{w} \in \mathbb{R}^p$.
+All keyword arguments are forwarded to the solver.
+
+\paragraph{Predict.}
+\texttt{elm.predict(X\_raw)} returns $\hat{\mathbf{y}} = \mathbf{X}_{\mathrm{hidden}}\mathbf{w}$.
+
+\paragraph{Sparsity diagnostics.}
+The properties \texttt{elm.sparsity} and \texttt{elm.n\_active} report the fraction
+and count of output weights with $|w_i| \geq 10^{-8}$.
+
+% ------------------------------------------------------------------
+\section{Data generation (\texttt{data\_generation.py})}
+\label{sec:impl_data}
+
+\textbf{\texttt{make\_lasso\_problem(n, m, sparsity, noise\_std, lam, random\_state)}}
+generates a synthetic regression dataset $(X, y)$ with a known sparse ground-truth
+vector $\mathbf{w}_{\mathrm{true}}$:
+\begin{enumerate}[nosep]
+    \item Draw $\mathbf{X} \in \mathbb{R}^{M \times n}$ with i.i.d.\ $\mathcal{N}(0,1)$
+    entries.
+    \item Draw $\mathbf{w}_{\mathrm{true}}$ with $\lfloor n \cdot \mathrm{sparsity}\rfloor$
+    non-zero components drawn from $\mathcal{N}(0,1)$.
+    \item Set $\mathbf{y} = \mathbf{X}\mathbf{w}_{\mathrm{true}} + \varepsilon$,
+    $\varepsilon \sim \mathcal{N}(0, \sigma^2)$.
+    \item Compute $f^*$ and $\mathbf{w}^*$ by running scikit-learn's \texttt{Lasso}
+    with \texttt{alpha} $= \lambda/(2M)$ (scikit-learn normalises by $1/(2M)$)
+    to machine precision.
+\end{enumerate}
+The returned $f^*$ serves as the reference optimal value for gap tracking in all
+experiments.

@@ -1,0 +1,274 @@
+\chapter{Algorithm Comparison}
+\label{chap:comparison}
+
+Both IRLS (Chapter~\ref{chap:irls}) and the Deflected Subgradient Method
+(Chapter~\ref{chap:dsm}) solve the same LASSO problem
+\begin{equation}
+    \min_{\mathbf{w} \in \mathbb{R}^H} f(\mathbf{w})
+    = \|\mathbf{X}\mathbf{w} - \mathbf{y}\|_2^2 + \lambda\|\mathbf{w}\|_1,
+    \label{eq:comp_objective}
+\end{equation}
+yet they differ fundamentally in \emph{how} they handle the non-smoothness of the
+$\ell_1$ penalty and in the trade-offs that result.
+This chapter compares the two methods along the dimensions that matter most in practice:
+mathematical strategy, convergence behaviour, computational cost, solution quality,
+and suitability for the ELM setting.
+
+% ------------------------------------------------------------------
+\section{Core strategy: how each algorithm handles non-smoothness}
+\label{sec:comp_strategy}
+
+The root difficulty in~\eqref{eq:comp_objective} is the $\ell_1$ term: it is convex but
+non-differentiable wherever any $w_i = 0$, so classical gradient methods cannot be applied
+directly.
+The two algorithms adopt opposite philosophies.
+
+\paragraph{IRLS — smoothing via majorization.}
+IRLS sidesteps the non-smoothness by never minimising $f$ directly.
+At each iteration, it constructs a smooth \emph{surrogate} $Q(\mathbf{w}, \mathbf{w}_k)$
+that majorizes $f$ (Section~\ref{sec:irls_mm}):
+\[
+    Q(\mathbf{w}, \mathbf{w}_k)
+    = \|\mathbf{X}\mathbf{w} - \mathbf{y}\|_2^2
+    + 2\lambda\mathbf{w}^T\mathbf{W}_k\mathbf{w},
+\]
+where the non-smooth $\|\mathbf{w}\|_1$ has been replaced by the quadratic
+$\mathbf{w}^T\mathbf{W}_k\mathbf{w}$, with weights
+$(\mathbf{W}_k)_{ii} = \max(|w_{k,i}|,\varepsilon_{\mathrm{thr}})^{-1/2}$ that encode
+the current estimate of the solution's sparsity pattern (Section~\ref{sec:irls_idea}).
+Minimising $Q(\cdot, \mathbf{w}_k)$ amounts to solving a weighted $L_2$-regularised
+least-squares problem with a closed-form solution via the normal equations
+(Section~\ref{sec:irls_subproblem}).
+
+\paragraph{DSM — direct subgradient with memory.}
+DSM confronts the non-smoothness head-on. It descends along a \emph{subgradient}
+$\tilde{\mathbf{g}} \in \partial f(\mathbf{w}_i)$ at every step, computing it exactly
+via the sum rule $\tilde{\mathbf{g}} = 2\mathbf{X}^T(\mathbf{X}\mathbf{w}_i-\mathbf{y})
++ \lambda\mathbf{s}$ (Section~\ref{sec:dsm_subgrad}).
+To combat the zig-zag oscillations of the plain subgradient method
+(Section~\ref{sec:dsm_motivation}), the direction is \emph{deflected}: it blends the
+current subgradient with the previous direction (Section~\ref{sec:dsm_deflection}), and
+the Polyak stepsize is controlled via a target-level estimate of $f^*$
+(Section~\ref{sec:dsm_target_level}).
+
+\paragraph{Key structural difference.}
+IRLS transforms a non-smooth problem into a sequence of smooth ones, then solves each
+exactly (via a linear system solve). DSM never smooths the objective; instead it relies
+on the convergence theory for subgradient methods, accepting that individual steps may
+increase $f$.
+
+% ------------------------------------------------------------------
+\section{Convergence behaviour}
+\label{sec:comp_convergence}
+
+The convergence properties of the two algorithms differ in both \emph{rate} and
+\emph{monotonicity}.
+
+\subsection{Monotonicity}
+
+IRLS is \textbf{monotone}: the MM framework guarantees
+$f(\mathbf{w}_{k+1}) \leq f(\mathbf{w}_k)$ at every iteration
+(Section~\ref{sec:irls_mm}).
+This makes convergence easy to monitor and diagnose — a non-decreasing plot of
+$f(\mathbf{w}_k)$ immediately signals a bug.
+
+DSM is \textbf{non-monotone}: individual function values $f(\mathbf{w}_i)$ oscillate
+throughout the run (Section~\ref{sec:dsm_convergence}).
+The meaningful quantity is the \emph{record value}
+$\bar{f}^{\,i} = \min_{h \leq i} f(\mathbf{w}_h)$, which decreases by construction
+but may improve only sporadically.
+Plotting $f(\mathbf{w}_i)$ without tracking $\bar{f}^{\,i}$ gives a misleading picture.
+
+\subsection{Rate}
+
+IRLS converges at a \textbf{linear} (geometric) rate: on a semilogarithmic plot of
+$f(\mathbf{w}_k) - f^*$ versus iteration number, the curve is approximately a straight
+line (Section~\ref{sec:irls_convergence}).
+In practice, 10--50 iterations suffice to reach high accuracy.
+
+DSM converges at a \textbf{sublinear} rate, $O(1/\varepsilon^2)$
+(Theorem~\ref{thm:dsm_convergence}): on the same semilogarithmic plot, the curve
+flattens progressively.
+This rate is information-theoretically optimal for nonsmooth convex functions
+(Section~\ref{sec:dsm_convergence}), so the gap is intrinsic to the approach, not an
+implementation defect. Concretely, achieving $\varepsilon = 10^{-4}$ requires roughly
+$100\times$ more iterations than $\varepsilon = 10^{-3}$.
+
+\subsection{Convergence on the ELM problem}
+
+For the ELM LASSO problem, $\mathbf{X} = \sigma(\mathbf{X}_{\text{origin}}\mathbf{W}_1)$
+has full column rank with high probability (since $\mathbf{W}_1$ is random and $\sigma$ is
+a nonlinear activation), so $f$ is strictly convex and the unique minimiser $\mathbf{w}^*$
+exists.
+This means IRLS converges to $\mathbf{w}^*$ (Theorem~\ref{thm:irls_convergence}) with
+a linear rate governed by the condition number of the weighted normal-equation matrices.
+DSM also converges to $\mathbf{w}^*$ (Theorem~\ref{thm:dsm_convergence}), and the
+strong convexity of $f$ improves the theoretical lower bound from $O(1/\varepsilon^2)$
+to $O(1/\varepsilon)$, though the algorithm does not exploit this structure.
+
+% ------------------------------------------------------------------
+\section{Computational cost}
+\label{sec:comp_cost}
+
+\subsection{Per-iteration cost}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\textbf{Operation} & \textbf{IRLS} & \textbf{DSM} \\
+\midrule
+Weight / direction update & $O(H)$ & $O(H)$ \\
+Matrix-vector product(s) & --- & $O(MH)$ \\
+Linear system solve & $O(H^3)$ (Cholesky) or $O(kH^2)$ (CG) & --- \\
+\midrule
+\textbf{Total per iteration} & $O(H^3)$ & $O(MH)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+IRLS requires solving an $H \times H$ symmetric positive definite linear system at every
+iteration (Section~\ref{sec:irls_subproblem}).
+With Cholesky factorisation the cost is $O(H^3/3)$ per iteration.
+With $k$ steps of Conjugate Gradient it is $O(kH^2)$, preferable when $H$ is large and
+$\mathbf{Q}_k$ is well-conditioned.
+The matrices $\mathbf{A} = \mathbf{X}^T\mathbf{X}$ and $\mathbf{b} = \mathbf{X}^T\mathbf{y}$
+are pre-computed once at cost $O(MH^2)$ and $O(MH)$ respectively.
+
+DSM requires only two matrix-vector products per iteration (to compute the subgradient:
+$\mathbf{X}\mathbf{w}_i$ costs $O(MH)$ and $\mathbf{X}^T(\cdot)$ costs $O(MH)$), giving
+a total per-iteration cost of $O(MH)$ (Section~\ref{sec:dsm_subgrad}).
+No precomputation of $\mathbf{X}^T\mathbf{X}$ is needed.
+
+\subsection{Total cost}
+
+Let $k_{\mathrm{IRLS}}$ and $k_{\mathrm{DSM}}$ denote the respective iteration counts.
+\begin{align*}
+    \text{IRLS total:} &\quad O(MH^2) + k_{\mathrm{IRLS}} \cdot O(H^3), \\
+    \text{DSM total:}  &\quad k_{\mathrm{DSM}} \cdot O(MH).
+\end{align*}
+Since IRLS converges linearly and DSM converges sublinearly, the iteration counts satisfy
+$k_{\mathrm{IRLS}} \ll k_{\mathrm{DSM}}$ for a given accuracy.
+The regime where DSM is competitive is therefore when $H$ is large enough that
+$H^3 \gg MH$, i.e.\ $H^2 \gg M$, so that the Cholesky cost of IRLS dominates.
+
+For the ELM problem, $M$ is the number of training samples and $H$ is the hidden layer
+size. Typical configurations have $M \gg H$ (many samples, moderate hidden layer), so
+$O(MH^2) \gg O(H^3)$ and the pre-computation of $\mathbf{A}$ dominates IRLS's total
+cost.
+In this regime, the total costs are roughly $O(MH^2)$ for IRLS and
+$O(k_{\mathrm{DSM}} \cdot MH)$ for DSM — IRLS wins whenever
+$H \lesssim k_{\mathrm{DSM}}$, which holds for any reasonable accuracy requirement.
+
+% ------------------------------------------------------------------
+\section{Solution quality}
+\label{sec:comp_quality}
+
+\subsection{Sparsity}
+
+A central goal of LASSO is to produce a \emph{sparse} solution
+$\mathbf{w}^*$ with many components exactly zero, which in the ELM context corresponds
+to identifying the most relevant hidden neurons and discarding the rest.
+
+IRLS promotes \textbf{exact sparsity}: as iterations proceed, components $w_{k,i}$ with
+small magnitude receive increasingly large weights $(\mathbf{W}_k)_{ii}$, pushing them
+further toward zero.
+At convergence, many components are exactly zero (within $\varepsilon_{\mathrm{thr}}$),
+yielding a genuinely sparse weight vector (Section~\ref{sec:irls_expected}).
+The sparsity structure emerges naturally from the algorithm's geometry.
+
+DSM produces \textbf{approximate sparsity}: the iterates drift near zero for irrelevant
+components, but they are rarely driven to exact zero because the subgradient steps carry
+no mechanism that enforces zeros.
+A post-processing thresholding step (setting $w_i \gets 0$ if $|w_i| < \tau$ for some
+small $\tau$) is typically needed to obtain a truly sparse solution
+(Section~\ref{sec:dsm_properties}).
+
+\subsection{Accuracy}
+
+For a fixed computational budget (number of iterations or wall-clock time), IRLS
+reaches substantially higher accuracy than DSM on small-to-moderate problems, due to
+its linear convergence rate. DSM can reach competitive accuracy when the per-iteration
+cost advantage of $O(MH)$ versus $O(H^3)$ outweighs the slower convergence rate.
+
+% ------------------------------------------------------------------
+\section{Parameter sensitivity}
+\label{sec:comp_params}
+
+\paragraph{IRLS.}
+The algorithm has two main hyperparameters: the regularisation strength $\lambda$ (shared
+with the problem formulation) and the safety threshold $\varepsilon_{\mathrm{thr}}$.
+The latter controls the trade-off between numerical stability and approximation quality:
+too large degrades sparsity, too small risks division by zero.
+A value around $10^{-8}$ is a robust default.
+The convergence stopping criterion $\varepsilon_{\mathrm{stop}}$ is straightforward to
+tune: the relative change $\|\mathbf{w}_{k+1}-\mathbf{w}_k\|/\max(1,\|\mathbf{w}_k\|)$
+provides a scale-invariant and interpretable criterion (Section~\ref{sec:irls_algorithm}).
+
+\paragraph{DSM.}
+The algorithm involves four additional hyperparameters: $\delta_0$, $\rho$, $R$, and
+$\beta$ (Section~\ref{sec:dsm_parameters}).
+Their calibration is critical and interdependent: a poor choice of $\delta_0$ dominoes
+into poor target levels, which cause either oversized steps ($\delta_0$ too large) or
+stalling ($\delta_0$ too small).
+The patience threshold $R$ and reduction rate $\rho$ control adaptivity.
+Unlike IRLS, there is no reliable stopping criterion based on iterate change, since the
+subgradient norm may remain large even at the optimum (Section~\ref{sec:dsm_properties}).
+A fixed iteration budget is the most practical approach.
+
+% ------------------------------------------------------------------
+\section{Summary and guidelines for the ELM problem}
+\label{sec:comp_summary}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\textbf{Criterion} & \textbf{IRLS} & \textbf{DSM} \\
+\midrule
+Approach & Smoothing (MM) & Direct subgradient \\
+Monotone & Yes & No (record value only) \\
+Convergence rate & Linear & Sublinear $O(1/\varepsilon^2)$ \\
+Per-iteration cost & $O(H^3)$ & $O(MH)$ \\
+Precomputation & $O(MH^2)$ & None \\
+Exact sparsity & Yes & No (needs thresholding) \\
+Parameters to tune & $\varepsilon_{\mathrm{thr}}$ & $\delta_0, \rho, R, \beta$ \\
+Stopping criterion & Reliable (iterate change) & Unreliable (fixed budget) \\
+Preferred when & High accuracy, $H \ll M$ & Large $H$, moderate accuracy \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{When to prefer IRLS.}
+IRLS is the method of choice when:
+\begin{itemize}[nosep]
+    \item High solution accuracy is required (e.g.\ for precise feature selection or
+    reproducibility of sparsity patterns).
+    \item $H$ is small to moderate relative to $M$, so the $O(H^3)$ per-iteration
+    cost is affordable.
+    \item Exact zeros in $\mathbf{w}^*$ are important (e.g.\ to identify which hidden
+    neurons to prune).
+    \item Easy debugging is preferred: the monotone decrease of $f$ is a strong
+    sanity check.
+\end{itemize}
+
+\paragraph{When to prefer DSM.}
+DSM is competitive when:
+\begin{itemize}[nosep]
+    \item $H$ is large enough that Cholesky factorisation is infeasible or too slow
+    ($H^2 \gg M$).
+    \item Moderate accuracy ($\varepsilon \approx 10^{-3}$) suffices.
+    \item Memory is a constraint: DSM does not require storing $\mathbf{X}^T\mathbf{X}
+    \in \mathbb{R}^{H \times H}$, only the current iterate and direction.
+    \item The problem changes online (e.g.\ streaming data), where recomputing
+    $\mathbf{A}$ is expensive.
+\end{itemize}
+
+\paragraph{Practical verdict for the ELM problem.}
+In the typical ELM setting (fixed random $\mathbf{W}_1$, offline training), $M$ is large
+and $H$ is chosen much smaller, so $M \gg H$.
+In this regime IRLS is clearly preferable: the precomputed $\mathbf{A} =
+\mathbf{X}^T\mathbf{X}$ is computed once at cost $O(MH^2)$, and each subsequent
+iteration costs only $O(H^3)$, which is modest for typical $H \leq 1000$.
+The monotone convergence, reliable stopping criterion, exact sparsity, and minimal
+parameter tuning all favour IRLS.
+DSM serves as a useful baseline and as a fallback for very large $H$, where it
+trades accuracy for scalability.

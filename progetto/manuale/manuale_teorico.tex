@@ -1,0 +1,829 @@
+\documentclass[11pt,a4paper]{article}
+
+% -------------------------------------------------------
+% PACCHETTI
+% -------------------------------------------------------
+% babel italian non disponibile in questa installazione
+% \usepackage[italian]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+% algoritmi implementati manualmente con tcolorbox + enumerate
+\usepackage{booktabs}
+\usepackage{enumitem}
+% \usepackage{microtype}  % richiede font scalabili
+
+\geometry{margin=2.5cm}
+\hypersetup{colorlinks=true, linkcolor=blue!70!black, urlcolor=blue!70!black}
+
+% -------------------------------------------------------
+% STILI TEOREMI
+% -------------------------------------------------------
+\theoremstyle{definition}
+\newtheorem{definition}{Definizione}[section]
+\newtheorem{example}{Esempio}[section]
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Teorema}[section]
+\newtheorem{proposition}{Proposizione}[section]
+\newtheorem{lemma}{Lemma}[section]
+\newtheorem{corollary}{Corollario}[section]
+
+\theoremstyle{remark}
+\newtheorem{remark}{Osservazione}[section]
+
+% -------------------------------------------------------
+% SCATOLE COLORATE
+% -------------------------------------------------------
+\tcbuselibrary{breakable, skins}
+
+\newtcolorbox{keybox}[1][]{
+  colback=blue!5!white,
+  colframe=blue!60!black,
+  fonttitle=\bfseries,
+  title={#1},
+  breakable
+}
+
+\newtcolorbox{algobox}[1][]{
+  colback=green!5!white,
+  colframe=green!50!black,
+  fonttitle=\bfseries,
+  title={#1},
+  breakable
+}
+
+\newtcolorbox{intubox}[1][Intuizione]{
+  colback=orange!5!white,
+  colframe=orange!60!black,
+  fonttitle=\bfseries,
+  title={#1},
+  breakable
+}
+
+% -------------------------------------------------------
+% AMBIENTE PER PSEUDOCODICE (senza pacchetto algorithm)
+% -------------------------------------------------------
+\newenvironment{pseudocode}{%
+  \begin{list}{}{%
+    \setlength{\leftmargin}{1.5em}%
+    \setlength{\itemsep}{2pt}%
+    \setlength{\parsep}{0pt}%
+    \setlength{\topsep}{4pt}%
+  }%
+}{%
+  \end{list}%
+}
+\newcommand{\pcline}[1]{\item[] #1}
+\newcommand{\pcindent}{\hspace{1.5em}}
+\newcommand{\pcindentII}{\hspace{3em}}
+
+% -------------------------------------------------------
+% MACRO
+% -------------------------------------------------------
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\norm}[1]{\left\| #1 \right\|}
+\newcommand{\abs}[1]{\left| #1 \right|}
+\newcommand{\T}{^{\top}}
+\newcommand{\grad}{\nabla}
+\newcommand{\subgr}{\partial}
+\newcommand{\argmin}{\operatorname*{argmin}}
+
+% -------------------------------------------------------
+% DOCUMENTO
+% -------------------------------------------------------
+\begin{document}
+
+% -------------------------------------------------------
+% FRONTESPIZIO
+% -------------------------------------------------------
+\begin{titlepage}
+  \centering
+  \vspace*{3cm}
+  {\LARGE\bfseries Manuale Teorico\par}
+  \vspace{0.5cm}
+  {\Large Progetto 25 --- ELM con Regolarizzazione $\ell_1$\par}
+  \vspace{1cm}
+  {\large Corso: Computational Mathematics for Learning and Data Analysis\par}
+  \vspace{0.5cm}
+  {\large A.A.\ 2025/2026\par}
+  \vspace{3cm}
+  \begin{abstract}
+    Questo manuale raccoglie gli argomenti teorici necessari per lo sviluppo e la comprensione
+    del \textbf{Progetto 25} del corso CM.
+    Il progetto riguarda il training di una \emph{Extreme Learning Machine} (ELM)
+    con regolarizzazione $\ell_1$ (LASSO), risolto tramite due algoritmi:
+    \textbf{A1 = IRLS} (Iteratively Reweighted Least Squares) e
+    \textbf{A2 = Metodo del Sottogradiente Deflesso con Target Level}.
+    Il documento è strutturato come percorso di studio progressivo: si parte dal
+    problema di minimi quadrati lineari, si analizzano i solutori numerici
+    (fattorizzazione di Cholesky e gradiente coniugato), si introducono convessità e
+    ottimalità per funzioni non differenziabili, e infine si descrivono i due algoritmi.
+  \end{abstract}
+  \vfill
+  {\small Basato sulle lezioni del corso:
+  \emph{Optimization} (OPT/3, OPT/4, OPT/5) e
+  \emph{Numerical Linear Algebra} (NLA/3, NLA/4, NLA/5, NLA/20).}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ================================================================
+\section{Extreme Learning Machine e Formulazione del Problema}
+\label{sec:elm}
+% ================================================================
+
+\subsection{Architettura ELM}
+
+Una \textbf{Extreme Learning Machine} (ELM) è una rete neurale con un singolo strato nascosto
+in cui i pesi del primo strato $W_1$ (e i bias) sono \emph{fissi e generati casualmente},
+mentre solo i pesi di output $w \in \R^n$ vengono ottimizzati.
+
+Dato un dataset di addestramento $\{(x_i, y_i)\}_{i=1}^m$ con $x_i \in \R^d$ e $y_i \in \R$,
+la rete calcola:
+\[
+  \hat{y}_i = \sum_{j=1}^n \sigma(W_{1,j}\, x_i + b_j)\, w_j,
+\]
+dove $\sigma$ è una funzione di attivazione non lineare (es.\ sigmoide o ReLU).
+
+\begin{keybox}[Rappresentazione matriciale]
+  Si definisce la \textbf{matrice delle feature} $X \in \R^{m \times n}$:
+  \[
+    X_{ij} = \sigma(W_{1,j}\, x_i + b_j).
+  \]
+  Poiché $W_1$ è fissato, $X$ è nota.
+  Il vettore target è $y \in \R^m$, e l'output della rete si scrive compattamente come $\hat{y} = Xw$.
+  Il training dell'ELM si riduce a un problema di \textbf{ottimizzazione lineare} nei pesi $w$.
+\end{keybox}
+
+\subsection{Problema di Ottimizzazione con Regolarizzazione $\ell_1$}
+
+Addestrare l'ELM minimizzando l'errore quadratico con regolarizzazione LASSO equivale a risolvere:
+
+\begin{keybox}[Problema Centrale del Progetto]
+  \[
+    \min_{w \in \R^n}\; f(w)
+    \;=\; \underbrace{\norm{Xw - y}_2^2}_{\text{errore quadratico}}
+    \;+\; \lambda\, \underbrace{\norm{w}_1}_{\text{regolarizzazione }\ell_1},
+    \qquad \lambda > 0.
+  \]
+\end{keybox}
+
+\begin{intubox}
+  La norma $\ell_1$ \textbf{promuove la sparsità}: spinge molti pesi $w_i$ ad essere
+  \emph{esattamente zero}, selezionando automaticamente le feature più rilevanti.
+  Questo è particolarmente utile quando $n \gg m$ (molte feature, pochi campioni),
+  scenario comune nelle ELM ad alto numero di neuroni nascosti.
+  In contrasto, la regolarizzazione $\ell_2$ (Ridge) distribuisce uniformemente i pesi senza azzerarli.
+\end{intubox}
+
+\begin{remark}
+  La funzione obiettivo $f(w)$ è la somma di una parte \emph{liscia} (il termine quadratico,
+  differenziabile ovunque) e di una parte \emph{non liscia} ($\lambda\norm{w}_1$, non
+  differenziabile nei punti con $w_i = 0$).
+  Questa struttura mista richiede strumenti distinti: solutori lineari diretti/iterativi
+  per il termine quadratico, e tecniche di ottimizzazione non liscia per la norma $\ell_1$.
+\end{remark}
+
+% ================================================================
+\section{Minimi Quadrati Lineari}
+\label{sec:ls}
+% ================================================================
+
+\subsection{Formulazione e Geometria}
+
+Dato $A \in \R^{m \times n}$ (con $m \geq n$) e $y \in \R^m$, il \textbf{problema dei minimi quadrati} è:
+\[
+  \min_{w \in \R^n} \norm{Aw - y}_2.
+\]
+
+\begin{intubox}
+  Il vettore $Aw$ vive nello spazio colonna $\operatorname{Im}(A)$.
+  Se $y \notin \operatorname{Im}(A)$, non esiste soluzione esatta.
+  Il problema chiede il punto in $\operatorname{Im}(A)$ più vicino a $y$:
+  tale punto è la \textbf{proiezione ortogonale} di $y$ su $\operatorname{Im}(A)$.
+  Il vettore residuo $r = Aw_* - y$ è ortogonale a ogni colonna di $A$.
+\end{intubox}
+
+\subsection{Rango Pieno per Colonne e Unicità}
+
+\begin{definition}[Rango Pieno per Colonne]
+  $A \in \R^{m \times n}$ ha \textbf{rango pieno per colonne} se $\ker(A) = \{0\}$,
+  ovvero $\operatorname{rk}(A) = n$.
+\end{definition}
+
+\begin{theorem}
+  Il problema dei minimi quadrati ha soluzione \textbf{unica} se e solo se $A$ ha rango pieno per
+  colonne. Inoltre, $A$ ha rango pieno per colonne se e solo se $A\T A$ è \textbf{definita positiva}.
+\end{theorem}
+
+\begin{proof}
+  Per ogni $z \neq 0$: $z\T A\T A z = \norm{Az}^2 > 0 \iff Az \neq 0 \iff z \notin \ker(A)$.
+\end{proof}
+
+\subsection{Equazioni Normali}
+
+Minimizzare $\norm{Aw-y}^2$ equivale a minimizzare:
+\[
+  f(w) = \tfrac{1}{2}w\T A\T A\, w - (A\T y)\T w + \tfrac{1}{2}\norm{y}^2.
+\]
+Il gradiente è $\grad f(w) = A\T A w - A\T y$ e l'Hessiano è $A\T A \succ 0$ (funzione
+strettamente convessa). Il minimo si trova ponendo il gradiente a zero:
+
+\begin{keybox}[Equazioni Normali]
+  \[
+    A\T A\, w_* = A\T y.
+  \]
+  La matrice $Q = A\T A$ è \textbf{simmetrica definita positiva} (SPD).
+  La soluzione è $w_* = (A\T A)^{-1} A\T y =: A^+ y$,
+  dove $A^+ = (A\T A)^{-1} A\T$ è la \textbf{pseudoinversa} di Moore-Penrose.
+\end{keybox}
+
+\begin{remark}
+  La denominazione ``normali'' viene dal fatto che il residuo $Aw_* - y$ è \emph{normale}
+  (perpendicolare) allo spazio $\operatorname{Im}(A)$:
+  $(Av)\T(Aw_* - y) = 0$ per ogni $v \in \R^n$, che riscritta dà $A\T(Aw_* - y) = 0$.
+\end{remark}
+
+\subsection{Costo Computazionale}
+
+Per $A \in \R^{m \times n}$ con $m > n$, sfruttando la simmetria di $A\T A$:
+\begin{enumerate}
+  \item Calcolo di $A\T A$: costo $mn^2$ operazioni.
+  \item Calcolo di $A\T y$: costo $2mn$ (trascurabile).
+  \item Risoluzione di $Qw = b$ con Cholesky: costo $\frac{1}{3}n^3$.
+\end{enumerate}
+Il costo totale è $O(mn^2)$ per $m \gg n$.
+
+% ================================================================
+\section{Fattorizzazione di Cholesky}
+\label{sec:chol}
+% ================================================================
+
+\subsection{Sfruttare la Simmetria: da LU a $LDL\T$}
+
+La fattorizzazione LU per matrici generali $n \times n$ ha costo $\frac{2}{3}n^3 + O(n^2)$.
+Per matrici \textbf{simmetriche} si può fare molto meglio applicando l'eliminazione in modo simmetrico,
+producendo la fattorizzazione $LDL\T$.
+
+\begin{keybox}[Fattorizzazione $LDL\T$]
+  Per ogni matrice simmetrica $M = M\T \in \R^{n \times n}$ (per cui l'algoritmo non incontra pivot nulli):
+  \[
+    M = L D L\T,
+  \]
+  dove $L$ è triangolare inferiore con $1$ sulla diagonale e $D$ è diagonale.
+  \textbf{Costo:} $\frac{1}{3}n^3 + O(n^2)$ --- la \emph{metà} di LU.
+\end{keybox}
+
+\subsection{Cholesky per Matrici SPD}
+
+Per matrici SPD tutti i pivot sono positivi ($D_{kk} > 0$), quindi $D^{1/2} = \operatorname{diag}(D_{11}^{1/2}, \ldots, D_{nn}^{1/2})$
+è ben definita. Si ottiene:
+
+\begin{keybox}[Fattorizzazione di Cholesky]
+  Per ogni matrice SPD $M \in \R^{n \times n}$:
+  \[
+    M = L D L\T = L D^{1/2}(D^{1/2} L\T) = R\T R,
+  \]
+  dove $R = D^{1/2} L\T$ è triangolare superiore con elementi diagonali positivi.
+  In MATLAB: \texttt{R = chol(A)}, che restituisce $R$ tale che $A = R\T R$.
+\end{keybox}
+
+\begin{proposition}[Stabilità]
+  Si può dimostrare (tramite la SVD di $R$) che $\norm{R} = \norm{M}^{1/2}$.
+  La fattorizzazione di Cholesky è \textbf{backward stable} per tutte le matrici SPD
+  e non richiede pivoting.
+\end{proposition}
+
+\subsubsection*{Risoluzione di $Mw = b$ con Cholesky}
+
+Avendo $M = R\T R$, il sistema si riduce a due triangolari (forward/backward substitution), ognuna $O(n^2)$:
+\[
+  R\T z = b \;\Rightarrow\; z \quad\text{(forward)}, \qquad Rw = z \;\Rightarrow\; w \quad\text{(backward)}.
+\]
+
+\begin{intubox}
+  Cholesky è il metodo ottimale per sistemi SPD: stabile senza pivoting, costo $\frac{1}{3}n^3$
+  (metà di LU), ideale per le equazioni normali $A\T Aw = A\T y$.
+  Per la regola pratica: ``\emph{Is your matrix posdef? Use Cholesky}.''
+\end{intubox}
+
+% ================================================================
+\section{Gradiente Coniugato (CG)}
+\label{sec:cg}
+% ================================================================
+
+\subsection{Motivazione: Sistemi Sparsi di Grandi Dimensioni}
+
+Per sistemi SPD di grandi dimensioni e \textbf{sparsi} (pochi elementi non nulli), i metodi diretti
+come Cholesky hanno costo $O(n^3)$ e memoria $O(n^2)$: inapplicabili.
+Il \textbf{Gradiente Coniugato} risolve $Qx = v$ (con $Q \succ 0$) iterativamente,
+usando \emph{un solo prodotto matrice-vettore per iterazione}.
+
+\subsection{Riformulazione come Ottimizzazione}
+
+Risolvere $Qx = v$ ($Q \succ 0$) è equivalente a minimizzare:
+\[
+  f(x) = \tfrac{1}{2} x\T Q x - v\T x + \text{const}.
+\]
+
+\subsection{Spazi di Krylov e Ottimalità nel Sottospazio}
+
+\begin{definition}[Spazio di Krylov]
+  Dati $Q \in \R^{m \times m}$ e $v \in \R^m$, lo \textbf{spazio di Krylov} di ordine $k$ è:
+  \[
+    K_k(Q, v) = \operatorname{span}\{v,\, Qv,\, Q^2v,\, \ldots,\, Q^{k-1}v\}.
+  \]
+\end{definition}
+
+Il CG computa iterati con la \textbf{proprietà di ottimalità nel sottospazio}:
+$x_k = \argmin_{x \in K_k(Q,v)} f(x)$.
+
+\subsection{Algoritmo CG e $Q$-Ortogonalità}
+
+\begin{algobox}[Algoritmo: Gradiente Coniugato]
+  \begin{pseudocode}
+    \pcline{$x_0 \leftarrow 0$,\quad $r_0 \leftarrow d_0 \leftarrow v$}
+    \pcline{\textbf{for} $j = 1, 2, \ldots, m$:}
+    \pcline{\pcindent $\alpha_j \leftarrow (r_{j-1}\T r_{j-1}) / (d_{j-1}\T Q\, d_{j-1})$
+      \hfill \textit{ricerca lineare esatta}}
+    \pcline{\pcindent $x_j \leftarrow x_{j-1} + \alpha_j\, d_{j-1}$}
+    \pcline{\pcindent $r_j \leftarrow r_{j-1} - \alpha_j\, Q\, d_{j-1}$
+      \hfill \textit{aggiornamento residuo}}
+    \pcline{\pcindent $\beta_j \leftarrow (r_j\T r_j) / (r_{j-1}\T r_{j-1})$}
+    \pcline{\pcindent $d_j \leftarrow r_j + \beta_j\, d_{j-1}$
+      \hfill \textit{direzione $Q$-ortogonale}}
+    \pcline{\textbf{end for}}
+  \end{pseudocode}
+\end{algobox}
+
+\textbf{Proprietà chiave:}
+\begin{itemize}[noitemsep]
+  \item I residui sono ortogonali: $r_i\T r_j = 0$ per $i \neq j$.
+  \item Le direzioni sono $Q$-ortogonali: $d_i\T Q\, d_j = 0$ per $i \neq j$.
+  \item Convergenza garantita in $\leq m$ iterazioni (aritmetica esatta).
+  \item Costo per iterazione: $O(\text{nnz}(Q))$, un solo prodotto matrice-vettore.
+  \item Storage: solo 3 vettori ($x_j$, $r_j$, $d_j$).
+\end{itemize}
+
+\subsection{Convergenza e Numero di Condizionamento}
+
+\begin{definition}[Numero di Condizionamento]
+  Per $Q \succ 0$:
+  \[
+    \kappa(Q) = \frac{\lambda_{\max}(Q)}{\lambda_{\min}(Q)} \geq 1.
+  \]
+\end{definition}
+
+\begin{theorem}[Convergenza del CG]
+  Dopo $k$ iterazioni:
+  \[
+    \norm{x_k - x_*}_{Q} \leq 2\left(\frac{\sqrt{\kappa}-1}{\sqrt{\kappa}+1}\right)^k \norm{x_0 - x_*}_Q,
+  \]
+  dove $\norm{z}_Q = (z\T Qz)^{1/2}$ e $\kappa = \kappa(Q)$.
+\end{theorem}
+
+\begin{intubox}
+  Per ottenere $\varepsilon$-accuratezza nella norma $Q$: bastano $O(\sqrt{\kappa}\, \log(1/\varepsilon))$ iterazioni.
+  \textbf{Attenzione:} per le equazioni normali $\kappa(A\T A) = \kappa(A)^2$, quindi il sistema normale
+  è molto più mal condizionato della matrice originale.
+  Il precondizionamento serve a ridurre il $\kappa$ effettivo.
+\end{intubox}
+
+% ================================================================
+\section{Convessità e Condizioni di Ottimalità}
+\label{sec:opt}
+% ================================================================
+
+\subsection{Definizioni di Convessità}
+
+\begin{definition}[Convessità]
+  $f : \R^n \to \R$ è \textbf{convessa} se per ogni $x, z \in \R^n$ e $\alpha \in [0,1]$:
+  \[
+    f(\alpha x + (1-\alpha)z) \leq \alpha f(x) + (1-\alpha)f(z).
+  \]
+  Equivalentemente (per $f \in C^1$): $f(z) \geq f(x) + \langle\grad f(x), z-x\rangle$.
+  Equivalentemente (per $f \in C^2$): $\grad^2 f(x) \succeq 0$.
+\end{definition}
+
+\begin{definition}[Forte Convessità]
+  $f$ è \textbf{$\tau$-fortemente convessa} ($\tau > 0$) se:
+  \[
+    f(z) \geq f(x) + \langle\grad f(x), z-x\rangle + \frac{\tau}{2}\norm{z-x}^2.
+  \]
+  Per $f \in C^2$: equivale a $\grad^2 f(x) \succeq \tau I$, ovvero $\lambda_{\min}(\grad^2 f) \geq \tau > 0$.
+\end{definition}
+
+\begin{definition}[$L$-Lisciezza]
+  $f \in C^1$ è \textbf{$L$-liscia} se il gradiente è $L$-Lipschitz:
+  \[
+    \norm{\grad f(x) - \grad f(z)} \leq L\norm{x-z}, \quad \forall x, z.
+  \]
+  Per $f \in C^2$: equivale a $\grad^2 f(x) \preceq LI$, ovvero $\lambda_{\max}(\grad^2 f) \leq L$.
+\end{definition}
+
+\begin{keybox}[Minimi quadrati come funzione SPD]
+  Per $f(w) = \frac{1}{2}\norm{Xw-y}^2$, l'Hessiano è $\grad^2 f = X\T X$.
+  Quindi $f$ è $L$-liscia con $L = \lambda_{\max}(X\T X)$ e $\tau$-fortemente convessa con
+  $\tau = \lambda_{\min}(X\T X)$. Il numero di condizionamento è $\kappa = L/\tau = \kappa(X\T X)$.
+\end{keybox}
+
+\subsection{Convergenza del Metodo del Gradiente con Forte Convessità}
+
+Per $f$ $L$-liscia e $\tau$-fortemente convessa, il metodo del gradiente con passo fisso
+$\alpha = 2/(L+\tau)$ converge \textbf{linearmente}:
+\[
+  \norm{x^{k+1} - x_*} \leq r^k \norm{x^1 - x_*},
+  \qquad r = \frac{\kappa - 1}{\kappa + 1} < 1, \quad \kappa = L/\tau.
+\]
+
+\subsection{Condizioni di Ottimalità per Funzioni Lisce}
+
+Per $f \in C^1$ convessa: $w^*$ è minimo globale $\iff \grad f(w^*) = 0$.
+
+\subsection{Sottogradiente e Subdifferenziale}
+
+Per funzioni \textbf{non differenziabili} (come $\norm{w}_1$), il gradiente non esiste in tutti i punti.
+Si introduce la seguente generalizzazione.
+
+\begin{definition}[Sottogradiente]
+  $g \in \R^n$ è un \textbf{sottogradiente} di $f$ in $x$ se:
+  \[
+    f(z) \geq f(x) + \langle g, z-x\rangle, \quad \forall z \in \R^n.
+  \]
+  A differenza del gradiente, un sottogradiente \emph{non} garantisce la direzione di discesa:
+  può accadere che $f(x - \alpha g) \geq f(x)$ per ogni $\alpha > 0$.
+\end{definition}
+
+\begin{definition}[Subdifferenziale]
+  Il \textbf{subdifferenziale} di $f$ in $x$ è l'insieme di tutti i sottogradienti:
+  \[
+    \subgr f(x) = \bigl\{ g \in \R^n : f(z) \geq f(x) + \langle g, z-x\rangle \;\forall z \bigr\}.
+  \]
+\end{definition}
+
+\begin{example}[Valore assoluto e norma $\ell_1$]
+  Per $f(w) = \norm{w}_1$:
+  \[
+    [\subgr f(w)]_i =
+    \begin{cases}
+      \{+1\}  & \text{se } w_i > 0, \\
+      \{-1\}  & \text{se } w_i < 0, \\
+      [-1,+1] & \text{se } w_i = 0.
+    \end{cases}
+  \]
+  Dove $f$ è differenziabile ($w_i \neq 0$), il subdifferenziale è un singoletto (il gradiente);
+  dove non lo è ($w_i = 0$), è un intervallo chiuso.
+\end{example}
+
+\begin{keybox}[Condizione di Ottimalità Generale]
+  Per $f$ convessa (differenziabile o no): $w^*$ è minimo globale se e solo se:
+  \[
+    0 \in \subgr f(w^*).
+  \]
+\end{keybox}
+
+\subsubsection*{Regola di Somma per il Subdifferenziale}
+
+Se $f = f_1 + f_2$ con $f_1$ differenziabile e $f_2$ convessa:
+\[
+  \subgr f(w) = \grad f_1(w) + \subgr f_2(w).
+\]
+Per la funzione obiettivo del progetto $f(w) = \norm{Xw-y}^2 + \lambda\norm{w}_1$:
+\[
+  \subgr f(w) = 2X\T(Xw - y) + \lambda\, \subgr\norm{w}_1.
+\]
+
+% ================================================================
+\section{Ottimizzazione Non Liscia}
+\label{sec:nonsmooth}
+% ================================================================
+
+\subsection{Perché i Metodi Lisci Falliscono}
+
+Per $f \notin C^1$ come $\norm{w}_1$, il metodo del gradiente \textbf{non funziona}:
+\begin{enumerate}
+  \item Il passo fisso non converge: per $f(x) = L|x|$ con $x^0 = -\alpha L/2$,
+    iterando si ottiene un ciclo $x^0 \to x^1 \to x^0 \to \cdots$ senza convergenza.
+  \item La norma del sottogradiente non è un indicatore di ottimalità:
+    $\norm{g}$ piccola non implica $f(x) \approx f_*$, né viceversa.
+    Non c'è un criterio di arresto affidabile.
+\end{enumerate}
+
+\begin{keybox}[Complessità dell'Ottimizzazione Non Liscia]
+  \begin{center}
+    \begin{tabular}{llll}
+      \toprule
+      Classe & Convessità & Regolarità & Complessità \\
+      \midrule
+      $f \in C^1$ & $\tau$-convessa & $L$-liscia & $O(\log(1/\varepsilon))$ \\
+      $f \notin C^1$ & $\tau$-convessa & $L$-Lipschitz & $\Omega(L^2/\varepsilon^2)$ \\
+      $f \in C^1$ & convessa & $L$-liscia & $O(1/\sqrt{\varepsilon})$ \\
+      $f \notin C^1$ & convessa & $L$-Lipschitz & $\Omega(L/\varepsilon^2)$ \\
+      \bottomrule
+    \end{tabular}
+  \end{center}
+  \vspace{0.3em}
+  L'ottimizzazione non liscia è \textbf{ordini di grandezza più lenta} di quella liscia.
+\end{keybox}
+
+\subsection{Metodo del Sottogradiente con Passo DSS}
+
+L'iterazione base del metodo del sottogradiente è:
+\[
+  x^{i+1} = x^i - \alpha^i g^i, \qquad g^i \in \subgr f(x^i).
+\]
+
+\begin{theorem}[Relazione Fondamentale]
+  Per ogni $g^i \in \subgr f(x^i)$:
+  \[
+    \norm{x^{i+1} - x_*}^2
+    \leq \norm{x^i - x_*}^2 + 2\alpha^i\bigl(f_* - f(x^i)\bigr) + (\alpha^i)^2\norm{g^i}^2.
+  \]
+\end{theorem}
+
+Per $\alpha^i$ piccolo, il termine negativo $2\alpha^i(f_* - f(x^i))$ domina e il passo avvicina a $x_*$.
+Il passo non può essere fisso (diverge); deve tendere a zero, ma non troppo in fretta.
+
+\begin{definition}[Passo DSS (Diminishing-Square-Summable)]
+  \[
+    \sum_{i=1}^\infty \alpha^i = \infty \quad \text{e} \quad
+    \sum_{i=1}^\infty (\alpha^i)^2 < \infty.
+  \]
+  Esempio: $\alpha^i = 1/i$.
+\end{definition}
+
+Con il passo DSS: $\exists k$ tale che $f(x^k) - f_* \leq \varepsilon$ (convergenza sulle \emph{iterate record}).
+Tuttavia la convergenza pratica è molto lenta.
+
+\subsection{Passo di Polyak}
+
+Se si conosce $f_*$, si può ottimizzare il passo derivando dalla relazione fondamentale:
+\[
+  \alpha^i_{\text{opt}} = \argmin_{\alpha \geq 0}
+    \bigl[\norm{x^i - x_*}^2 + 2\alpha(f_* - f^i) + \alpha^2\norm{g^i}^2\bigr]
+  = \frac{f(x^i) - f_*}{\norm{g^i}^2}.
+\]
+
+\begin{keybox}[Passo di Polyak (PSS)]
+  \[
+    \alpha^i = \frac{f(x^i) - f_*}{\norm{g^i}^2} \geq 0.
+  \]
+  Con questo passo: $\norm{x^{i+1} - x_*}^2 < \norm{x^i - x_*}^2$ (monotono decrescente).
+
+  Complessità: $O(1/\varepsilon^2)$ sulle iterate record, con costante molto migliore di DSS.
+\end{keybox}
+
+\begin{intubox}
+  Il passo di Polyak è ``ottimale'' ma richiede la conoscenza di $f_*$, che in pratica non si ha.
+  L'approccio \emph{target level} stima $f_*$ adattativamente, rifinanando la stima se troppo
+  ottimistica.
+\end{intubox}
+
+% ================================================================
+\section{Algoritmo A2: Sottogradiente Deflesso con Target Level}
+\label{sec:a2}
+% ================================================================
+
+\subsection{Deflettere la Direzione}
+
+Il metodo del sottogradiente puro usa $d^i = -g^i$.
+Il metodo \textbf{deflesso} combina il sottogradiente corrente con la direzione precedente,
+analogamente al gradiente coniugato:
+\[
+  d^i = \gamma^i g^i + (1 - \gamma^i) d^{i-1}, \qquad \gamma^i \in [0, 1].
+\]
+Il passo di aggiornamento è $x^{i+1} = x^i - \alpha^i d^i$.
+
+\begin{intubox}
+  Si tratta di un ``sottogradiente coniugato'': sfrutta la memoria delle iterazioni precedenti
+  per costruire una direzione più informata. La direzione deflessa approssima una
+  direzione di discesa migliore, in modo analogo al gradiente coniugato per funzioni quadratiche.
+\end{intubox}
+
+\subsection{Scelta Ottimale di $\gamma^i$}
+
+Il parametro $\gamma^i$ viene scelto minimizzando la norma quadratica della direzione deflessa:
+
+\begin{keybox}[Formula Chiusa per $\gamma^i$]
+  \[
+    \gamma^i = \argmin_{\gamma \in [0,1]} \norm{\gamma g^i + (1-\gamma) d^{i-1}}^2.
+  \]
+  Svolgendo il quadrato, si ottiene un problema quadratico univariato in $\gamma$ con soluzione:
+  \[
+    \gamma^i_{\text{unc}}
+    = \frac{\langle d^{i-1}, d^{i-1} - g^i \rangle}{\norm{g^i - d^{i-1}}^2}
+    = \frac{\norm{d^{i-1}}^2 - \langle g^i, d^{i-1}\rangle}{\norm{g^i - d^{i-1}}^2},
+  \]
+  e $\gamma^i = \operatorname{clip}(\gamma^i_{\text{unc}}, 0, 1)$.
+\end{keybox}
+
+\subsection{Meccanismo Target Level}
+
+Il \emph{target level} stima adattativamente $f_*$ per il passo di Polyak.
+Si mantiene un \textbf{valore di riferimento} $f_{\text{ref}}$ e una \textbf{soglia} $\delta > 0$.
+
+\begin{keybox}[Logica del Target Level]
+  \begin{itemize}[noitemsep]
+    \item Il \textbf{target level} è $f_{\text{ref}} - \delta$ (livello da raggiungere).
+    \item Il passo di Polyak usa il target al posto di $f_*$:
+      $\alpha^i = \beta^i (f(x^i) - (f_{\text{ref}} - \delta)) / \norm{d^i}^2$.
+    \item \textbf{Miglioramento buono} ($f(x) \leq f_{\text{ref}} - \delta/2$):
+      si abbassa $f_{\text{ref}}$ e si azzera il contatore $r$.
+    \item \textbf{Troppi passi senza miglioramento} ($r > R$):
+      il target era troppo ambizioso; si riduce $\delta \leftarrow \rho\delta$ (target più facile).
+  \end{itemize}
+\end{keybox}
+
+\subsection{Algoritmo Completo (A2)}
+
+\begin{algobox}[Algoritmo A2: Sottogradiente Deflesso con Target Level]
+  \textbf{Input:} $f$, $x^0$, $i_{\max}$, $\beta \in (0,2)$, $\delta_0 > 0$, $R > 0$, $\rho \in (0,1)$\\
+  \textbf{Output:} Valore ottimale approssimato $\bar{f}$
+  \begin{pseudocode}
+    \pcline{$r \leftarrow 0$;\; $\delta \leftarrow \delta_0$;\;
+      $f_{\text{ref}} \leftarrow \bar{f} \leftarrow f(x^0)$;\; $i \leftarrow 1$}
+    \pcline{\textbf{while} $i < i_{\max}$:}
+    \pcline{\pcindent $g^i \in \subgr f(x^i)$
+      \hfill \textit{calcola un sottogradiente}}
+    \pcline{\pcindent $\gamma^i \leftarrow \argmin_{\gamma \in [0,1]}\norm{\gamma g^i + (1-\gamma)d^{i-1}}^2$
+      \hfill \textit{coefficiente di deflazione}}
+    \pcline{\pcindent $d^i \leftarrow \gamma^i g^i + (1-\gamma^i)d^{i-1}$
+      \hfill \textit{direzione deflessa}}
+    \pcline{\pcindent $\alpha^i \leftarrow \beta^i \cdot \dfrac{f(x^i) - (f_{\text{ref}} - \delta)}{\norm{d^i}^2}$
+      \hfill \textit{passo Polyak con target}}
+    \pcline{\pcindent $x \leftarrow x^i - \alpha^i d^i$}
+    \pcline{\pcindent \textbf{if} $f(x) \leq f_{\text{ref}} - \delta/2$:
+      \hfill \textit{buon miglioramento}}
+    \pcline{\pcindentII $f_{\text{ref}} \leftarrow \bar{f}$;\; $r \leftarrow 0$}
+    \pcline{\pcindent \textbf{else if} $r > R$:
+      \hfill \textit{target troppo ambizioso: abbassa soglia}}
+    \pcline{\pcindentII $\delta \leftarrow \rho\delta$;\; $r \leftarrow 0$}
+    \pcline{\pcindent \textbf{else}:}
+    \pcline{\pcindentII $r \leftarrow r + \alpha^i\norm{d^i}$
+      \hfill \textit{accumula progresso}}
+    \pcline{\pcindent \textbf{end if}}
+    \pcline{\pcindent $\bar{f} \leftarrow \min(\bar{f},\, f(x))$;\; $i \leftarrow i + 1$}
+    \pcline{\textbf{end while}}
+  \end{pseudocode}
+\end{algobox}
+
+\subsection{Note sulla Convergenza}
+
+\begin{proposition}
+  Sotto condizioni appropriate sui parametri ($\beta^i$, $\gamma^i$ legati dalla condizione
+  ``stepsize-restricted'' o ``deflection-restricted''), la sequenza delle iterate record
+  $\bar{f}^i$ converge a $f_*$ con complessità $O(1/\varepsilon^2)$.
+\end{proposition}
+
+Il calcolo del sottogradiente $g^i \in \subgr f(w^i)$ per $f(w) = \norm{Xw-y}^2 + \lambda\norm{w}_1$ è:
+\[
+  g^i = 2X\T(Xw^i - y) + \lambda\, s^i,
+  \qquad s^i_j = \begin{cases} +1 & w^i_j > 0 \\ -1 & w^i_j < 0 \\ \in [-1,+1] & w^i_j = 0 \end{cases}
+\]
+
+% ================================================================
+\section{Algoritmo A1: IRLS (Iteratively Reweighted Least Squares)}
+\label{sec:a1}
+% ================================================================
+
+\subsection{Motivazione: Approssimare $\ell_1$ con Minimi Quadrati Pesati}
+
+La norma $\norm{w}_1 = \sum_i |w_i|$ non è differenziabile. L'idea fondamentale dell'IRLS
+è di approssimare $|w_i|$ usando il valore dell'iterata precedente $w_k$:
+\[
+  |w_i| = \frac{w_i^2}{|w_i|} \approx \frac{w_i^2}{\max(|w_{k,i}|,\,\varepsilon_{\text{thr}})}.
+\]
+In questo modo:
+\[
+  \norm{w}_1 \approx \sum_i \frac{w_i^2}{|w_{k,i}|} = w\T D_k w = \norm{W_k w}^2,
+\]
+dove $W_k = \operatorname{diag}([W_k]_{11}, \ldots, [W_k]_{nn})$ con $[W_k]_{ii} = |w_{k,i}|^{-1/2}$.
+
+\begin{intubox}
+  Questo è un'istanza del framework \textbf{Majorization-Minimization (MM)}:
+  ad ogni passo si costruisce una funzione surrogate $\hat{f}_k(w)$ che
+  \emph{maggiora} la funzione originale e la \emph{tocca} nel punto corrente $w_k$.
+  Minimizzare la surrogate è più semplice e garantisce la discesa monotona della funzione originale.
+\end{intubox}
+
+\subsection{Sottoproblema di Minimi Quadrati Pesato}
+
+Sostituendo l'approssimazione nell'obiettivo, il sottoproblema all'iterazione $k$ è:
+\[
+  w_{k+1} = \argmin_w \norm{Xw - y}^2 + 2\lambda\norm{W_k w}^2.
+\]
+Espandendo e ponendo il gradiente a zero:
+
+\begin{keybox}[Sistema Lineare dell'IRLS]
+  \[
+    \underbrace{(A + 2\lambda W_k\T W_k)}_{=:\, Q_k}\, w_{k+1} = b,
+    \qquad A = X\T X,\quad b = X\T y.
+  \]
+  La matrice $Q_k$ è \textbf{SPD} per ogni $k$ (se $\lambda > 0$), quindi si risolve con
+  \textbf{fattorizzazione di Cholesky}.
+\end{keybox}
+
+\subsection{Aggiornamento della Matrice Peso}
+
+\[
+  [W_k]_{ii} = \frac{1}{\sqrt{\max(|w_{k,i}|,\;\varepsilon_{\text{thr}})}}, \qquad i = 1, \ldots, n,
+\]
+dove $\varepsilon_{\text{thr}} > 0$ è una soglia per la stabilità numerica (evita divisioni per zero).
+
+\begin{intubox}
+  Componenti $|w_{k,i}|$ grandi $\Rightarrow$ $[W_k]_{ii}$ piccolo $\Rightarrow$ poca penalizzazione
+  $\Rightarrow$ il componente rimane grande.
+  Componenti $|w_{k,i}|$ piccoli $\Rightarrow$ $[W_k]_{ii}$ grande $\Rightarrow$ forte penalizzazione
+  $\Rightarrow$ il componente viene spinto verso zero.
+  Questo implementa la \emph{sparsità adattiva} tipica della norma $\ell_1$.
+\end{intubox}
+
+\subsection{Algoritmo Completo (A1)}
+
+\begin{algobox}[Algoritmo A1: IRLS]
+  \textbf{Pre-computazione:} $A \leftarrow X\T X$,\quad $b \leftarrow X\T y$
+  \vspace{0.5em}
+  \begin{pseudocode}
+    \pcline{$w_0 \leftarrow$ soluzione di $Aw = b$ (minimi quadrati puri, es.\ con Cholesky)}
+    \pcline{\textbf{for} $k = 0, 1, 2, \ldots, k_{\max}$:}
+    \pcline{\pcindent \textbf{for} $i = 1, \ldots, n$:}
+    \pcline{\pcindentII $[W_k]_{ii} \leftarrow \max(|w_{k,i}|,\;\varepsilon_{\text{thr}})^{-1/2}$
+      \hfill \textit{aggiorna pesi}}
+    \pcline{\pcindent \textbf{end for}}
+    \pcline{\pcindent $Q_k \leftarrow A + 2\lambda W_k\T W_k$
+      \hfill \textit{matrice SPD}}
+    \pcline{\pcindent Risolvi $Q_k\, w_{k+1} = b$ con Cholesky
+      \hfill \textit{sottoproblema LS pesato}}
+    \pcline{\pcindent \textbf{if} criterio di arresto soddisfatto: \textbf{break}}
+    \pcline{\textbf{end for}}
+    \pcline{\textbf{return} $w_{k+1}$}
+  \end{pseudocode}
+\end{algobox}
+
+\subsection{Convergenza}
+
+\begin{proposition}
+  Per $\lambda > 0$ e $X$ a rango pieno, l'IRLS converge. La convergenza è
+  \textbf{lineare (Q-lineare)} in un intorno della soluzione $w_*$:
+  \[
+    \norm{w_{k+1} - w_*} \leq r\, \norm{w_k - w_*}, \quad r < 1.
+  \]
+  Il tasso $r$ dipende dalla struttura della soluzione (grado di sparsità di $w_*$).
+\end{proposition}
+
+\begin{remark}
+  Il costo per iterazione è $O(n^2)$ per aggiornare $W_k$ e $Q_k$, più $O(n^3/3)$ per
+  la fattorizzazione di Cholesky. Nella pratica, il numero di iterazioni esterne è piccolo
+  (convergenza rapida vicino alla soluzione) e IRLS risulta molto efficiente.
+\end{remark}
+
+% ================================================================
+\section{Riepilogo: Connessioni tra gli Argomenti}
+\label{sec:riepilogo}
+% ================================================================
+
+Questo manuale copre gli argomenti necessari per implementare e comprendere il Progetto 25,
+organizzati nel seguente schema di dipendenze:
+
+\begin{center}
+  \renewcommand{\arraystretch}{1.2}
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Argomento} & \textbf{Sezione} & \textbf{Uso nel Progetto} \\
+    \midrule
+    Minimi Quadrati & \ref{sec:ls} & Formulazione base ELM, sottoproblemi IRLS \\
+    Equazioni Normali & \ref{sec:ls} & $A\T Aw = A\T y$, struttura di $Q_k$ in A1 \\
+    Cholesky & \ref{sec:chol} & Solver interno di A1 per ogni iterazione \\
+    Gradiente Coniugato & \ref{sec:cg} & Alternativa iterativa per sistemi sparsi \\
+    Convessità / $L$-lisciezza & \ref{sec:opt} & Garanzie di ottimalità globale \\
+    Subdifferenziale & \ref{sec:opt} & Condizioni di ottimalità per LASSO \\
+    Complessità non liscia & \ref{sec:nonsmooth} & Perché servono metodi speciali \\
+    Passo di Polyak & \ref{sec:nonsmooth} & Stepsize ottimale in A2 \\
+    Target Level & \ref{sec:a2} & Stima adattiva di $f_*$ in A2 \\
+    Direzione Deflessa & \ref{sec:a2} & Direzione migliorata in A2 \\
+    MM Framework & \ref{sec:a1} & Giustificazione teorica di IRLS \\
+    \bottomrule
+  \end{tabular}
+\end{center}
+
+\vspace{1em}
+
+\begin{keybox}[Percorso di Studio Consigliato]
+  Sezione~\ref{sec:elm} (ELM + LASSO)
+  $\;\to\;$ Sezione~\ref{sec:ls} (minimi quadrati)
+  $\;\to\;$ Sezione~\ref{sec:chol} (Cholesky)
+  $\;\to\;$ Sezione~\ref{sec:cg} (CG)
+  $\;\to\;$ Sezione~\ref{sec:opt} (convessità)
+  $\;\to\;$ Sezione~\ref{sec:nonsmooth} (ottimizzazione non liscia)
+  $\;\to\;$ Sezione~\ref{sec:a1} (IRLS)
+  $\;\to\;$ Sezione~\ref{sec:a2} (Sottogradiente Deflesso).
+\end{keybox}
+
+\end{document}

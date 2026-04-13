@@ -1,0 +1,519 @@
+\chapter{Algorithm 2: Deflected Subgradient Method}
+\label{chap:dsm}
+
+\noindent
+\textbf{Notation.} In this chapter we present the deflected subgradient method in its general form,
+using $\mathbf{x}^i$ for the iterates. When applied to our specific LASSO problem
+(Section~\ref{sec:dsm_application} onward), the iterates are denoted $\mathbf{w}_i$ to match
+the notation of Chapter~1.
+
+We choose the \emph{stepsize-restricted} variant with \emph{target level} (SGPTL) and
+\emph{optimal deflection}, because it avoids the need for a priori knowledge of $f^*$ while
+retaining the practical efficiency of the Polyak stepsize, and the optimal deflection minimises
+the direction norm, maximising progress per iteration.
+
+% ------------------------------------------------------------------
+\section{Motivation: limitations of the plain subgradient method}
+\label{sec:dsm_motivation}
+
+The starting point for this algorithm is the \emph{subgradient method}, the natural extension
+of the gradient method to convex nondifferentiable functions. Given
+$\mathbf{g}^i \in \partial f(\mathbf{x}^i)$, the update rule mirrors that of the gradient method:
+\begin{equation}\label{eq:subgrad_update}
+  \mathbf{x}^{i+1} = \mathbf{x}^i - \alpha^i\, \mathbf{g}^i.
+\end{equation}
+However, this method suffers from two structural limitations.
+First, it uses only local information (the subgradient at the current point) and retains no
+memory of previous iterations.
+The result is a pronounced zig-zag behaviour, where the algorithm oscillates between opposing
+directions, leading to very slow convergence.
+Second, the stepsize $\alpha^i$ must be chosen with great care. A \emph{constant} stepsize
+does not work: the algorithm cycles forever without converging. The stepsize must tend to zero,
+but not too fast: the standard requirement is the \emph{Diminishing--Square Summable} (DSS)
+condition
+\begin{equation}\label{eq:dss}
+\sum_{i=1}^{\infty}\alpha^i = \infty
+  \qquad\text{and}\qquad
+\sum_{i=1}^{\infty}(\alpha^i)^2 < \infty,
+\end{equation}
+satisfied, for example, by $\alpha^i = c/i$.
+The DSS rule guarantees convergence, but the practical speed is very poor.
+These issues are analogous to the well-known zig-zag of the steepest-descent method on
+ill-conditioned smooth functions, which is cured by \emph{conjugate directions} (Heavy Ball,
+conjugate gradient). In the nonsmooth setting, the corresponding remedy is \textbf{deflection}.
+
+\paragraph{Intrinsic difficulty of nonsmooth optimisation.}
+Before introducing the algorithm, it is important to understand the fundamental complexity gap
+between smooth and nonsmooth convex optimisation:
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\textbf{Regularity} & \textbf{Convexity} & \textbf{Complexity} \\
+\midrule
+$f \in C^1$, $L$-smooth     & $\tau$-strongly convex & $O(\log(1/\varepsilon))$ \\
+$f \notin C^1$, $L$-Lipschitz & $\tau$-strongly convex & $\Omega(L^2/\varepsilon)$ \\
+$f \in C^1$, $L$-smooth     & convex                 & $O(1/\sqrt{\varepsilon})$ \\
+$f \notin C^1$, $L$-Lipschitz & convex                 & $\Omega(L/\varepsilon^2)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The gap between the smooth strongly convex case ($O(\log(1/\varepsilon))$) and the nonsmooth
+convex case ($\Omega(1/\varepsilon^2)$) is enormous: to reach $\varepsilon = 10^{-6}$, the
+former requires $\approx 14$ iterations while the latter requires $\approx 10^{12}$.
+
+% ------------------------------------------------------------------
+\subsection{Key properties of nonsmooth convex functions}
+\label{sec:dsm_nonsmooth_props}
+
+The theoretical validity of subgradient methods rests on a few fundamental properties of
+nonsmooth convex functions that generalise the familiar smooth theory.
+
+\begin{itemize}
+    \item \textbf{Subdifferential non-emptiness.}
+    For any convex function $f \colon \R^n \to \R$ and any point $\mathbf{x}$, the
+    subdifferential $\partial f(\mathbf{x})$ is non-empty. This guarantees that a subgradient
+    can always be computed, making each iteration of the algorithm well-defined.
+    \item \textbf{Subgradient inequality.}
+    For every $\mathbf{g} \in \partial f(\mathbf{x})$ and every $\mathbf{y} \in \R^n$,
+    \[
+      f(\mathbf{y}) \geq f(\mathbf{x}) + \inner{\mathbf{g}}{\mathbf{y} - \mathbf{x}}.
+    \]
+    This is the analogue of the first-order condition for smooth convex functions, and is
+    the key inequality used in all convergence proofs: it ensures that a step in direction
+    $-\mathbf{g}$ makes progress towards the minimiser.
+    \item \textbf{Lipschitz continuity.}
+    A convex function is \emph{locally Lipschitz} on the interior of its domain: for any
+    compact set $K$, there exists $L_K > 0$ such that
+    $|f(\mathbf{x}) - f(\mathbf{y})| \leq L_K \norm{\mathbf{x}-\mathbf{y}}$ for all
+    $\mathbf{x},\mathbf{y} \in K$. Lipschitz continuity implies that subgradients are
+    uniformly bounded on compact sets: $\norm{\mathbf{g}} \leq L_K$ for all
+    $\mathbf{g} \in \partial f(\mathbf{x})$, $\mathbf{x} \in K$.
+    \item \textbf{No gradient at kinks.}
+    Unlike smooth functions, $\partial f(\mathbf{x})$ is a set (not a singleton) wherever
+    $f$ is non-differentiable. The size of this set grows larger at sharper kinks.
+    The minimum-norm element $\mathbf{g}^* = \argmin\{\norm{\mathbf{g}} : \mathbf{g} \in
+    \partial f(\mathbf{x})\}$ is the most useful single representative at non-smooth points,
+    as it corresponds to the steepest descent direction.
+\end{itemize}
+
+These properties justify using a subgradient in place of the gradient and underpin the
+convergence guarantee in Theorem~\ref{thm:dsm_convergence}.
+
+% ------------------------------------------------------------------
+\subsection{The deflection idea}
+\label{sec:dsm_deflection}
+
+Deflected subgradient methods replace the raw subgradient $\mathbf{g}^i$ with a
+\emph{deflected direction} $\mathbf{d}^i$, defined as a convex combination of the current
+subgradient and the previous direction:
+\begin{equation}\label{eq:deflected_dir}
+  \mathbf{d}^i = \gamma^i\, \mathbf{g}^i + (1 - \gamma^i)\, \mathbf{d}^{i-1},
+  \qquad \mathbf{d}^0 = \mathbf{g}^0,
+\end{equation}
+where $\gamma^i \in (0,1]$ is the \textbf{deflection parameter}.
+The iterate is then updated as
+\begin{equation}\label{eq:deflected_step}
+  \mathbf{x}^{i+1} = \mathbf{x}^i - \alpha^i\, \mathbf{d}^i.
+\end{equation}
+This can be seen as a nonsmooth analogue of the conjugate gradient method, where the
+deflected direction $\mathbf{d}^i$ plays the role of the conjugate direction.
+The parameter $\gamma^i$ controls the trade-off between responsiveness and memory:
+\begin{itemize}[nosep]
+\item $\gamma^i = 1$: only the current subgradient is used (plain subgradient method).
+        Maximum local responsiveness, but oscillatory behaviour.
+\item $\gamma^i$ small: the direction is dominated by $\mathbf{d}^{i-1}$, producing a
+        smoother trajectory at the risk of ignoring new information.
+\item Intermediate $\gamma^i$: the best compromise between reactivity and smoothness.
+\end{itemize}
+
+% ------------------------------------------------------------------
+\section{Convergence conditions: balancing deflection and stepsize}
+\label{sec:dsm_convergence_conditions}
+
+The joint choice of $\gamma^i$ (deflection) and $\alpha^i$ (stepsize) must be carefully
+coordinated: if both are too large the algorithm may diverge. Two complementary frameworks
+guarantee convergence.
+
+\paragraph{Approach 1: stepsize-restricted.}
+The deflection $\gamma^i$ is chosen freely, and the stepsize is constrained via a
+Polyak-type rule:
+\begin{equation}\label{eq:sr_step}
+\alpha^i = \frac{\beta^i\,(f(\mathbf{x}^i) - f^*)}{\norm{\mathbf{d}^i}^2},
+  \qquad \beta^i \leq \gamma^i.
+\end{equation}
+Since $f^*$ is unknown in practice, it is replaced by the target level
+$f_{\mathrm{ref}} - \delta$ (see Section~\ref{sec:dsm_target_level}). The condition
+$\beta^i \leq \gamma^i$ ensures that the step shrinks as the deflection grows stronger
+($\gamma^i$ small). The rationale is that a large deflection injects the ``old'' direction
+$\mathbf{d}^{i-1}$ into $\mathbf{d}^i$, which may no longer be a descent direction; a
+shorter step compensates for this risk.
+
+\paragraph{Approach 2: deflection-restricted.}
+The stepsize $\alpha^i$ is chosen a priori (e.g.\ via a DSS rule), and the deflection is
+constrained from below:
+\begin{equation}\label{eq:dr_gamma}
+\gamma^i \;\geq\;
+  \frac{\alpha^{i-1}\norm{\mathbf{d}^{i-1}}^2}
+       {(f(\mathbf{x}^i) - f^*) + \alpha^{i-1}\norm{\mathbf{d}^{i-1}}^2}.
+\end{equation}
+Again, $f^*$ is replaced by the target level in the actual implementation.
+As the algorithm converges ($f(\mathbf{x}^i) \to f^*$), the term $(f(\mathbf{x}^i)-f^*)$ in
+the denominator vanishes, so the right-hand side tends to~$1$, i.e.\ $\gamma^i \to 1$: near
+the solution the deflection disappears and the method reverts to the plain subgradient. This
+is consistent: deflection accelerates the trajectory far from the optimum, but close to it
+the local subgradient information is preferable.
+
+% ------------------------------------------------------------------
+\subsection{Optimal deflection parameter}
+\label{sec:dsm_optimal_gamma}
+
+At each iteration, the deflection parameter can be chosen to minimise the norm of the
+deflected direction:
+\begin{equation}\label{eq:gamma_opt}
+\gamma^i \in \argmin_{\gamma \in [0,1]}
+  \norm{\gamma\, \mathbf{g}^i + (1-\gamma)\, \mathbf{d}^{i-1}}^2.
+\end{equation}
+In the Polyak stepsize~\eqref{eq:sr_step} the denominator is $\norm{\mathbf{d}^i}^2$;
+minimising it maximises the step length and hence the progress per iteration.
+We therefore seek the ``most efficient'' direction among all convex combinations of
+$\mathbf{g}^i$ and $\mathbf{d}^{i-1}$.
+Problem~\eqref{eq:gamma_opt} is a quadratic in a single variable constrained to $[0,1]$
+and admits a closed-form solution.
+Define $\varphi(\gamma) = \norm{\gamma\, \mathbf{g} + (1-\gamma)\, \mathbf{d}^{-}}^2$:
+\begin{equation}\label{eq:phi_expansion}
+\varphi(\gamma)
+  = \gamma^2\norm{\mathbf{g}}^2
++ 2\gamma(1-\gamma)\inner{\mathbf{g}}{\mathbf{d}^{-}}
++ (1-\gamma)^2\norm{\mathbf{d}^{-}}^2.
+\end{equation}
+Setting $\varphi'(\gamma)=0$ gives the unconstrained minimiser
+\begin{equation}\label{eq:gamma_star}
+\gamma^*
+  = \frac{\norm{\mathbf{d}^{-}}^2 - \inner{\mathbf{g}}{\mathbf{d}^{-}}}
+         {\norm{\mathbf{g} - \mathbf{d}^{-}}^2},
+\end{equation}
+and the constrained solution is
+$\gamma^i = \min\!\bigl(1,\,\max(0,\,\gamma^*)\bigr)$.
+
+% ------------------------------------------------------------------
+\section{The target-level mechanism}
+\label{sec:dsm_target_level}
+
+The Polyak stepsize in its original form requires the optimal value~$f^*$, which is
+precisely the quantity we are trying to compute.
+Recall the \textbf{fundamental relationship} for the subgradient method:
+\begin{equation}\label{eq:fundamental}
+  \norm{\mathbf{x}^{i+1}-\mathbf{x}^*}^2
+\;\leq\;
+  \norm{\mathbf{x}^i-\mathbf{x}^*}^2
+  \underbrace{- 2\alpha^i(f(\mathbf{x}^i)-f^*)}_{\leq\,0\;\text{(good)}}
++ \underbrace{(\alpha^i)^2\norm{\mathbf{g}^i}^2}_{\geq\,0\;\text{(bad)}}.
+\end{equation}
+The choice $\alpha^i = (f(\mathbf{x}^i)-f^*)/\norm{\mathbf{g}^i}^2$ maximises the
+guaranteed reduction in distance to~$\mathbf{x}^*$ at each step; however, it requires
+knowledge of~$f^*$.
+The \textbf{target-level} mechanism circumvents this by maintaining an estimate
+$f_{\mathrm{lev}} = f_{\mathrm{ref}} - \delta$ of~$f^*$, where:
+\begin{itemize}[nosep]
+\item $f_{\mathrm{ref}}$ is the best function value found so far
+        (the \emph{record value});
+\item $\delta > 0$ is an expected improvement margin---the ``hope'' of how much further
+        we can improve.
+\end{itemize}
+If the estimate is accurate ($f_{\mathrm{ref}} - \delta \approx f^*$), the algorithm
+makes good progress.
+If the estimate is too optimistic ($f_{\mathrm{ref}} - \delta < f^*$), the Polyak numerator
+$f(\mathbf{x}^i) - f_{\mathrm{lev}}$ becomes very small or negative, producing tiny or
+ill-defined steps and stalling the algorithm.
+When this is detected---after a prescribed amount of travel without significant
+improvement---$\delta$ is reduced (multiplied by $\rho < 1$) and the algorithm retries
+with a less ambitious target.
+
+% ------------------------------------------------------------------
+\subsection{The complete algorithm}
+\label{sec:dsm_algorithm}
+
+The full Deflected Subgradient Method with target level is given in
+Algorithm~\ref{alg:dsm}.
+
+\begin{algorithm}[htbp]
+\caption{Deflected Subgradient with Target Level (SGPTL)}
+\label{alg:dsm}
+\begin{algorithmic}[1]
+\Require $f$,\; $\mathbf{w}_0$,\; $i_{\max}$,\;
+$\beta \in (0,2)$,\; $\delta_0 > 0$,\;
+$R > 0$,\; $\rho \in (0,1)$
+\State $r \gets 0$;\;
+$\delta \gets \delta_0$;\;
+$f_{\mathrm{ref}} \gets \bar{f} \gets f(\mathbf{w}_0)$;\;
+$\mathbf{d}_{-1} \gets \mathbf{0}$
+\For{$i = 0, 1, \ldots, i_{\max}$}
+\State Compute $\mathbf{g} \in \partial f(\mathbf{w}_i)$
+\hfill\emph{(any subgradient)}
+\State Compute $\gamma_i$ via \eqref{eq:gamma_opt}
+\hfill\emph{(optimal deflection)}
+\State $\mathbf{d}_i \gets \gamma_i\, \mathbf{g} + (1-\gamma_i)\, \mathbf{d}_{i-1}$
+\hfill\emph{(deflected direction)}
+\State $\alpha_i \gets
+\beta\,(f(\mathbf{w}_i) - (f_{\mathrm{ref}}-\delta))\,/\,\norm{\mathbf{d}_i}^2$
+\hfill\emph{(Polyak with target level)}
+\State $\mathbf{w}_{i+1} \gets \mathbf{w}_i - \alpha_i\, \mathbf{d}_i$
+\hfill\emph{(step)}
+\State $\bar{f} \gets \min(\bar{f},\; f(\mathbf{w}_{i+1}))$
+\hfill\emph{(update record \textbf{before} testing improvement)}
+\If{$f(\mathbf{w}_{i+1}) \leq f_{\mathrm{ref}} - \delta/2$}
+\hfill\emph{(significant improvement)}
+\State $f_{\mathrm{ref}} \gets \bar{f}$;\; $r \gets 0$
+\ElsIf{$r > R$}
+\hfill\emph{(stalled: reduce target)}
+\State $\delta \gets \delta\,\rho$;\; $r \gets 0$
+\Else
+\State $r \gets r + \alpha_i\norm{\mathbf{d}_i}$
+\hfill\emph{(accumulate travelled distance)}
+\EndIf
+\EndFor
+\State \Return $\mathbf{w}_{\mathrm{best}}$
+       (the iterate achieving $\bar{f}$)
+\end{algorithmic}
+\end{algorithm}
+
+\begin{remark}[Pseudocode correction]
+    In a naive presentation, the record update $\bar{f} \gets \min(\bar{f}, f(\mathbf{w}_{i+1}))$
+    might appear at the end of the loop body, after the if–elseif–else block.
+    This is a logical error: the ``significant improvement'' branch assigns
+    $f_{\mathrm{ref}} \gets \bar{f}$, which should reflect the \emph{current} best value
+    including $\mathbf{w}_{i+1}$.
+    Placing the record update before the conditional ensures that $f_{\mathrm{ref}}$ is
+    correctly set to $\min(\bar{f}_{\mathrm{old}}, f(\mathbf{w}_{i+1}))$ when progress
+    is detected.
+\end{remark}
+
+The algorithm maintains three key quantities (we write $\bar{f}$ in the pseudocode; in the
+analysis below, $\bar{f}^{\,i}$ denotes the record value at iteration~$i$):
+\begin{itemize}[nosep]
+\item $\bar{f}^{\,i} = \min_{h \leq i} f(\mathbf{w}_h)$: the \textbf{record value}---the
+        best $f$ encountered up to iteration~$i$. Since the method is non-monotone, this is
+        the quantity that converges and constitutes the effective output.
+\item $f_{\mathrm{ref}} - \delta$: the \textbf{target level}---the current estimate of~$f^*$
+        used in the Polyak stepsize.
+\item $r$: a counter of distance travelled without significant improvement. When $r$ exceeds
+        the patience threshold~$R$, the target is deemed too optimistic and $\delta$ is reduced.
+\end{itemize}
+
+% ------------------------------------------------------------------
+\subsection{Parameters}
+\label{sec:dsm_parameters}
+
+\begin{remark}[Parameter roles]\label{rem:dsm_params}
+The algorithm involves several parameters whose calibration is critical for performance:
+\begin{itemize}
+\item $\delta_0$ \emph{(initial gap estimate):}
+    an estimate of $f(\mathbf{w}_0) - f^*$.
+    If set too large, the target $f_{\mathrm{ref}} - \delta$ is unrealistically low,
+    producing oversized steps and instability; if too small, the steps are insufficient
+    to make meaningful progress.
+    A reasonable choice is $\delta_0 = c\cdot f(\mathbf{w}_0)$ with $c \in [0.01, 0.5]$.
+\item $\rho \in (0,1)$ \emph{(target reduction rate):}
+    controls how quickly $\delta$ is reduced when progress stalls.
+    Typical values are $\rho = 0.95$ (slow, more iterations but tighter target tracking)
+    or $\rho = 0.9$ (more aggressive reduction).
+\item $R > 0$ \emph{(patience threshold):}
+    the distance travelled without improvement before $\delta$ is reduced.
+    Too small causes premature reductions (overly conservative target); too large delays
+    adaptation.
+\item $\beta \in (0,2)$ \emph{(step modulation):}
+    scales the Polyak step. The natural choice is $\beta = 1$.
+    Values in $(1,2)$ yield more aggressive (but less stable) steps; values in $(0,1)$
+    are more conservative.
+\end{itemize}
+\end{remark}
+
+% ------------------------------------------------------------------
+\section{Application to our problem}
+\label{sec:dsm_application}
+
+\subsection{Subgradient computation}
+\label{sec:dsm_subgrad}
+
+To apply the SGPTL algorithm to our LASSO problem
+\begin{equation}\label{eq:dsm_objective}
+  f(\mathbf{w}) = \norm{\mathbf{X}\mathbf{w} - \mathbf{y}}_2^2
+  + \lambda\norm{\mathbf{w}}_1,
+\end{equation}
+we need to compute a subgradient $\tilde{\mathbf{g}} \in \partial f(\mathbf{w})$ at each
+iteration. Decompose $f = q + h$, where
+$q(\mathbf{w}) = \norm{\mathbf{X}\mathbf{w}-\mathbf{y}}_2^2$ is the smooth part and
+$h(\mathbf{w}) = \lambda\norm{\mathbf{w}}_1$ is the nonsmooth part.
+Since both are convex, the sum rule for subdifferentials gives
+\[
+\partial f(\mathbf{w}) = \nabla q(\mathbf{w}) + \lambda\,\partial\norm{\mathbf{w}}_1,
+\]
+where $\nabla q(\mathbf{w}) = 2\mathbf{X}\T(\mathbf{X}\mathbf{w} - \mathbf{y})$ exists
+everywhere.
+The subdifferential of the $\ell_1$ norm is given component-wise
+(see Section~\ref{sec:intro_optimality}).
+A subgradient of $f$ at $\mathbf{w}$ is therefore
+\begin{equation}\label{eq:dsm_subgrad}
+  \tilde{\mathbf{g}} = 2\mathbf{X}\T(\mathbf{X}\mathbf{w} - \mathbf{y}) + \lambda\, \mathbf{s},
+  \quad s_i \in \partial\abs{w_i},
+\end{equation}
+where $s_i = \sign(w_i)$ if $w_i \neq 0$ and $s_i = 0$ if $w_i = 0$ (minimum-norm
+element of the subdifferential, yielding the steepest-descent direction).
+In Algorithm~\ref{alg:dsm} and throughout this chapter, $\mathbf{g}^i$ denotes the
+subgradient $\tilde{\mathbf{g}}$ evaluated at the $i$-th iterate~$\mathbf{w}_i$.
+
+% ------------------------------------------------------------------
+\subsection{Convergence}
+\label{sec:dsm_convergence}
+
+\begin{theorem}[Convergence of the Deflected Subgradient Method]
+\label{thm:dsm_convergence}
+Let $f \colon \R^n \to \R$ be convex and let $\{\mathbf{w}_i\}$ be the sequence
+generated by Algorithm~\ref{alg:dsm} with the convergence conditions satisfied
+(stepsize-restricted with $\beta^i \leq \gamma^i$, or deflection-restricted).
+Assume that the subgradients are uniformly bounded: $\norm{\mathbf{g}^i} \leq L$
+for all~$i$.
+Then the sequence of record values
+\[
+  \bar{f}^{\,i} = \min_{h \leq i} f(\mathbf{w}_h)
+\]
+converges to the optimal value: $\bar{f}^{\,i} \to f^*$ as $i \to \infty$.
+The worst-case complexity is $O(1/\varepsilon^2)$: to achieve
+$\bar{f}^{\,i} - f^* \leq \varepsilon$, at most $O(L^2/\varepsilon^2)$ iterations
+are required.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+The argument builds on the fundamental relationship~\eqref{eq:fundamental}, adapted to
+the deflected case. For the plain subgradient
+$\mathbf{x}^{i+1} = \mathbf{x}^i - \alpha^i \mathbf{g}^i$, expanding the squared
+distance gives
+\begin{align}
+  \norm{\mathbf{x}^{i+1}-\mathbf{x}^*}^2
+&= \norm{\mathbf{x}^i - \mathbf{x}^*}^2
+- 2\alpha^i\inner{\mathbf{g}^i}{\mathbf{x}^i - \mathbf{x}^*}
++ (\alpha^i)^2\norm{\mathbf{g}^i}^2 \notag\\
+&\leq \norm{\mathbf{x}^i - \mathbf{x}^*}^2
+- 2\alpha^i(f(\mathbf{x}^i) - f^*)
++ (\alpha^i)^2\norm{\mathbf{g}^i}^2,
+\label{eq:fund_rel_proof}
+\end{align}
+where the inequality uses the subgradient inequality
+$f(\mathbf{x}^*) \geq f(\mathbf{x}^i) + \inner{\mathbf{g}^i}{\mathbf{x}^* - \mathbf{x}^i}$.
+In the deflected case, $\mathbf{d}^i$ replaces $\mathbf{g}^i$ in~\eqref{eq:fund_rel_proof}.
+The convergence conditions ensure that an analogous relationship holds for the deflected
+direction. Under the Polyak stepsize with $\beta^i \leq \gamma^i$:
+\begin{enumerate}[nosep]
+\item The record value $\bar{f}^{\,i}$ is non-increasing by construction.
+\item Telescoping~\eqref{eq:fund_rel_proof} over $i = 1, \ldots, k$ and using
+    $\norm{\mathbf{x}^{k+1}-\mathbf{x}^*}^2 \geq 0$ yields
+\begin{equation}\label{eq:convergence_rate}
+      \bar{f}^{\,k} - f^*
+\;\leq\; \frac{L\,\norm{\mathbf{x}^1 - \mathbf{x}^*}}{\sqrt{k}},
+\end{equation}
+    which gives $k \geq L^2\norm{\mathbf{x}^1-\mathbf{x}^*}^2/\varepsilon^2 =
+    O(1/\varepsilon^2)$.
+\qedhere
+\end{enumerate}
+\end{proof}
+
+\begin{remark}[Key observations on convergence]\label{rem:dsm_convergence_obs}
+\mbox{}
+\begin{itemize}
+\item \textbf{Non-monotonicity.}
+    It is the sequence of record values $\bar{f}^{\,i}$ that converges, \emph{not} the
+    sequence of iterates $\mathbf{w}_i$ or function values $f(\mathbf{w}_i)$.
+    The method is intrinsically non-monotone: $f(\mathbf{w}_{i+1}) > f(\mathbf{w}_i)$
+    can and does happen frequently. For this reason the algorithm returns the best iterate
+    found, not the last one.
+\item \textbf{Optimality of the rate.}
+    The $O(1/\varepsilon^2)$ complexity is identical to that of the plain subgradient
+    method. This is an intrinsic limitation of nonsmooth optimisation: for convex,
+    $L$-Lipschitz functions that are not~$C^1$, the lower bound is
+    $\Omega(L^2/\varepsilon^2)$, so the method is worst-case optimal.
+    Deflection does not improve the worst-case complexity, but significantly improves
+    practical behaviour by reducing oscillations.
+\item \textbf{Comparison with smooth methods.}
+    For smooth, strongly convex functions the complexity is $O(\log(1/\varepsilon))$.
+    Concretely: going from $\varepsilon = 10^{-3}$ to $\varepsilon = 10^{-4}$ with a
+    subgradient method requires $(10^{-3}/10^{-4})^2 = 100\times$ more iterations.
+\end{itemize}
+\end{remark}
+
+\paragraph{Verification of hypotheses for our problem.}
+We check that the assumptions of Theorem~\ref{thm:dsm_convergence} are satisfied
+by~\eqref{eq:dsm_objective}:
+\begin{enumerate}
+\item \textbf{Convexity.}
+$f(\mathbf{w}) = \norm{\mathbf{X}\mathbf{w}-\mathbf{y}}_2^2 + \lambda\norm{\mathbf{w}}_1$
+    is convex, being the sum of a convex smooth function ($q$, with Hessian
+    $2\mathbf{X}\T \mathbf{X} \succeq 0$) and a convex norm.
+    If $\mathbf{X}$ has full column rank, $q$ is $\tau$-strongly convex with
+    $\tau = 2\lambda_{\min}(\mathbf{X}\T \mathbf{X}) > 0$, so $f$ is also strongly convex
+    and the minimum is unique.
+    In this case the theoretical lower bound for nonsmooth optimisation improves from
+    $\Omega(1/\varepsilon^2)$ to $\Omega(1/\varepsilon)$.
+    However, the DSM as implemented does not exploit strong convexity, so its worst-case
+    rate remains~$O(1/\varepsilon^2)$.
+\item \textbf{Bounded subgradients.}
+    The $\ell_1$ component $\lambda \mathbf{s}$ has norm at most $\lambda\sqrt{H}$
+    (since $|s_i| \leq 1$).
+    The smooth component $2\mathbf{X}\T(\mathbf{X}\mathbf{w}-\mathbf{y})$ grows linearly
+    with $\norm{\mathbf{w}}$, so $f$ is not globally Lipschitz on~$\R^H$.
+    However, the target-level mechanism prevents arbitrarily large steps, so the iterates
+    remain confined to a bounded set and $\norm{\mathbf{g}^i}$ is uniformly bounded along
+    the generated sequence.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+\subsection{Expected properties on the ELM problem}
+\label{sec:dsm_properties}
+
+Based on the theoretical analysis, the following behaviour is expected when applying DSM
+to the ELM LASSO problem~\eqref{eq:dsm_objective}:
+\begin{itemize}
+    \item \textbf{Non-monotone convergence.}
+    The function value $f(\mathbf{w}_i)$ oscillates throughout the run. The quantity to
+    monitor is the record value $\bar{f}^{\,i}$, which decreases monotonically by
+    construction. In convergence plots it is essential to display $\bar{f}^{\,i}$ rather
+    than $f(\mathbf{w}_i)$.
+    \item \textbf{Sublinear convergence.}
+    In a semilogarithmic plot ($\log(\bar{f}^{\,i}-f^*)$ vs.\ iterations), the curve
+    flattens progressively: initial improvements are rapid, but progress slows at each
+    decade of precision. This contrasts with the typically linear convergence of IRLS,
+    which produces a straight line on the same scale. The reason is the $O(1/\varepsilon^2)$
+    complexity: doubling the desired precision requires roughly quadrupling the number of
+    iterations.
+    \item \textbf{Difficulty at high accuracy.}
+    Achieving gaps $\bar{f}^{\,i} - f^* < 10^{-4}$ requires a prohibitive number of
+    iterations due to the $O(1/\varepsilon^2)$ rate. This is a theoretical limitation of
+    the approach, not an implementation defect.
+    \item \textbf{Low per-iteration cost.}
+    Each iteration costs $O(MH)$, dominated by two matrix-vector products with
+    $\mathbf{X} \in \mathbb{R}^{M \times H}$. This makes the method competitive in CPU
+    time when low accuracy suffices, particularly for large~$H$ where the $O(H^3)$ cost
+    of IRLS's Cholesky factorisation becomes prohibitive.
+    \item \textbf{Parameter sensitivity.}
+    Performance depends critically on the calibration of $\delta_0$, $\rho$, $R$, and
+    $\beta$. Poor choices may lead to extremely slow convergence or instability. A
+    preliminary tuning phase is recommended.
+    \item \textbf{No reliable stopping criterion.}
+    Unlike smooth methods where $\norm{\nabla f(\mathbf{w}^*)} = 0$ provides a natural
+    stopping criterion, in the nonsmooth case $0 \in \partial f(\mathbf{w}^*)$ but other
+    elements of $\partial f(\mathbf{w}^*)$ can have large norm, so
+    $\norm{\mathbf{g}^i}$ can remain large even at the optimum. The only practical
+    criterion is to monitor $\bar{f}^{\,i}$ and stop after a prescribed iteration budget
+    or when $\bar{f}^{\,i}$ ceases to improve appreciably.
+    \item \textbf{Approximate sparsity.}
+    Unlike IRLS, which tends to produce components that are exactly zero thanks to the
+    weighted least-squares structure, the DSM yields solutions where ``small'' components
+    are close to zero but rarely exactly so. A post-processing thresholding step may be
+    needed to enforce exact sparsity below a chosen tolerance.
+    \item \textbf{Effect of $\lambda$.}
+    Larger $\lambda$ produces a larger subgradient component from the $\ell_1$ term,
+    which increases oscillations and may slow convergence. However, the target-level
+    mechanism adapts to this automatically. The sparsity of the solution increases with
+    $\lambda$, as the $\ell_1$ penalty pushes more weights toward zero.
+\end{itemize}
