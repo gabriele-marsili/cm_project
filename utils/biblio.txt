@@ -1,0 +1,15 @@
+Bibliography
+Slides and software by the lecturers available to students on this page
+Lecture notes for the optimization part are being prepared, the current partial form is distributed below
+Useful books (referenced within the slides):
+L. N. Trefethen, D. Bau, Numerical Linear Algebra, SIAM, 1997
+J. Demmel, Applied Numerical Linear Algebra, SIAM, 1996
+L. Eldén, Matrix Methods in Data Mining and Pattern Recognition, 2007 (freely accessible from the Unipisa network)
+S. Boyd, L. Vandenberghe, Convex optimization, Cambridge University Press, 2008
+M.J. Kochenderfer, T.A. Wheeler Algorithms for Optimization, MIT Press, 2019 
+M.S. Bazaraa, H.D. Sherali, C.M. Shetty, Nonlinear programming: theory and algorithms, Wiley & Sons, 2006
+D.G. Luenberger, Y. Ye, Linear and Nonlinear Programming, Springer International Series in Operations Research & Management Science, 2008
+J. Nocedal, S. Wright, Numerical Optimization, Springer Series in Operations Research and Financial Engineering, 2006
+H.C. Pinkham. Analysis, Convexity, and Optimization, Draft of September 4, 2014 (available below, downloaded from here)
+Appunti di Ricerca Operativa (in Italian)
+Other material (pointers to web resources) is suggested in the slides.

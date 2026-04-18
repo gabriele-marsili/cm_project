@@ -1,15 +1,18 @@
 # Fdb version 4
-["pdflatex"] 1776069178.88738 "/Users/piccoletto/Desktop/Everything/pisa/corsi/magistrale/primo_anno/CM - Computational Mathematics for Learning and Data Analysis/progetto/report/3_algo_2_DSM/chapter3.tex" "chapter3.pdf" "chapter3" 1776069179.52599 2
-  "/Users/piccoletto/Desktop/Everything/pisa/corsi/magistrale/primo_anno/CM - Computational Mathematics for Learning and Data Analysis/progetto/report/3_algo_2_DSM/chapter3.tex" 1776069178.78587 24071 1466aa9824d1c61204104888a449a04d ""
+["pdflatex"] 1776519472.17949 "/Users/piccoletto/Desktop/Everything/pisa/corsi/magistrale/primo_anno/CM - Computational Mathematics for Learning and Data Analysis/progetto/report/3_algo_2_DSM/chapter3.tex" "chapter3.pdf" "chapter3" 1776519472.77866 2
+  "/Users/piccoletto/Desktop/Everything/pisa/corsi/magistrale/primo_anno/CM - Computational Mathematics for Learning and Data Analysis/progetto/report/3_algo_2_DSM/chapter3.tex" 1776519472.0877 24904 c4fd4bd606fa72af41678c338d4ab8fd ""
   "/usr/local/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm" 1136768653 1328 c834bbb027764024c09d3d2bf908b5f0 ""
+  "/usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmbx5.tfm" 1136768653 1332 f817c21a1ba54560425663374f1b651a ""
+  "/usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmbx7.tfm" 1136768653 1336 3125ccb448c1a09074e3aa4a9832f130 ""
+  "/usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmbxti10.tfm" 1136768653 1532 9162035f4e7176612125649e348e2195 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmti10.tfm" 1136768653 1480 aa8e34af0eb6a2941b776984cf1dfdc4 ""
   "/usr/local/texlive/2025/texmf-dist/web2c/texmf.cnf" 1739380943 42148 61becc7c670cd061bb319c643c27fdd4 ""
   "/usr/local/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1762014281 5467155 19efa205003f9ecad95fbbaa6ff24da1 ""
   "/usr/local/texlive/2025/texmf-var/web2c/pdftex/pdflatex.fmt" 1762014249 3345735 45d227c75567e94fd8e00c25f4ba6ba6 ""
   "/usr/local/texlive/2025/texmf.cnf" 1741450484 577 418a7058ec8e006d8704f60ecd22c938 ""
   "chapter3.aux" 1775205007.43589 5602 e8989cc90b0f37de1b11ac615666e22a "pdflatex"
-  "chapter3.tex" 1776069178.78587 24071 1466aa9824d1c61204104888a449a04d ""
+  "chapter3.tex" 1776519472.0877 24904 c4fd4bd606fa72af41678c338d4ab8fd ""
   (generated)
   "chapter3.aux"
   "chapter3.log"

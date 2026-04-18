@@ -1,0 +1,11 @@
+Programme
+ Linear algebra and calculus background
+ Unconstrained optimization and systems of equations
+ Direct and iterative methods for linear systems and least-squares
+ Numerical methods for unconstrained optimization
+ Iterative methods for computing eigenvalues
+ Constrained optimization and systems of equations
+ Duality (Lagrangian, linear, quadratic, conic, ...)
+ Numerical methods for constrained optimization
+ Software tools for numerical computations (Matlab, Octave, ...)
+ Sparse hints to AI / ML applications

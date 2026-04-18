@@ -12,30 +12,29 @@ problem with $L_1$ regularization $\arg\min_w f(w)$, with $f(w) = \|X w - y \|_2
 iteration where you solve at each step the least-squares problem
 $$ w_{k+1} = \arg \min_w f_k(w), \quad f_k(w) = \frac{1}{2} \|X w - y \|_2^2 + \lambda \|W_k w\|_2^2 $$
 where $W_k$ is the diagonal matrix with entries $(W_k)_{ii} = |(w_k)_i|^{-1/2}$.
-(You can check that in the limit when $w_k = w_{k+1} = w_*$, $f_k$ and $f$ have the same gradient)
-Use a threshold so that the values in $W$ do not get too large if $(w_k)_i \approx 0$.
 
-\noindent No off-the-shelf solvers allowed.
+
+\noindent
 
 % The goal of this project is to analyze the problem of learning of an \textbf{Extreme Learning Machine} (ELM) algorithm, solving the \textbf{least-squares problem} with \textbf{$L_1$ regularization} using the \textbf{Iteratively Reweighted Least Squares} and \textbf{Deflected Subgradient Method} algorithms.
 % \\
 % In this section, we will cover the background needed to solve this problem, and we will leave the learning algorithms' explanation in their respective chapters.
 
 \section{Extreme Learning Machine}
-Extreme Learning Machine (ELM) is a machine learning model implemented as a neural network with a single hidden layer, in which:
+Extreme Learning Machine (ELM) \cite{HUANG2006489} is a machine learning model implemented as a neural network with a single hidden layer, in which:
 \begin{itemize}
     \item $\mathbf{W_1} \in \mathbb{R}^{H \times N}$ is the input-to-hidden weight matrix (where $H$ is the number of nodes in the hidden layer and $N$ is the number of input nodes) that is \textbf{randomly generated} and \textbf{static} (does not change during training).
-    \item $\sigma(\cdot)$ is the element-wise activation function applied to the $\mathbf{W_1x} \in \mathbb{R}^H$ vector, where $\textbf{x} \in \mathbb{R}^N$ is the input vector.
+    \item $\sigma(\cdot)$ is the element-wise (nonlinear) activation function applied to the $\mathbf{W_1x} \in \mathbb{R}^H$ vector, where $\textbf{x} \in \mathbb{R}^N$ is the input vector. The choice of using an activation function for the hidden layer results, with high probability, in the hidden layer feature matrix with full rank when $M \ge H$, since random projections through a nonlinear function produce linearly independent features.
     \item $\mathbf{w} \in \mathbb{R}^{H}$ is the hidden-to-output weight vector, chosen by solving the least-squares problem.
     \item $\hat{y} = \mathbf{w}^T\sigma(\mathbf{W_1x}) \in \mathbb{R}$ is the prediction of the model.
 \end{itemize}
 
-The key insight behind this architecture is that randomly fixing $\mathbf{W_1}$ transforms an extremely hard non-linear optimization problem (training a full neural network) into a simpler \textbf{linear system} resolution. Classical neural networks must learn \textit{all} weights jointly, which requires non-convex optimization with no guarantee of finding the global minimum. In an ELM, the only free parameters are the output weights $\mathbf{w}$, and once $\mathbf{W_1}$ is fixed, the hidden-layer activations $\mathbf{X} = \sigma(\mathbf{X}_\text{origin} \mathbf{W_1})$ are constant. Finding $\mathbf{w}$ then reduces to solving the Least-Squares problem, which is convex with a closed-form solution. This seemingly drastic choice works surprisingly well in practice: random projections through a non-linear activation function are sufficient to produce rich, expressive features from which a linear model can learn effectively, exploiting the same properties of expressiveness as the \textbf{linear basis expansions} in classical Machine Learning models (e.g. linear models).
+The key insight behind this architecture is that randomly fixing $\mathbf{W_1}$ transforms an extremely hard non-linear optimization problem (training a full neural network) into a simpler \textbf{linear system} resolution. Classical neural networks must learn \textit{all} weights jointly, which requires non-convex optimization with no guarantee of finding the global minimum. In an ELM, the only free parameters are the output weights $\mathbf{w}$, and once $\mathbf{W_1}$ is fixed, the hidden-layer activations $\mathbf{X} = \sigma(\mathbf{X}_\text{origin} \mathbf{W}_1^T)$ are constant. Finding $\mathbf{w}$ then reduces to solving the Least-Squares problem, which is convex with a closed-form solution. This seemingly drastic choice works surprisingly well in practice: random projections through a non-linear activation function are sufficient to produce rich, expressive features from which a linear model can learn effectively, exploiting the same properties of expressiveness as the \textbf{linear basis expansions} in classical Machine Learning models (e.g. linear models).
 
 
 \begin{figure}[h!]
     \centering
-    \includegraphics[width=0.8\linewidth]{elm.png}
+    \includegraphics[width=0.8\linewidth]{images/elm.png}
     \caption{Visual representation of an Extreme Learning Machine model.}
     \label{fig:elm}
 \end{figure}
@@ -45,7 +44,7 @@ The Least-Squares Problem is an optimization problem used in machine learning fo
 \begin{equation}
     \min_\mathbf{x} || \mathbf{A} \mathbf{x} - \mathbf{y} ||^2_2
 \end{equation}
-In our case, a more suited definition is the following one, considering $\mathbf{X} = \sigma(\mathbf{X}_\text{origin} \mathbf{W}_1) \in \mathbb{R}^{M \times H}$ the matrix of activations of the hidden layer, while $\mathbf{X}_\text{origin} \in \mathbb{R}^{M \times N}$ is the matrix of all the inputs, and $\mathbf{y} \in \mathbb{R}^M$ is the vector of all the target values:
+In our case, a more suited definition is the following one, considering $\mathbf{X} = \sigma(\mathbf{X}_\text{origin} \mathbf{W}_1^T) \in \mathbb{R}^{M \times H}$ the matrix of activations of the hidden layer, while $\mathbf{X}_\text{origin} \in \mathbb{R}^{M \times N}$ is the matrix of all the inputs, and $\mathbf{y} \in \mathbb{R}^M$ is the vector of all the target values:
 \begin{equation}
 \min_{\mathbf{w}} || \mathbf{Xw} - \mathbf{y} ||^2_2
 \end{equation}
@@ -62,9 +61,11 @@ or
 $$
 \mathbf{X}^T\mathbf{X}\mathbf{w} = \mathbf{X}^T\mathbf{y}
 $$
-where $\mathbf{X}^T\mathbf{X}$ is square invertible since it's positive definite. The linear system has a unique solution. We can solve this equation using methods such as \textit{IRLS} and \textit{Deflected Subgradient Methods}.
+where $\mathbf{X}^T\mathbf{X}$ is square invertible since it's positive definite.   The linear system has a unique solution $\mathbf{w}_0 = (\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}^T\mathbf{y}$.
+However, adding the $L_1$ regularization term (Section~\ref{sec:regularization}) destroys the closed-form structure, requiring iterative methods.
 
 \section{Regularization Techniques}
+\label{sec:regularization}
 When solving the Least-Squares Problem, we may prefer solutions that use a subset of available features. This prevents the problem of overfitting the model to the data, and producing a result that is more robust with respect to the data given. Regularization is the technique used to add a penalty to weights, and control the free parameters of the model to avoid overfitting to data.
 
 
@@ -76,10 +77,7 @@ When adding the $L_1$ regularization term to the Least-Squares problem, the equa
 \min_{\mathbf{w}} f(\mathbf{w}) = || \mathbf{Xw} - \mathbf{y} ||^2_2 + \lambda \sum_i^H|w_i|
 \end{equation}
 
-The price to pay when using the Lasso regularization is the non-differentiability of the loss function $f(\mathbf{w})$ for each point where $w_i = 0$ for at least one $i$ index. This is because of the gradient, which can be computed correctly only in the points where $w_i \ne 0 \ \ \forall i$, and is the following:
-$$
-\nabla f(\mathbf{w}) = 2 \mathbf{X}^T(\mathbf{Xw} - \mathbf{y}) + \lambda \text{ sign}(\mathbf{w})
-$$
+The price to pay is the non-differentiability of $f(\mathbf{w})$ at any point where some $w_i = 0$, which prevents direct use of gradient-based methods.
 
 Because of that, we can use the Deflected Subgradient Methods (\ref{alg:dsm}) and the IRLS algorithm (\ref{chap:irls}), which we will see in the following chapters.
 
@@ -106,6 +104,7 @@ Therefore $f = g + h$ is convex; and if $\mathbf{X}$ has full column rank,
 $f$ is \textbf{strictly convex} and admits a \textbf{unique global minimum}.
 
 \begin{proposition}
+    \label{prop:irls_prop}
     If $\mathbf{X} \in \mathbb{R}^{M \times H}$ has full column rank, then
     $f(\mathbf{w}) = \|\mathbf{Xw} - \mathbf{y}\|_2^2 + \lambda\|\mathbf{w}\|_1$
     is strictly convex and admits a unique global minimizer $\mathbf{w}^*$.
@@ -143,10 +142,11 @@ $$
 \end{cases}
 $$
 This condition can be written component-wise as: for each $i = 1, \ldots, H$,
-$$
+\begin{equation}
+\label{eq:optimality}
 \left[2\mathbf{X}^T(\mathbf{Xw}^* - \mathbf{y})\right]_i + \lambda s_i = 0,
 \qquad s_i \in \partial|w_i^*|.
-$$
+\end{equation}
 Intuitively, $\lambda$ controls the sparsity of $\mathbf{w}^*$: the larger
 $\lambda$ is, the easier it is for the optimality condition to force components
 $w_i^* = 0$, producing a sparser solution.

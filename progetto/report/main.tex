@@ -43,13 +43,11 @@
 \pagestyle{scrplain}
 
 
-\graphicspath{{../images/}}
-
 \begin{document}
 
 \begin{titlepage}
 \begin{figure}
-    \centering\includegraphics[scale=0.5]{cherubino_pant541.png}
+    \centering\includegraphics[scale=0.5]{images/cherubino_pant541.png}
 \end{figure}
 
 
@@ -88,13 +86,13 @@
 
 
 
-\input{1_introduction/report}
+\input{introduction}
 
-\input{2_algo_1_IRLS/algo1}
+\input{algo1}
 
-\input{3_algo_2_DSM/chapter3}
+\input{algo2}
 
-\input{4_algo_comparison/comparison}
+\input{comparison}
 
 \input{implementation}
 
@@ -102,5 +100,8 @@
 
 \input{conclusions}
 
+\bibliographystyle{plain} % We choose the "plain" reference style
+\bibliography{references} % Entries are in the refs.bib file
+\printbibliography
 
 \end{document}

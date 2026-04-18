@@ -26,38 +26,38 @@ but has sharp corners (\textit{kinks}) wherever any $w_i = 0$, making it
 non-differentiable in those points. Classical gradient-based algorithms cannot be
 applied directly.
 
-The key observation is the following identity: for any $w_{k,i} \neq 0$,
+The key observation is the following identity: for any $(w_k)_i \neq 0$,
 \begin{equation}
-    |w_i| = \frac{w_i^2}{|w_i|} \approx \frac{w_i^2}{|w_{k,i}|}
+    |w_i| = \frac{w_i^2}{|w_i|} \approx \frac{w_i^2}{|(w_k)_i|}
     \label{eq:irls_approx}
 \end{equation}
-where $w_{k,i}$ is the value of the $i$-th component at the current iteration $k$.
+where $(w_k)_i$ is the value of the $i$-th component at the current iteration $k$.
 This is a \textit{quadratic approximation} of $|w_i|$ in the variable $w_i$, where
-the denominator $|w_{k,i}|$ is treated as a fixed constant.
+the denominator $|(w_k)_i|$ is treated as a fixed constant.
 Summing over all components, we obtain:
 \begin{equation}
-    \|\mathbf{w}\|_1 = \sum_{i=1}^H |w_i| \approx \sum_{i=1}^H \frac{w_i^2}{|w_{k,i}|}
-    = \mathbf{w}^T \mathbf{W}_k \mathbf{w}
+    \|\mathbf{w}\|_1 = \sum_{i=1}^H |w_i| \approx \sum_{i=1}^H \frac{w_i^2}{|(w_k)_i|}
+    = \mathbf{w}^T \mathbf{W}_k^T\mathbf{W}_k \mathbf{w}
     \label{eq:irls_quadratic}
 \end{equation}
 where $\mathbf{W}_k \in \mathbb{R}^{H \times H}$ is a diagonal matrix with entries:
 \begin{equation}
-    (\mathbf{W}_k)_{ii} = |w_{k,i}|^{-1/2}
+    (\mathbf{W}_k)_{ii} = |(w_{k})_i|^{-1/2}
     \label{eq:irls_weights_exact}
 \end{equation}
 This turns the non-smooth $L_1$ term into a \textit{smooth, quadratic} expression
-$\mathbf{w}^T \mathbf{W}_k \mathbf{w}$. Intuitively, $\mathbf{W}_k$ applies
+$\mathbf{w}^T \mathbf{W}_k^T \mathbf{W}_k \mathbf{w}$. Intuitively, $\mathbf{W}_k^T\mathbf{W}_k$ applies
 \textit{personalized penalization} to each component of $\mathbf{w}$: components with
 small magnitude at iteration $k$ receive a large weight (strong penalization, pushing
 them toward zero), while components with large magnitude receive a small weight
 (weaker penalization, leaving them relatively free).
 
 \paragraph{Handling near-zero components.}
-Equation~\eqref{eq:irls_weights_exact} becomes numerically unstable when $w_{k,i}
-\approx 0$, since $|w_{k,i}|^{-1}$ can blow up. To prevent division by (near) zero,
+Equation~\eqref{eq:irls_weights_exact} becomes numerically unstable when $(w_k)_i
+\approx 0$, since $|(w_k)_i|^{-1/2}$ can blow up. To prevent division by (near) zero,
 a \textbf{safety threshold} $\varepsilon_{\mathrm{thr}} > 0$ is introduced:
 \begin{equation}
-    (\mathbf{W}_k)_{ii} = \max\!\bigl(|w_{k,i}|,\, \varepsilon_{\mathrm{thr}}\bigr)^{-1/2}
+    (\mathbf{W}_k)_{ii} = \max\!\bigl(|(w_k)_i|,\, \varepsilon_{\mathrm{thr}}\bigr)^{-1/2}
     \label{eq:irls_weights}
 \end{equation}
 Typical values are $\varepsilon_{\mathrm{thr}} \in [10^{-6}, 10^{-10}]$.
@@ -119,38 +119,38 @@ diagonal $2\lambda\mathbf{W}_k^T\mathbf{W}_k$ is updated at each iteration.
 \paragraph{Solving the linear system.}
 Because $\mathbf{Q}_k$ is SPD, two efficient methods can be used:
 \begin{itemize}
-    \item \textbf{Cholesky factorization:} computes $\mathbf{Q}_k = \mathbf{L}\mathbf{L}^T$
+    \item \textbf{Cholesky factorization:}~\cite{frangioni2025chol,trefethen1997numerical} computes $\mathbf{Q}_k = \mathbf{L}\mathbf{L}^T$
     in $O(H^3/3)$ operations, then solves two triangular systems in $O(H^2)$. This
     is the direct method of choice for moderate-sized problems.
-    \item \textbf{Conjugate Gradient (CG):} an iterative method that converges in at
+    \item \textbf{Conjugate Gradient (CG):}~\cite{trefethen1997numerical} an iterative method that converges in at
     most $H$ steps in exact arithmetic, with convergence rate depending on the condition
     number $\kappa(\mathbf{Q}_k)$. Preferable for large-scale problems where $H$ is
     too large for Cholesky.
 \end{itemize}
 
-\paragraph{Optimality condition}
-For a smooth function $f$, we know that the minimum is where the gradient of $f$ is equal to 0. In the $L_1$ regularization problem, we know that we cannot use the gradient directly, but we need the \textbf{subdifferential}: the set of "almost-gradients". We know that we're in the minimum if 0 is contained in the subdifferential of the function $f$, so $0 \in \partial f(\mathbf{w}^*)$.
+% \paragraph{Optimality condition}
+% For a smooth function $f$, we know that the minimum is where the gradient of $f$ is equal to 0. In the $L_1$ regularization problem, we know that we cannot use the gradient directly, but we need the \textbf{subdifferential}: the set of "almost-gradients". We know that we're in the minimum if 0 is contained in the subdifferential of the function $f$, so $0 \in \partial f(\mathbf{w}^*)$.
 
-For our problem:
-\[
-  \partial f(w) = 2\mathbf{X}^T(\mathbf{X}\mathbf{w} - \mathbf{y}) + \lambda\,\partial\|\mathbf{w}\|_1,
-\]
-where the subdifferential of the $L_1$ regularization is:
-\[
-  [\partial\|\mathbf{w}\|_1]_i = \begin{cases} \{+1\} & \text{if } w_i > 0,\\ \{-1\} & \text{if } w_i < 0,\\ [-1, +1] & \text{if } w_i = 0. \end{cases}
-\]
+% For our problem:
+% \[
+%   \partial f(w) = 2\mathbf{X}^T(\mathbf{X}\mathbf{w} - \mathbf{y}) + \lambda\,\partial\|\mathbf{w}\|_1,
+% \]
+% where the subdifferential of the $L_1$ regularization is:
+% \[
+%   [\partial\|\mathbf{w}\|_1]_i = \begin{cases} \{+1\} & \text{if } w_i > 0,\\ \{-1\} & \text{if } w_i < 0,\\ [-1, +1] & \text{if } w_i = 0. \end{cases}
+% \]
 
-The condition $0 \in \partial f(\mathbf{w}^*)$ can be written component by component: for each $i = 1, \ldots, n$,
-\begin{equation}\label{eq:optimality}
-  [2\mathbf{X}^T(\mathbf{X}\mathbf{w}^* - \mathbf{y})]_i + \lambda s_i = 0, \qquad s_i \in \partial |w^*_i|.
-\end{equation}
+% The condition $0 \in \partial f(\mathbf{w}^*)$ can be written component by component: for each $i = 1, \ldots, n$,
+% \begin{equation}\label{eq:optimality}
+%   [2\mathbf{X}^T(\mathbf{X}\mathbf{w}^* - \mathbf{y})]_i + \lambda s_i = 0, \qquad s_i \in \partial |w^*_i|.
+% \end{equation}
 
 % ------------------------------------------------------------------
 \section{The Majorization-Minimization interpretation}
 \label{sec:irls_mm}
 
 IRLS can be understood within the broader framework of
-\textbf{Majorization-Minimization (MM) algorithms}. At each iteration, rather than
+\textbf{Majorization-Minimization (MM) algorithms} \cite{nguyen2016introductionmmalgorithmsmachine}. At each iteration, rather than
 minimizing the original objective $f(\mathbf{w})$ directly, IRLS builds a
 \textit{surrogate function} $Q(\mathbf{w}, \mathbf{w}_k)$ that:
 \begin{enumerate}
@@ -163,7 +163,7 @@ minimizing the original objective $f(\mathbf{w})$ directly, IRLS builds a
 In our case, the surrogate is:
 \begin{equation}
     Q(\mathbf{w}, \mathbf{w}_k) = \|\mathbf{Xw} - \mathbf{y}\|_2^2
-    + 2\lambda\mathbf{w}^T\mathbf{W}_k\mathbf{w}
+    + 2\lambda\|\mathbf{W}_k\mathbf{w}\|_2^2
 \end{equation}
 The MM construction guarantees a key property: since minimizing $Q(\cdot, \mathbf{w}_k)$
 gives $\mathbf{w}_{k+1}$, we have $Q(\mathbf{w}_{k+1}, \mathbf{w}_k) \leq
@@ -209,7 +209,7 @@ Method provides (see Chapter~\ref{chap:dsm}).
 
 \paragraph{Initialization.} The algorithm is initialized with $\mathbf{w}_0 = \mathbf{A}^{-1}\mathbf{b}$,
 the solution to the unregularized least-squares problem. This provides a reasonable
-starting point: the initial weights $\mathbf{W}_0$ reflect the magnitude of the
+starting point: the initial weights $\mathbf{w}_0$ reflect the magnitude of the
 unregularized solution, giving the algorithm sensible information about which
 components are likely to be large.
 
@@ -240,14 +240,14 @@ converges.
     of the original problem~\eqref{eq:irls_objective}.
 \end{theorem}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof sketch (adapted from \cite{daubechies2008iterativelyreweightedsquaresminimization})]
     At a fixed point $\mathbf{w}_k = \mathbf{w}_{k+1} = \mathbf{w}^*$, the
     weighted normal equations~\eqref{eq:irls_normal} give:
     \[
         \mathbf{X}^T(\mathbf{Xw}^* - \mathbf{y}) + 2\lambda\mathbf{W}_*^T\mathbf{W}_*\mathbf{w}^*
         = 0
     \]
-    Since $(\mathbf{W}_*)_{ii} = |w^*_i|^{-1}$ and
+    Since $(\mathbf{W}_*)_{ii} = |w^*_i|^{-1/2}$ and
     $(\mathbf{W}_*^T\mathbf{W}_*\mathbf{w}^*)_i = |w^*_i|^{-1} w^*_i = \mathrm{sign}(w^*_i)$,
     this reduces to:
     \[
@@ -273,12 +273,29 @@ compared to the unregularized system. In practice, IRLS reaches high accuracy in
 10--50 iterations.
 
 \begin{remark}[Superlinear rate for $\ell_p$ with $p < 1$]
-    It has been proved that for $\ell_p$ minimization with $p < 1$, IRLS converges
+    It has been proved \cite{daubechies2008iterativelyreweightedsquaresminimization} that for $\ell_p$ minimization with $p < 1$, IRLS converges
     with a \textit{superlinear} (faster than geometric) rate under the restricted
     isometry property (RIP). For our $\ell_1$ case ($p = 1$), a global linear
     convergence rate has been established under the null space property of the
     measurement matrix, ensuring that convergence occurs from any initialization.
 \end{remark}
+
+\paragraph{Verification of hypotheses for the ELM problem.}
+We check that the assumptions of Theorem~\ref{thm:irls_convergence} are satisfied
+by~\eqref{eq:irls_objective}:
+\begin{enumerate}
+\item \textbf{Convergence of the sequence.}
+Since $f$ is strictly convex (Proposition~\ref{prop:irls_prop}) and IRLS monotonically
+decreases $f$ (Section~\ref{sec:irls_mm}), the sequence $\{f(\mathbf{w}_k)\}$ converges.
+For the ELM problem, $\mathbf{X} = \sigma(\mathbf{X}_{\mathrm{origin}}\mathbf{W}_1)$
+has full column rank with high probability (random $\mathbf{W}_1$, nonlinear $\sigma$) \cite{HUANG2006489},
+so $f$ is strictly convex and the unique minimiser $\mathbf{w}^*$ exists.
+\item \textbf{Non-zero components at convergence.}
+The hypothesis $|(w_k)i| > \varepsilon_{\mathrm{thr}}$ for all $i$ is satisfied for
+non-zero components of the sparse solution. Components that converge to exactly zero
+(within $\varepsilon_{\mathrm{thr}}$) are excluded from the optimality condition,
+which is acceptable since they correspond to inactive features.
+\end{enumerate}
 
 % ------------------------------------------------------------------
 \section{Computational cost}
@@ -320,7 +337,7 @@ IRLS to the ELM LASSO problem~\eqref{eq:irls_objective}:
     the curve appears as an approximately straight line. The slope depends on the
     conditioning of $\mathbf{Q}_k$ and on $\varepsilon_{\mathrm{thr}}$.
     \item \textbf{Sparse solutions.}
-    As iterations proceed, components $w_{k,i}$ that are small receive increasingly
+    As iterations proceed, components $(w_k)_i$ that are small receive increasingly
     large weights, which pushes them further toward zero. At convergence, many
     components are \textit{exactly zero} (or within $\varepsilon_{\mathrm{thr}}$ of
     zero), yielding a genuinely sparse weight vector.

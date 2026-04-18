@@ -44,7 +44,7 @@ conjugate gradient). In the nonsmooth setting, the corresponding remedy is \text
 
 \paragraph{Intrinsic difficulty of nonsmooth optimisation.}
 Before introducing the algorithm, it is important to understand the fundamental complexity gap
-between smooth and nonsmooth convex optimisation:
+between smooth and nonsmooth convex optimisation~\cite{frangioni2025nonsmooth,bubeck2015convex}:
 
 \begin{center}
 \begin{tabular}{lll}
@@ -63,43 +63,13 @@ The gap between the smooth strongly convex case ($O(\log(1/\varepsilon))$) and t
 convex case ($\Omega(1/\varepsilon^2)$) is enormous: to reach $\varepsilon = 10^{-6}$, the
 former requires $\approx 14$ iterations while the latter requires $\approx 10^{12}$.
 
-% ------------------------------------------------------------------
-\subsection{Key properties of nonsmooth convex functions}
-\label{sec:dsm_nonsmooth_props}
-
-The theoretical validity of subgradient methods rests on a few fundamental properties of
-nonsmooth convex functions that generalise the familiar smooth theory.
-
-\begin{itemize}
-    \item \textbf{Subdifferential non-emptiness.}
-    For any convex function $f \colon \R^n \to \R$ and any point $\mathbf{x}$, the
-    subdifferential $\partial f(\mathbf{x})$ is non-empty. This guarantees that a subgradient
-    can always be computed, making each iteration of the algorithm well-defined.
-    \item \textbf{Subgradient inequality.}
-    For every $\mathbf{g} \in \partial f(\mathbf{x})$ and every $\mathbf{y} \in \R^n$,
-    \[
-      f(\mathbf{y}) \geq f(\mathbf{x}) + \inner{\mathbf{g}}{\mathbf{y} - \mathbf{x}}.
-    \]
-    This is the analogue of the first-order condition for smooth convex functions, and is
-    the key inequality used in all convergence proofs: it ensures that a step in direction
-    $-\mathbf{g}$ makes progress towards the minimiser.
-    \item \textbf{Lipschitz continuity.}
-    A convex function is \emph{locally Lipschitz} on the interior of its domain: for any
-    compact set $K$, there exists $L_K > 0$ such that
-    $|f(\mathbf{x}) - f(\mathbf{y})| \leq L_K \norm{\mathbf{x}-\mathbf{y}}$ for all
-    $\mathbf{x},\mathbf{y} \in K$. Lipschitz continuity implies that subgradients are
-    uniformly bounded on compact sets: $\norm{\mathbf{g}} \leq L_K$ for all
-    $\mathbf{g} \in \partial f(\mathbf{x})$, $\mathbf{x} \in K$.
-    \item \textbf{No gradient at kinks.}
-    Unlike smooth functions, $\partial f(\mathbf{x})$ is a set (not a singleton) wherever
-    $f$ is non-differentiable. The size of this set grows larger at sharper kinks.
-    The minimum-norm element $\mathbf{g}^* = \argmin\{\norm{\mathbf{g}} : \mathbf{g} \in
-    \partial f(\mathbf{x})\}$ is the most useful single representative at non-smooth points,
-    as it corresponds to the steepest descent direction.
-\end{itemize}
-
-These properties justify using a subgradient in place of the gradient and underpin the
-convergence guarantee in Theorem~\ref{thm:dsm_convergence}.
+The convergence analysis of Algorithm~\ref{alg:dsm} (Theorem~\ref{thm:dsm_convergence})
+relies on three standard properties of convex nonsmooth functions: subdifferential
+non-emptiness (each iteration is well-defined), the subgradient inequality
+$f(\mathbf{y}) \geq f(\mathbf{x}) + \langle\mathbf{g},\mathbf{y}-\mathbf{x}\rangle$
+(the key tool in the convergence proof), and local Lipschitz continuity (which bounds
+subgradients on compact sets). Both are verified for our specific problem in
+Section~\ref{sec:dsm_convergence}.
 
 % ------------------------------------------------------------------
 \subsection{The deflection idea}
@@ -112,7 +82,7 @@ subgradient and the previous direction:
   \mathbf{d}^i = \gamma^i\, \mathbf{g}^i + (1 - \gamma^i)\, \mathbf{d}^{i-1},
   \qquad \mathbf{d}^0 = \mathbf{g}^0,
 \end{equation}
-where $\gamma^i \in (0,1]$ is the \textbf{deflection parameter}.
+where $\gamma^i \in (0,1]$ is the \textbf{deflection parameter}~\cite{dantonio2009deflected,frangioni2025nonsmooth}.
 The iterate is then updated as
 \begin{equation}\label{eq:deflected_step}
   \mathbf{x}^{i+1} = \mathbf{x}^i - \alpha^i\, \mathbf{d}^i.
@@ -203,7 +173,7 @@ $\gamma^i = \min\!\bigl(1,\,\max(0,\,\gamma^*)\bigr)$.
 
 The Polyak stepsize in its original form requires the optimal value~$f^*$, which is
 precisely the quantity we are trying to compute.
-Recall the \textbf{fundamental relationship} for the subgradient method:
+Recall the \textbf{fundamental relationship} for the subgradient method~\cite{frangioni2025nonsmooth}:
 \begin{equation}\label{eq:fundamental}
   \norm{\mathbf{x}^{i+1}-\mathbf{x}^*}^2
 \;\leq\;
@@ -239,7 +209,7 @@ The full Deflected Subgradient Method with target level is given in
 Algorithm~\ref{alg:dsm}.
 
 \begin{algorithm}[htbp]
-\caption{Deflected Subgradient with Target Level (SGPTL)}
+\caption{Deflected Subgradient with Target Level (SGPTL)~\cite{dantonio2009deflected,frangioni2025nonsmooth}}
 \label{alg:dsm}
 \begin{algorithmic}[1]
 \Require $f$,\; $\mathbf{w}_0$,\; $i_{\max}$,\;
@@ -279,16 +249,6 @@ $\mathbf{d}_{-1} \gets \mathbf{0}$
 \end{algorithmic}
 \end{algorithm}
 
-\begin{remark}[Pseudocode correction]
-    In a naive presentation, the record update $\bar{f} \gets \min(\bar{f}, f(\mathbf{w}_{i+1}))$
-    might appear at the end of the loop body, after the if–elseif–else block.
-    This is a logical error: the ``significant improvement'' branch assigns
-    $f_{\mathrm{ref}} \gets \bar{f}$, which should reflect the \emph{current} best value
-    including $\mathbf{w}_{i+1}$.
-    Placing the record update before the conditional ensures that $f_{\mathrm{ref}}$ is
-    correctly set to $\min(\bar{f}_{\mathrm{old}}, f(\mathbf{w}_{i+1}))$ when progress
-    is detected.
-\end{remark}
 
 The algorithm maintains three key quantities (we write $\bar{f}$ in the pseudocode; in the
 analysis below, $\bar{f}^{\,i}$ denotes the record value at iteration~$i$):
@@ -368,7 +328,7 @@ subgradient $\tilde{\mathbf{g}}$ evaluated at the $i$-th iterate~$\mathbf{w}_i$.
 \subsection{Convergence}
 \label{sec:dsm_convergence}
 
-\begin{theorem}[Convergence of the Deflected Subgradient Method]
+\begin{theorem}[Convergence of the Deflected Subgradient Method \cite{dantonio2009deflected,frangioni2025nonsmooth}]
 \label{thm:dsm_convergence}
 Let $f \colon \R^n \to \R$ be convex and let $\{\mathbf{w}_i\}$ be the sequence
 generated by Algorithm~\ref{alg:dsm} with the convergence conditions satisfied
@@ -432,7 +392,7 @@ direction. Under the Polyak stepsize with $\beta^i \leq \gamma^i$:
     The $O(1/\varepsilon^2)$ complexity is identical to that of the plain subgradient
     method. This is an intrinsic limitation of nonsmooth optimisation: for convex,
     $L$-Lipschitz functions that are not~$C^1$, the lower bound is
-    $\Omega(L^2/\varepsilon^2)$, so the method is worst-case optimal.
+    $\Omega(L^2/\varepsilon^2)$~\cite{frangioni2025nonsmooth,bubeck2015convex}, so the method is worst-case optimal.
     Deflection does not improve the worst-case complexity, but significantly improves
     practical behaviour by reducing oscillations.
 \item \textbf{Comparison with smooth methods.}
@@ -464,7 +424,10 @@ $f(\mathbf{w}) = \norm{\mathbf{X}\mathbf{w}-\mathbf{y}}_2^2 + \lambda\norm{\math
     with $\norm{\mathbf{w}}$, so $f$ is not globally Lipschitz on~$\R^H$.
     However, the target-level mechanism prevents arbitrarily large steps, so the iterates
     remain confined to a bounded set and $\norm{\mathbf{g}^i}$ is uniformly bounded along
-    the generated sequence.
+    the generated sequence.    
+    More precisely, since $f$ is coercive (i.e., $f(\mathbf{w}) \to \infty$ as $\|\mathbf{w}\| \to \infty$) and the record value $\bar{f}^{\,i}$ is non-increasing, all iterates lie in the sublevel set $\{\mathbf{w} : f(\mathbf{w}) \leq f(\mathbf{w}_0)\}$, which is compact.
+    Lipschitz continuity of $f$ on this compact set then gives a uniform bound $L$ on all subgradients.
+  
 \end{enumerate}
 
 % ------------------------------------------------------------------
