@@ -4,7 +4,7 @@
 with one hidden layer, $y = w \sigma(W_1 x)$, where the weight matrix for the hidden layer $W_1$
 is a fixed random matrix, $\sigma(\cdot)$ is an elementwise activation function of your choice,
 and the output weight vector $w$ is chosen by solving a least-squares
-problem with $L_1$ regularization $\arg\min_w f(w)$, with $f(w) = \|X w - y \|_2^2 + \lambda \|w\|_1$.
+problem with $L_1$ regularization $\arg\min_w f(w)$, with $f(w) = \frac{1}{2}\|X w - y \|_2^2 + \lambda \|w\|_1$.
 
 \vspace{0.3cm}
 
@@ -13,8 +13,8 @@ iteration where you solve at each step the least-squares problem
 $$ w_{k+1} = \arg \min_w f_k(w), \quad f_k(w) = \frac{1}{2} \|X w - y \|_2^2 + \lambda \|W_k w\|_2^2 $$
 where $W_k$ is the diagonal matrix with entries $(W_k)_{ii} = |(w_k)_i|^{-1/2}$.
 
-
-\noindent
+\vspace{0.3cm}
+\noindent \textbf{(A2)} is an algorithm of the class of the \textit{deflected subgradient methods}.
 
 % The goal of this project is to analyze the problem of learning of an \textbf{Extreme Learning Machine} (ELM) algorithm, solving the \textbf{least-squares problem} with \textbf{$L_1$ regularization} using the \textbf{Iteratively Reweighted Least Squares} and \textbf{Deflected Subgradient Method} algorithms.
 % \\
@@ -23,8 +23,8 @@ where $W_k$ is the diagonal matrix with entries $(W_k)_{ii} = |(w_k)_i|^{-1/2}$.
 \section{Extreme Learning Machine}
 Extreme Learning Machine (ELM) \cite{HUANG2006489} is a machine learning model implemented as a neural network with a single hidden layer, in which:
 \begin{itemize}
-    \item $\mathbf{W_1} \in \mathbb{R}^{H \times N}$ is the input-to-hidden weight matrix (where $H$ is the number of nodes in the hidden layer and $N$ is the number of input nodes) that is \textbf{randomly generated} and \textbf{static} (does not change during training).
-    \item $\sigma(\cdot)$ is the element-wise (nonlinear) activation function applied to the $\mathbf{W_1x} \in \mathbb{R}^H$ vector, where $\textbf{x} \in \mathbb{R}^N$ is the input vector. The choice of using an activation function for the hidden layer results, with high probability, in the hidden layer feature matrix with full rank when $M \ge H$, since random projections through a nonlinear function produce linearly independent features.
+    \item $\mathbf{W_1} \in \mathbb{R}^{H \times N}$ is the input-to-hidden weight matrix (where $H$ is the number of nodes in the hidden layer and $N$ is the number of input nodes) that is \textbf{randomly generated} and \textbf{static} (does not change during training) \cite{HUANG2006489}.
+    \item $\sigma(\cdot)$ is the element-wise (nonlinear) activation function applied to the $\mathbf{W_1x} \in \mathbb{R}^H$ vector, where $\textbf{x} \in \mathbb{R}^N$ is the input vector. The choice of using an activation function for the hidden layer results, under mild assumptions and with high probability, in the hidden layer feature matrix with full rank when $M \ge H$, since random projections through a nonlinear function produce linearly independent features.
     \item $\mathbf{w} \in \mathbb{R}^{H}$ is the hidden-to-output weight vector, chosen by solving the least-squares problem.
     \item $\hat{y} = \mathbf{w}^T\sigma(\mathbf{W_1x}) \in \mathbb{R}$ is the prediction of the model.
 \end{itemize}
@@ -40,11 +40,11 @@ The key insight behind this architecture is that randomly fixing $\mathbf{W_1}$ 
 \end{figure}
 
 \section{Least-Squares Problem}
-The Least-Squares Problem is an optimization problem used in machine learning for data fitting. It aims at finding the best curve that minimizes the sum of squared differences between the \textit{predicted value} $A \mathbf{x}$ and the observed \textit{ground truth} (or \textit{target}) $\mathbf{y}$. Mathematically, we can represent this problem as follows:
-\begin{equation}
-    \min_\mathbf{x} || \mathbf{A} \mathbf{x} - \mathbf{y} ||^2_2
-\end{equation}
-In our case, a more suited definition is the following one, considering $\mathbf{X} = \sigma(\mathbf{X}_\text{origin} \mathbf{W}_1^T) \in \mathbb{R}^{M \times H}$ the matrix of activations of the hidden layer, while $\mathbf{X}_\text{origin} \in \mathbb{R}^{M \times N}$ is the matrix of all the inputs, and $\mathbf{y} \in \mathbb{R}^M$ is the vector of all the target values:
+% The Least-Squares Problem is an optimization problem used in machine learning for data fitting. It aims at finding the best curve that minimizes the sum of squared differences between the \textit{predicted value} $A \mathbf{x}$ and the observed \textit{ground truth} (or \textit{target}) $\mathbf{y}$. Mathematically, we can represent this problem as follows:
+% \begin{equation}
+%     \min_\mathbf{x} || \mathbf{A} \mathbf{x} - \mathbf{y} ||^2_2
+% \end{equation}
+Considering $\mathbf{X} = \sigma(\mathbf{X}_\text{origin} \mathbf{W}_1^T) \in \mathbb{R}^{M \times H}$ the matrix of activations of the hidden layer, while $\mathbf{X}_\text{origin} \in \mathbb{R}^{M \times N}$ is the matrix of all the inputs, and $\mathbf{y} \in \mathbb{R}^M$ is the vector of all the target values, the definition of the Least Squares Problem \cite{cortinovis2025} in the ELM case is the following:
 \begin{equation}
 \min_{\mathbf{w}} || \mathbf{Xw} - \mathbf{y} ||^2_2
 \end{equation}
@@ -66,15 +66,15 @@ However, adding the $L_1$ regularization term (Section~\ref{sec:regularization})
 
 \section{Regularization Techniques}
 \label{sec:regularization}
-When solving the Least-Squares Problem, we may prefer solutions that use a subset of available features. This prevents the problem of overfitting the model to the data, and producing a result that is more robust with respect to the data given. Regularization is the technique used to add a penalty to weights, and control the free parameters of the model to avoid overfitting to data.
+% When solving the Least-Squares Problem, we may prefer solutions that use a subset of available features. This prevents the problem of overfitting the model to the data, and producing a result that is more robust with respect to the data given. Regularization is the technique used to add a penalty to weights, and control the free parameters of the model to avoid overfitting to data.
 
 
 \subsection{$L_1$ regularization}
-The $L_1$ regularization, also called Lasso, tends to bring many weights to zero. This is a form of implicit \textit{feature selection} mechanism. The $L_1$ regularization is the best convex approximation for the $L_0$ norm, which penalizes the number of non-zero weights. Because of this sparsity, we are going to use the $L_1$ instead of $L_2$, which shrinks the weights but rarely zeroes them out.
+The $L_1$ regularization \cite{l1-regularization-frangioni} is the best convex approximation for the $L_0$ norm, which penalizes the number of non-zero weights. Because of this sparsity, we are going to use the $L_1$ instead of $L_2$, which shrinks the weights but rarely zeroes them out.
 
-When adding the $L_1$ regularization term to the Least-Squares problem, the equation is the following:
+When adding the $L_1$ regularization term to the Least-Squares problem in the case of ELM, the equation is the following:
 \begin{equation}
-\min_{\mathbf{w}} f(\mathbf{w}) = || \mathbf{Xw} - \mathbf{y} ||^2_2 + \lambda \sum_i^H|w_i|
+\min_{\mathbf{w}} f(\mathbf{w}) = \frac{1}{2}|| \mathbf{Xw} - \mathbf{y} ||^2_2 + \lambda \sum_i^H|w_i|
 \end{equation}
 
 The price to pay is the non-differentiability of $f(\mathbf{w})$ at any point where some $w_i = 0$, which prevents direct use of gradient-based methods.
@@ -86,7 +86,7 @@ Because of that, we can use the Deflected Subgradient Methods (\ref{alg:dsm}) an
 \section{Objective Function Analysis}
 The full objective function we need to minimize is the Lasso regularization of the Least-Squares problem:
 $$
-\min_{\mathbf{w}} f(\mathbf{w}) = \underbrace{\|\mathbf{Xw} - \mathbf{y}\|_2^2}_{g(\mathbf{w})}
+\min_{\mathbf{w}} f(\mathbf{w}) = \underbrace{\frac{1}{2}\|\mathbf{Xw} - \mathbf{y}\|_2^2}_{g(\mathbf{w})}
 + \underbrace{\lambda\|\mathbf{w}\|_1}_{h(\mathbf{w})}
 $$
 
@@ -94,9 +94,9 @@ It is useful to analyse the mathematical properties of $f(\mathbf{w})$, as they
 determine which algorithms can be applied.
 
 \subsection{Convexity}
-$f(\mathbf{w})$ is the sum of two convex functions. The quadratic term
-$g(\mathbf{w}) = \|\mathbf{Xw} - \mathbf{y}\|_2^2$ has Hessian
-$\nabla^2 g(\mathbf{w}) = 2\mathbf{X}^T\mathbf{X} \succeq 0$, making it convex.
+$f(\mathbf{w})$ is the sum of two convex functions \cite{Boyd_Vandenberghe_2004}. The quadratic term
+$g(\mathbf{w}) = \frac{1}{2}\|\mathbf{Xw} - \mathbf{y}\|_2^2$ has Hessian
+$\nabla^2 g(\mathbf{w}) = \mathbf{X}^T\mathbf{X} \succeq 0$, making it convex.
 If $\mathbf{X}$ has full column rank, then $\mathbf{X}^T\mathbf{X} \succ 0$ and
 $g$ is \textit{strictly convex}. The regularization term
 $h(\mathbf{w}) = \lambda\|\mathbf{w}\|_1$ is convex as a scaled norm.
@@ -106,17 +106,17 @@ $f$ is \textbf{strictly convex} and admits a \textbf{unique global minimum}.
 \begin{proposition}
     \label{prop:irls_prop}
     If $\mathbf{X} \in \mathbb{R}^{M \times H}$ has full column rank, then
-    $f(\mathbf{w}) = \|\mathbf{Xw} - \mathbf{y}\|_2^2 + \lambda\|\mathbf{w}\|_1$
+    $f(\mathbf{w}) = \frac{1}{2}\|\mathbf{Xw} - \mathbf{y}\|_2^2 + \lambda\|\mathbf{w}\|_1$
     is strictly convex and admits a unique global minimizer $\mathbf{w}^*$.
 \end{proposition}
 
 \subsection{Non-smoothness}
 Unlike the quadratic term, the $L_1$ penalty $h(\mathbf{w}) = \lambda\|\mathbf{w}\|_1$
-is \textbf{not differentiable} at any point where some component $w_i = 0$. This means
+is \textbf{not differentiable} \cite{nondifferentiability-l1-frangioni} at any point where some component $w_i = 0$. This means
 $f$ itself is non-smooth, and we cannot rely on gradient-based methods alone.
 At points where all $w_i \neq 0$, the gradient exists and is:
 $$
-\nabla f(\mathbf{w}) = 2\mathbf{X}^T(\mathbf{Xw} - \mathbf{y}) + \lambda \operatorname{sign}(\mathbf{w})
+\nabla f(\mathbf{w}) = \mathbf{X}^T(\mathbf{Xw} - \mathbf{y}) + \lambda \operatorname{sign}(\mathbf{w})
 $$
 where $\operatorname{sign}(\mathbf{w})$ is applied element-wise.
 At points where some $w_i = 0$, one must reason in terms of
@@ -126,10 +126,10 @@ At points where some $w_i = 0$, one must reason in terms of
 \label{sec:intro_optimality}
 Since $f$ is non-smooth, the classical condition $\nabla f(\mathbf{w}^*) = 0$
 does not apply at every minimizer. Instead, the optimality condition is expressed
-via the \textbf{subdifferential}: $\mathbf{w}^*$ is a global minimizer if and
+via the \textbf{subdifferential} \cite{subdifferential-introduction-frangioni}: $\mathbf{w}^*$ is a global minimizer for our ELM problem if and
 only if:
 $$
-0 \in \partial f(\mathbf{w}^*) = 2\mathbf{X}^T(\mathbf{Xw}^* - \mathbf{y})
+0 \in \partial f(\mathbf{w}^*) = \mathbf{X}^T(\mathbf{Xw}^* - \mathbf{y})
 + \lambda \, \partial\|\mathbf{w}^*\|_1
 $$
 where the subdifferential of the $L_1$ norm is given component-wise by:
@@ -144,7 +144,7 @@ $$
 This condition can be written component-wise as: for each $i = 1, \ldots, H$,
 \begin{equation}
 \label{eq:optimality}
-\left[2\mathbf{X}^T(\mathbf{Xw}^* - \mathbf{y})\right]_i + \lambda s_i = 0,
+\left[\mathbf{X}^T(\mathbf{Xw}^* - \mathbf{y})\right]_i + \lambda s_i = 0,
 \qquad s_i \in \partial|w_i^*|.
 \end{equation}
 Intuitively, $\lambda$ controls the sparsity of $\mathbf{w}^*$: the larger
