@@ -1,0 +1,63 @@
+MAPPATURA AFFERMAZIONI CAPITOLO 3 → SLIDE 5-NONSMOOTH
+
+=== SEZIONE: MOTIVATION (righe 7-24) ===
+
+Riga 18: "For ELM LASSO, this manifests as severe oscillation in poorly conditioned regions where X^T X has large condition number"
+→ Slide 10: "Subgradient methods: fundamental relationships"
+  (mostra assenza di memoria causa oscillazioni)
+→ Slide 15: "Deflected subgradient"
+  (spiega il problema: "Want a better direction? Use a better model!")
+
+Riga 21: "The stepsize $\alpha_i$ must satisfy DSS"
+→ Slide 10: Cita DSS
+→ Slide 52: "Plain Subgradient method - Diminishing–Square Summable stepsize (DSS)" [GIÀ CITATO come @DSS]
+
+Riga 30: "Deflected subgradient methods... replace the raw subgradient"
+→ Slide 15: "Deflected subgradient [3]" - mostra esattamente questa formula
+
+Riga 36: "We choose $\gamma_i$ optimally to minimize $\norm{\mathbf{d}_i}$"
+→ Slide 15: Formula chiusa per γ*
+  "γ' ∈ argmin{||γ'g + (1-γ')d^{i-1}||^2; γ ∈ [0,1]}"
+
+Riga 43: "We use the stepsize-restricted approach: $\alpha_i = \frac{\beta_i\,(f(\mathbf{w}_i) - f^*)}{\norm{\mathbf{d}_i}^2}$"
+→ Slide 15: "Stepsize-restricted = deflection-first: Polyak"
+  "α^i = β(f' - f_*)/||d^i||^2, β ≤ γ'"
+
+=== SEZIONE: THE TARGET-LEVEL MECHANISM (righe 64-76) ===
+
+Riga 69: "The fundamental relationship for subgradient methods"
+→ Slide 10: "Subgradient methods: fundamental relationships"
+  mostra: ||w^{i+1} - w*||^2 ≤ ||w^i - w*||^2 - 2α(f(w^i)-f*) + α^2||g^i||^2
+
+Riga 73: "The ideal stepsize $\alpha_i^* = (f(\mathbf{w}_i)-f^*)/\norm{\mathbf{g}_i}^2$"
+→ Slide 12: "Polyak stepsize"
+  mostra: α' = (f' - f_*)/||g'||^2
+
+Riga 75: "target-level mechanism circumvents this by maintaining an adaptive estimate"
+→ Slide 14: "Target level stepsize (vanishing)"
+  procedura SGPTL con f_lev = f_ref - δ
+
+=== SEZIONE: CONVERGENCE ANALYSIS (righe 147-177) ===
+
+Riga 154-155: "The record values... converge... worst-case complexity is O(1/ε²)"
+→ Slide 10-11: Convergence analysis of DSS
+  mostra che DSS "works": ∀ε > 0 ∃ f' - f_* ≤ ε
+
+Riga 164: "The sum of convex functions is convex"
+→ Slide 5-7: Subdifferential calculus rules
+
+Riga 165-166: "sum rule for subdifferentials"
+→ Slide 5-7: "sum rule for subdifferentials"
+
+=== NUOVE CITAZIONI NECESSARIE ===
+
+Quelle già presenti in references.bib:
+✓ @misc{plain-subgradient-methods} → Slide 50
+✓ @misc{DSS} → Slide 52
+
+Quelle da aggiungere:
+1. Fundamental relationships + zig-zagging problem → Slide 10
+2. Polyak stepsize → Slide 12
+3. Target level stepsize → Slide 14
+4. Deflected subgradient mechanism → Slide 15
+5. Subdifferential calculus / Sum rule → Slide 7 (o 5-6)

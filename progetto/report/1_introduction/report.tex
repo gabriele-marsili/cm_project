@@ -44,7 +44,7 @@ The key insight behind this architecture is that randomly fixing $\mathbf{W_1}$ 
 % \begin{equation}
 %     \min_\mathbf{x} || \mathbf{A} \mathbf{x} - \mathbf{y} ||^2_2
 % \end{equation}
-Considering $\mathbf{X} = \sigma(\mathbf{X}_\text{origin} \mathbf{W}_1^T) \in \mathbb{R}^{M \times H}$ the matrix of activations of the hidden layer, while $\mathbf{X}_\text{origin} \in \mathbb{R}^{M \times N}$ is the matrix of all the inputs, and $\mathbf{y} \in \mathbb{R}^M$ is the vector of all the target values, the definition of the Least Squares Problem \cite{cortinovis2025} in the ELM case is the following:
+Considering $\mathbf{X} = \sigma(\mathbf{X}_\text{origin} \mathbf{W}_1^T) \in \mathbb{R}^{M \times H}$ the matrix of activations of the hidden layer, while $\mathbf{X}_\text{origin} \in \mathbb{R}^{M \times N}$ is the matrix of all the inputs, and $\mathbf{y} \in \mathbb{R}^M$ is the vector of all the target values, the definition of the Least Squares Problem in the ELM case is the following:
 \begin{equation}
 \min_{\mathbf{w}} || \mathbf{Xw} - \mathbf{y} ||^2_2
 \end{equation}

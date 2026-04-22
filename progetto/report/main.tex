@@ -1,23 +1,27 @@
 \documentclass{report}
-\usepackage{graphicx} % Required for inserting images
-\usepackage{hyperref}
-\usepackage{emptypage}
-\usepackage{amssymb}
-
-\usepackage[english]{babel}
 \usepackage[utf8]{inputenc}
-\usepackage{scrlayer-scrpage}
-\usepackage{hyperref}
-\usepackage{array}
-\usepackage{booktabs}
+\usepackage[english]{babel}
+\usepackage{graphicx}
+\usepackage{amssymb}
 \usepackage{amsmath}
-\usepackage{afterpage}
-\usepackage{emptypage}
 \usepackage{amsthm}
 \usepackage{mathtools}
+\usepackage{float}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{afterpage}
+\usepackage{emptypage}
 \usepackage{enumitem}
 \usepackage{xcolor}
+\usepackage{scrlayer-scrpage}
 \usepackage{algorithm,algpseudocode}
+\usepackage{csquotes}
+
+% BIBLIOGRAFIA (Metodo moderno)
+\usepackage[backend=biber, style=numeric]{biblatex} 
+\addbibresource{references.bib} 
+
+% COMANDI PERSONALIZZATI
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
 \newcommand{\abs}[1]{\left\lvert #1 \right\rvert}
@@ -25,6 +29,8 @@
 \newcommand{\T}{^{\top}}
 \DeclareMathOperator{\sign}{sign}
 \newcommand{\argmin}{\operatornamewithlimits{arg\,min}}
+
+% TEOREMI
 \theoremstyle{plain}
 \newtheorem{theorem}{Theorem}[chapter]
 \newtheorem{proposition}[theorem]{Proposition}
@@ -36,12 +42,17 @@
     \null
     \thispagestyle{empty}%
     \addtocounter{page}{-1}%
-    \newpage}
+    \newpage
+}
+
+% LAYOUT PAGINA
 \ifoot[]{}
 \cfoot[]{}
 \ofoot[\pagemark]{\pagemark}
 \pagestyle{scrplain}
 
+% HYPERREF SEMPRE PER ULTIMO
+\usepackage{hyperref}
 
 \begin{document}
 
@@ -68,7 +79,7 @@
 \vspace{2cm}
 
 \begin{minipage}[t]{0.47\textwidth}
-	{\large{\bf Group number: 63\\\\Members: \\ Matthew Bernardi\\ Gabriele Marsili }}
+	{\large{\bf Group number: 63\\Project number: 25 ML\\\\Members: \\ Matthew Bernardi\\ Gabriele Marsili }}
 \end{minipage}
 
 \vspace{25mm}
@@ -100,8 +111,7 @@
 
 \input{conclusions}
 
-\bibliographystyle{plain} % We choose the "plain" reference style
-\bibliography{references} % Entries are in the refs.bib file
+
 \printbibliography
 
 \end{document}

@@ -9,7 +9,7 @@ smooth and admits an efficient closed-form solution. In our setting, IRLS is use
 to minimize the $L_1$-regularized least-squares objective:
 \begin{equation}
     \min_{\mathbf{w} \in \mathbb{R}^H} f(\mathbf{w})
-    = \underbrace{\|\mathbf{Xw} - \mathbf{y}\|_2^2}_{g(\mathbf{w})}
+    = \underbrace{\frac{1}{2}\|\mathbf{Xw} - \mathbf{y}\|_2^2}_{g(\mathbf{w})}
     + \underbrace{\lambda\|\mathbf{w}\|_1}_{h(\mathbf{w})}
     \label{eq:irls_objective}
 \end{equation}
@@ -26,7 +26,7 @@ but has sharp corners (\textit{kinks}) wherever any $w_i = 0$, making it
 non-differentiable in those points. Classical gradient-based algorithms cannot be
 applied directly.
 
-The key observation is the following identity: for any $(w_k)_i \neq 0$,
+The key observation is the following identity \cite{daubechies2008iterativelyreweightedsquaresminimization}: for any $(w_k)_i \neq 0$,
 \begin{equation}
     |w_i| = \frac{w_i^2}{|w_i|} \approx \frac{w_i^2}{|(w_k)_i|}
     \label{eq:irls_approx}
@@ -73,7 +73,7 @@ At each iteration $k$, substituting the quadratic approximation~\eqref{eq:irls_q
 into the objective~\eqref{eq:irls_objective} gives the following subproblem:
 \begin{equation}
     \mathbf{w}_{k+1} = \underset{\mathbf{w}}{\arg\min}
-    \;\|\mathbf{Xw} - \mathbf{y}\|_2^2 + 2 \lambda \|\mathbf{W}_k \mathbf{w}\|^2_2
+    \;\frac{1}{2}\|\mathbf{Xw} - \mathbf{y}\|_2^2 + \lambda \|\mathbf{W}_k \mathbf{w}\|^2_2
     \label{eq:irls_subproblem}
 \end{equation}
 This is a standard \textbf{weighted least-squares problem with $L_2$ regularization}
@@ -93,10 +93,10 @@ follows from setting the gradient to zero.
 \begin{proof}
     The gradient of the objective in~\eqref{eq:irls_subproblem} is:
     \[
-        \nabla f_k(\mathbf{w}) = 2\mathbf{X}^T(\mathbf{Xw} - \mathbf{y})
-        + 4\lambda\mathbf{W}_k^T \mathbf{W}_k\mathbf{w}
+        \nabla f_k(\mathbf{w}) = \mathbf{X}^T(\mathbf{Xw} - \mathbf{y})
+        + 2\lambda\mathbf{W}_k^T \mathbf{W}_k\mathbf{w}
     \]
-    Setting this to zero and dividing by 2 yields~\eqref{eq:irls_normal}.
+    Setting this to zero yields~\eqref{eq:irls_normal}.
     The coefficient matrix $\mathbf{X}^T\mathbf{X} + 2\lambda\mathbf{W}_k^T\mathbf{W}_k$
     is symmetric positive definite (it is the sum of $\mathbf{X}^T\mathbf{X} \succeq 0$
     and $2\lambda\mathbf{W}_k^T\mathbf{W}_k \succ 0$ since $\varepsilon_{\mathrm{thr}} > 0$),
@@ -104,7 +104,7 @@ follows from setting the gradient to zero.
 \end{proof}
 
 Since $\mathbf{W}_k$ is diagonal, defining $\mathbf{Q}_k = \mathbf{X}^T\mathbf{X}
-+ 2\lambda\mathbf{W}_k^T\mathbf{W}_k$ and $\mathbf{b} = \mathbf{X}^T\mathbf{y}$,
++2\lambda\mathbf{W}_k^T\mathbf{W}_k$ and $\mathbf{b} = \mathbf{X}^T\mathbf{y}$,
 equation~\eqref{eq:irls_normal} reduces to:
 \begin{equation}
     \mathbf{Q}_k\, \mathbf{w}_{k+1} = \mathbf{b}
@@ -119,7 +119,7 @@ diagonal $2\lambda\mathbf{W}_k^T\mathbf{W}_k$ is updated at each iteration.
 \paragraph{Solving the linear system.}
 Because $\mathbf{Q}_k$ is SPD, two efficient methods can be used:
 \begin{itemize}
-    \item \textbf{Cholesky factorization:}~\cite{frangioni2025chol,trefethen1997numerical} computes $\mathbf{Q}_k = \mathbf{L}\mathbf{L}^T$
+    \item \textbf{Cholesky factorization:}~\cite{trefethen1997numerical} computes $\mathbf{Q}_k = \mathbf{L}\mathbf{L}^T$
     in $O(H^3/3)$ operations, then solves two triangular systems in $O(H^2)$. This
     is the direct method of choice for moderate-sized problems.
     \item \textbf{Conjugate Gradient (CG):}~\cite{trefethen1997numerical} an iterative method that converges in at
@@ -127,23 +127,6 @@ Because $\mathbf{Q}_k$ is SPD, two efficient methods can be used:
     number $\kappa(\mathbf{Q}_k)$. Preferable for large-scale problems where $H$ is
     too large for Cholesky.
 \end{itemize}
-
-% \paragraph{Optimality condition}
-% For a smooth function $f$, we know that the minimum is where the gradient of $f$ is equal to 0. In the $L_1$ regularization problem, we know that we cannot use the gradient directly, but we need the \textbf{subdifferential}: the set of "almost-gradients". We know that we're in the minimum if 0 is contained in the subdifferential of the function $f$, so $0 \in \partial f(\mathbf{w}^*)$.
-
-% For our problem:
-% \[
-%   \partial f(w) = 2\mathbf{X}^T(\mathbf{X}\mathbf{w} - \mathbf{y}) + \lambda\,\partial\|\mathbf{w}\|_1,
-% \]
-% where the subdifferential of the $L_1$ regularization is:
-% \[
-%   [\partial\|\mathbf{w}\|_1]_i = \begin{cases} \{+1\} & \text{if } w_i > 0,\\ \{-1\} & \text{if } w_i < 0,\\ [-1, +1] & \text{if } w_i = 0. \end{cases}
-% \]
-
-% The condition $0 \in \partial f(\mathbf{w}^*)$ can be written component by component: for each $i = 1, \ldots, n$,
-% \begin{equation}\label{eq:optimality}
-%   [2\mathbf{X}^T(\mathbf{X}\mathbf{w}^* - \mathbf{y})]_i + \lambda s_i = 0, \qquad s_i \in \partial |w^*_i|.
-% \end{equation}
 
 % ------------------------------------------------------------------
 \section{The Majorization-Minimization interpretation}
@@ -162,8 +145,8 @@ minimizing the original objective $f(\mathbf{w})$ directly, IRLS builds a
 \end{enumerate}
 In our case, the surrogate is:
 \begin{equation}
-    Q(\mathbf{w}, \mathbf{w}_k) = \|\mathbf{Xw} - \mathbf{y}\|_2^2
-    + 2\lambda\|\mathbf{W}_k\mathbf{w}\|_2^2
+    Q(\mathbf{w}, \mathbf{w}_k) = \frac{1}{2}\|\mathbf{Xw} - \mathbf{y}\|_2^2
+    + \lambda\|\mathbf{W}_k\mathbf{w}\|_2^2
 \end{equation}
 The MM construction guarantees a key property: since minimizing $Q(\cdot, \mathbf{w}_k)$
 gives $\mathbf{w}_{k+1}$, we have $Q(\mathbf{w}_{k+1}, \mathbf{w}_k) \leq
@@ -180,7 +163,7 @@ Method provides (see Chapter~\ref{chap:dsm}).
 \section{The complete algorithm}
 \label{sec:irls_algorithm}
 
-\begin{algorithm}[h!]
+\begin{algorithm}[H]
     \caption{Iteratively Reweighted Least Squares (IRLS) for LASSO}
     \label{alg:irls}
     \begin{algorithmic}[1]
@@ -193,7 +176,7 @@ Method provides (see Chapter~\ref{chap:dsm}).
         (ordinary least-squares solution)
         \For{$k = 0, 1, 2, \ldots, k_{\max}$}
             \State Compute weights: $(\mathbf{W}_k)_{ii} \leftarrow
-            \max(|w_{k,i}|,\, \varepsilon_{\mathrm{thr}})^{-1/2}$ for all $i$
+            \max(|(w_k)_i|,\, \varepsilon_{\mathrm{thr}})^{-1/2}$ for all $i$
             \State Assemble system: $\mathbf{Q}_k \leftarrow \mathbf{A}
             + 2\lambda\mathbf{W}_k^T\mathbf{W}_k$
             \State Solve: $\mathbf{Q}_k\,\mathbf{w}_{k+1} = \mathbf{b}$
@@ -247,15 +230,15 @@ converges.
         \mathbf{X}^T(\mathbf{Xw}^* - \mathbf{y}) + 2\lambda\mathbf{W}_*^T\mathbf{W}_*\mathbf{w}^*
         = 0
     \]
-    Since $(\mathbf{W}_*)_{ii} = |w^*_i|^{-1/2}$ and
+    Since $(\mathbf{W}_*)_{ii} = |w^*_i|^{-1/2}$, we have
     $(\mathbf{W}_*^T\mathbf{W}_*\mathbf{w}^*)_i = |w^*_i|^{-1} w^*_i = \mathrm{sign}(w^*_i)$,
-    this reduces to:
+    so this reduces to:
     \[
-        \mathbf{X}^T(\mathbf{Xw}^* - \mathbf{y}) + \lambda\,\mathrm{sign}(\mathbf{w}^*)
+        \mathbf{X}^T(\mathbf{Xw}^* - \mathbf{y}) + 2\lambda\,\mathrm{sign}(\mathbf{w}^*)
         = 0
     \]
     which is exactly the first-order optimality condition $0 \in \partial f(\mathbf{w}^*)$
-    when all components $w^*_i \neq 0$.
+    (equation~\eqref{eq:optimality}) when all components $w^*_i \neq 0$.
 \end{proof}
 
 \paragraph{Convergence rate.}
@@ -272,14 +255,6 @@ diagonal to $\mathbf{X}^T\mathbf{X}$, which generally \textit{improves} conditio
 compared to the unregularized system. In practice, IRLS reaches high accuracy in
 10--50 iterations.
 
-\begin{remark}[Superlinear rate for $\ell_p$ with $p < 1$]
-    It has been proved \cite{daubechies2008iterativelyreweightedsquaresminimization} that for $\ell_p$ minimization with $p < 1$, IRLS converges
-    with a \textit{superlinear} (faster than geometric) rate under the restricted
-    isometry property (RIP). For our $\ell_1$ case ($p = 1$), a global linear
-    convergence rate has been established under the null space property of the
-    measurement matrix, ensuring that convergence occurs from any initialization.
-\end{remark}
-
 \paragraph{Verification of hypotheses for the ELM problem.}
 We check that the assumptions of Theorem~\ref{thm:irls_convergence} are satisfied
 by~\eqref{eq:irls_objective}:
@@ -291,7 +266,7 @@ For the ELM problem, $\mathbf{X} = \sigma(\mathbf{X}_{\mathrm{origin}}\mathbf{W}
 has full column rank with high probability (random $\mathbf{W}_1$, nonlinear $\sigma$) \cite{HUANG2006489},
 so $f$ is strictly convex and the unique minimiser $\mathbf{w}^*$ exists.
 \item \textbf{Non-zero components at convergence.}
-The hypothesis $|(w_k)i| > \varepsilon_{\mathrm{thr}}$ for all $i$ is satisfied for
+The hypothesis $|(w^*)_i| > \varepsilon_{\mathrm{thr}}$ for all $i$ is satisfied for
 non-zero components of the sparse solution. Components that converge to exactly zero
 (within $\varepsilon_{\mathrm{thr}}$) are excluded from the optimality condition,
 which is acceptable since they correspond to inactive features.
