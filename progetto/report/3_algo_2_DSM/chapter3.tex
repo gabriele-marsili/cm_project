@@ -1,7 +1,7 @@
 \chapter{Algorithm 2: Deflected Subgradient Method}
 \label{chap:dsm}
 
-In this chapter, we apply the deflected subgradient method with target level (SGPTL) to the ELM LASSO problem. We use the notation $\mathbf{w}_i$ for iterates throughout, consistently with Chapter~1. The theoretical foundation for the plain subgradient method and the diminishing-square-summable (DSS) stepsize rule comes from \cite{frangioni2025-lesson5}; the specific contributions of this chapter are the deflection mechanism \cite{dantonio2009deflected} and the target-level adaptation, which enable practical efficiency without prior knowledge of $f^*$.
+In this chapter, we apply the deflected subgradient method with target level (SGPTL) to the ELM LASSO problem.
 
 % ------------------------------------------------------------------
 \section{Motivation: why the plain subgradient method is inadequate for ELM LASSO}
@@ -9,16 +9,16 @@ In this chapter, we apply the deflected subgradient method with target level (SG
 
 The ELM LASSO problem
 \begin{equation}\label{eq:dsm_objective}
-  f(\mathbf{w}) = \norm{\mathbf{X}\mathbf{w} - \mathbf{y}}_2^2 + \lambda\norm{\mathbf{w}}_1,
+  f(\mathbf{w}) = \frac{1}{2}\norm{\mathbf{X}\mathbf{w} - \mathbf{y}}_2^2 + \lambda\norm{\mathbf{w}}_1,
 \end{equation}
-is nonsmooth due to the $\ell_1$ penalty. While the plain subgradient method \cite{frangioni2025-lesson5} guarantees convergence for convex nonsmooth problems, two structural limitations make it impractical for this problem:
+is nonsmooth due to the $\ell_1$ penalty. While the plain subgradient method \cite{plain-subgradient-methods} guarantees convergence for convex nonsmooth problems, two structural limitations make it impractical for this problem:
 
 \begin{enumerate}
-\item \textbf{Zig-zagging and slow practical convergence.}
-The subgradient update $\mathbf{w}_{i+1} = \mathbf{w}_i - \alpha_i \mathbf{g}_i$ uses only the current subgradient with no memory of previous iterations. For ELM LASSO, this manifests as severe oscillation in poorly conditioned regions where $\mathbf{X}^T\mathbf{X}$ has large condition number. The theoretical rate is $O(1/\varepsilon^2)$, unavoidable for nonsmooth optimization \cite{frangioni2025nonsmooth,bubeck2015convex}, but practical constants are prohibitive.
+\item \textbf{Zig-zagging and slow practical convergence:}
+\\The subgradient update $\mathbf{w}_{i+1} = \mathbf{w}_i - \alpha_i \mathbf{g}_i$ \cite{plain-subgradient-methods} uses only the current subgradient with no memory of previous iterations \cite{fundamental-relationships-sg}. For ELM LASSO, this manifests as severe oscillation in poorly conditioned regions where $\mathbf{X}^T\mathbf{X}$ has large condition number. The theoretical rate is $O(1/\varepsilon^2)$, unavoidable for nonsmooth optimization \cite{frangioni2025nonsmooth,bubeck2015convex}, but practical constants are prohibitive.
 
-\item \textbf{Stringent stepsize requirements.}
-The stepsize $\alpha_i$ must satisfy DSS: $\sum_i \alpha_i = \infty$ and $\sum_i \alpha_i^2 < \infty$ (e.g., $\alpha_i = c/i$). This yields extremely small steps at later iterations, causing the algorithm to stall well before reaching desired accuracy on our problem.
+\item \textbf{Stringent stepsize requirements:}
+\\The stepsize $\alpha_i$ must satisfy DSS \cite{DSS} : $\sum_i \alpha_i = \infty$ and $\sum_i \alpha_i^2 < \infty$ (e.g., $\alpha_i = c/i$). This yields extremely small steps at later iterations, causing the algorithm to stall well before reaching desired accuracy on our problem.
 \end{enumerate}
 
 These issues are solved by deflection, which injects memory to reduce oscillations. We adopt this approach for ELM LASSO.
@@ -33,13 +33,13 @@ Deflected subgradient methods \cite{dantonio2009deflected,frangioni2025nonsmooth
 \end{equation}
 where $\gamma_i \in (0,1]$ is the deflection parameter. The update becomes $\mathbf{w}_{i+1} = \mathbf{w}_i - \alpha_i\, \mathbf{d}_i$.
 
-For ELM LASSO, this reduces oscillations by preventing immediate direction reversals due to ill-conditioning. The parameter $\gamma_i$ controls responsiveness: $\gamma_i = 1$ (no memory) recovers plain subgradient, while smaller $\gamma_i$ emphasizes $\mathbf{d}_{i-1}$ for smoother trajectories. We choose $\gamma_i$ optimally to minimize $\norm{\mathbf{d}_i}$, maximizing progress under the Polyak stepsize.
+For ELM LASSO, this reduces oscillations by preventing immediate direction reversals due to ill-conditioning. The parameter $\gamma_i$ controls responsiveness: $\gamma_i = 1$ (no memory) recovers plain subgradient, while smaller $\gamma_i$ emphasizes $\mathbf{d}_{i-1}$ for smoother trajectories. We choose $\gamma_i$ optimally to minimize $\norm{\mathbf{d}_i}$, maximizing progress under the Polyak stepsize \cite{polyak-stepsize,deflected-subgradient-method}.
 
 % ------------------------------------------------------------------
 \section{Convergence framework: balancing deflection and stepsize}
 \label{sec:dsm_convergence_conditions}
 
-For deflected methods on ELM LASSO, the deflection $\gamma_i$ and stepsize $\alpha_i$ must be carefully coordinated. The theoretical framework is in \cite{dantonio2009deflected,frangioni2025nonsmooth}. We use the stepsize-restricted approach:
+For deflected methods on ELM LASSO, the deflection $\gamma_i$ and stepsize $\alpha_i$ must be carefully coordinated. The theoretical framework is in \cite{dantonio2009deflected,frangioni2025nonsmooth}. We use the stepsize-restricted approach \cite{deflected-subgradient-method}:
 
 \begin{equation}\label{eq:sr_step}
 \alpha_i = \frac{\beta_i\,(f(\mathbf{w}_i) - f^*)}{\norm{\mathbf{d}_i}^2}, \quad \beta_i \leq \gamma_i.
@@ -55,7 +55,7 @@ At each iteration on ELM LASSO, we choose $\gamma_i$ to minimize the deflected d
 \begin{equation}\label{eq:gamma_opt}
 \gamma_i \in \argmin_{\gamma \in [0,1]} \norm{\gamma\, \mathbf{g}_i + (1-\gamma)\, \mathbf{d}_{i-1}}^2.
 \end{equation}
-Since the Polyak stepsize has denominator $\norm{\mathbf{d}_i}^2$, minimizing this maximizes step length and progress. The problem is quadratic in $\gamma$ with closed-form solution:
+Since the Polyak stepsize has denominator $\norm{\mathbf{d}_i}^2$, minimizing this maximizes step length and progress. The problem is quadratic in $\gamma$ with closed-form solution \cite{deflected-subgradient-method}:
 \begin{equation}\label{eq:gamma_star}
 \gamma^* = \frac{\norm{\mathbf{d}_{i-1}}^2 - \inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}}{\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}^2}, \quad \gamma_i = \min(1,\max(0,\gamma^*)).
 \end{equation}
@@ -64,15 +64,15 @@ Since the Polyak stepsize has denominator $\norm{\mathbf{d}_i}^2$, minimizing th
 \section{The target-level mechanism}
 \label{sec:dsm_target_level}
 
-The Polyak stepsize requires knowledge of $f^*$. The target-level mechanism circumvents this by maintaining an adaptive estimate throughout the run.
+The Polyak stepsize \cite{polyak-stepsize} requires knowledge of $f^*$. The target-level mechanism circumvents this by maintaining an adaptive estimate throughout the run.
 
-The fundamental relationship for subgradient methods \cite{frangioni2025-lesson5} is:
+The fundamental relationship for subgradient methods \cite{fundamental-relationships-sg} is:
 \begin{equation}\label{eq:fundamental}
 \norm{\mathbf{w}_{i+1}-\mathbf{w}^*}^2 \leq \norm{\mathbf{w}_i-\mathbf{w}^*}^2 - 2\alpha_i(f(\mathbf{w}_i)-f^*) + (\alpha_i)^2\norm{\mathbf{g}_i}^2.
 \end{equation}
-The ideal stepsize $\alpha_i^* = (f(\mathbf{w}_i)-f^*)/\norm{\mathbf{g}_i}^2$ maximizes guaranteed reduction but requires $f^*$.
+The ideal stepsize $\alpha_i^* = (f(\mathbf{w}_i)-f^*)/\norm{\mathbf{g}_i}^2$ \cite{polyak-stepsize} maximizes guaranteed reduction but requires $f^*$.
 
-For ELM LASSO, we maintain estimate $f_{\mathrm{lev}} = f_{\mathrm{ref}} - \delta$, where $f_{\mathrm{ref}}$ is the best function value found and $\delta > 0$ is expected improvement. When accurate, the algorithm makes good progress. When too optimistic, the Polyak numerator becomes very small, stalling the algorithm. This stalling is detected by measuring accumulated distance $r = \sum \alpha_i \norm{\mathbf{d}_i}$: if $r > R$ (patience threshold) without significant improvement, we reduce $\delta \gets \delta \cdot \rho$ with $\rho < 1$ and retry.
+For ELM LASSO, we maintain estimate $f_{\mathrm{lev}} = f_{\mathrm{ref}} - \delta$ \cite{target-level-mechanism}, where $f_{\mathrm{ref}}$ is the best function value found and $\delta > 0$ is expected improvement. When accurate, the algorithm makes good progress. When too optimistic, the Polyak numerator becomes very small, stalling the algorithm. This stalling is detected by measuring accumulated distance $r = \sum \alpha_i \norm{\mathbf{d}_i}$: if $r > R$ (patience threshold) without significant improvement, we reduce $\delta \gets \delta \cdot \rho$ with $\rho < 1$ and retry.
 
 % ------------------------------------------------------------------
 \section{The complete algorithm}
@@ -135,7 +135,7 @@ Algorithm performance on ELM LASSO depends critically on four parameters:
 
 For the ELM LASSO objective, decompose $f = q + h$ where $q(\mathbf{w}) = \norm{\mathbf{X}\mathbf{w}-\mathbf{y}}_2^2$ (smooth) and $h(\mathbf{w}) = \lambda\norm{\mathbf{w}}_1$ (nonsmooth).
 
-By the sum rule for subdifferentials \cite{frangioni2025-lesson5}:
+By the sum rule for subdifferentials \cite{subdifferential-sum-rule}:
 \[ \partial f(\mathbf{w}) = \nabla q(\mathbf{w}) + \lambda\,\partial\norm{\mathbf{w}}_1, \]
 where $\nabla q(\mathbf{w}) = 2\mathbf{X}^T(\mathbf{X}\mathbf{w} - \mathbf{y})$ and the subdifferential of the $\ell_1$ norm is component-wise (Section~\ref{sec:intro_optimality}). A subgradient of $f$ at $\mathbf{w}$ is:
 \begin{equation}\label{eq:dsm_subgrad}
@@ -161,15 +161,15 @@ Let $f : \mathbb{R}^n \to \mathbb{R}$ be convex. Let $\{\mathbf{w}_i\}$ be the s
 \begin{enumerate}
 \item \textbf{Convexity of } $f(\mathbf{w}) = \norm{\mathbf{X}\mathbf{w}-\mathbf{y}}_2^2 + \lambda\norm{\mathbf{w}}_1$.
 
-The smooth part $q$ has Hessian $\nabla^2 q = 2\mathbf{X}^T\mathbf{X} \succeq 0$ (positive semidefinite), so $q$ is convex. The $\ell_1$ norm is convex. The sum of convex functions is convex \cite{frangioni2025-lesson5}, so $f$ is convex. ✓
+The smooth part $q$ has Hessian $\nabla^2 q = 2\mathbf{X}^T\mathbf{X} \succeq 0$ (positive semidefinite), so $q$ is convex. The $\ell_1$ norm is convex. The sum of convex functions is convex \cite{convex-functions-frangioni}, so $f$ is convex. ✓
 
-If $\mathbf{X}$ has full column rank (assumed for ELM), then $\nabla^2 q \succ 0$ is positive definite, making $q$ and $f$ \emph{strongly convex}. This improves the theoretical lower bound from $\Omega(L/\varepsilon^2)$ to $\Omega(L/\varepsilon)$ \cite{frangioni2025-lesson5}, but Algorithm~\ref{alg:dsm} as implemented does not exploit strong convexity, so its worst-case rate remains $O(1/\varepsilon^2)$.
+If $\mathbf{X}$ has full column rank (assumed for ELM), then $\nabla^2 q \succ 0$ is positive definite, making $q$ and $f$ \emph{strongly convex}. This improves the theoretical lower bound from $\Omega(L/\varepsilon^2)$ to $\Omega(L/\varepsilon)$ \cite{strongly-convex-frangioni}, but Algorithm~\ref{alg:dsm} as implemented does not exploit strong convexity, so its worst-case rate remains $O(1/\varepsilon^2)$.
 
 \item \textbf{Bounded subgradients for ELM LASSO.}
 
 The $\ell_1$ component has $\norm{\lambda \mathbf{s}} \leq \lambda\sqrt{H}$ (since each $|s_i| \leq 1$). The smooth component $2\mathbf{X}^T(\mathbf{X}\mathbf{w}-\mathbf{y})$ grows unboundedly as $\norm{\mathbf{w}} \to \infty$, so $f$ is not globally Lipschitz on $\mathbb{R}^H$.
 
-However, the target-level mechanism prevents arbitrarily large steps: since $f$ is coercive (i.e., $f(\mathbf{w}) \to \infty$ as $\|\mathbf{w}\| \to \infty$) and $\bar{f}_i$ is non-increasing, all iterates lie in the compact sublevel set $\{\mathbf{w} : f(\mathbf{w}) \leq f(\mathbf{w}_0)\}$. By Lipschitz continuity on this compact set \cite{frangioni2025-lesson5}, all subgradients are uniformly bounded by some $L$ depending on the problem data and initial point. ✓
+However, the target-level mechanism prevents arbitrarily large steps: since $f$ is coercive (i.e., $f(\mathbf{w}) \to \infty$ as $\|\mathbf{w}\| \to \infty$) and $\bar{f}_i$ is non-increasing, all iterates lie in the compact sublevel set $\{\mathbf{w} : f(\mathbf{w}) \leq f(\mathbf{w}_0)\}$. By Lipschitz continuity on this compact set \cite{lipschitz-continuity-frangioni}, all subgradients are uniformly bounded by some $L$ depending on the problem data and initial point. ✓
 
 \end{enumerate}
 
