@@ -1,13 +1,13 @@
 # Fdb version 4
-["biber main"] 0 "main.bcf" "main.bbl" "main" 0 -1
+["biber main"] 0 "main.bcf" "main.bbl" "main" 1777037074.57937 -1
   "main.bcf" 0 -1 0 "pdflatex"
   "references.bib" 1776881965.92733 3830 37951c5ed7fa72b48e79aa7945cb5a58 ""
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1776882024.39984 "/Users/piccoletto/Desktop/Everything/pisa/corsi/magistrale/primo_anno/CM - Computational Mathematics for Learning and Data Analysis/progetto/report/main.tex" "main.pdf" "main" 1776882025.25756 2
-  "/Users/piccoletto/Desktop/Everything/pisa/corsi/magistrale/primo_anno/CM - Computational Mathematics for Learning and Data Analysis/progetto/report/main.tex" 1776882024.32256 2383 62122c33bfc735b4041534d7e3c39173 ""
+["pdflatex"] 1777037073.80025 "/Users/piccoletto/Desktop/Everything/pisa/corsi/magistrale/primo_anno/CM - Computational Mathematics for Learning and Data Analysis/progetto/report/main.tex" "main.pdf" "main" 1777037074.57942 2
+  "/Users/piccoletto/Desktop/Everything/pisa/corsi/magistrale/primo_anno/CM - Computational Mathematics for Learning and Data Analysis/progetto/report/main.tex" 1777037073.71734 2467 a0fae1d3fed2a4d427ea42417ea6dae3 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmbx12.tfm" 1136768653 1324 c910af8c371558dc20f2d7822f66fe64 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmcsc10.tfm" 1136768653 1300 63a6111ee6274895728663cf4b4e7e81 ""
@@ -114,11 +114,11 @@
   "/usr/local/texlive/2025/texmf.cnf" 1741450484 577 418a7058ec8e006d8704f60ecd22c938 ""
   "images/cherubino_pant541.png" 0 -1 0 ""
   "introduction.tex" 0 -1 0 ""
-  "main.aux" 1776882025.22787 310 3916f200f3953ef20f1219b3162ab5fe "pdflatex"
+  "main.aux" 1777037074.55181 310 3916f200f3953ef20f1219b3162ab5fe "pdflatex"
   "main.bbl" 0 -1 0 "biber main"
-  "main.out" 1776882025.10763 0 d41d8cd98f00b204e9800998ecf8427e "pdflatex"
-  "main.tex" 1776882024.32256 2383 62122c33bfc735b4041534d7e3c39173 ""
-  "main.toc" 1776882025.22712 0 d41d8cd98f00b204e9800998ecf8427e "pdflatex"
+  "main.out" 1777037074.43086 0 d41d8cd98f00b204e9800998ecf8427e "pdflatex"
+  "main.tex" 1777037073.71734 2467 a0fae1d3fed2a4d427ea42417ea6dae3 ""
+  "main.toc" 1777037074.55106 0 d41d8cd98f00b204e9800998ecf8427e "pdflatex"
   (generated)
   "main.aux"
   "main.bcf"
