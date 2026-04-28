@@ -1,96 +1,130 @@
-Leggo con attenzione tutto il chapter 3 del PDF per una revisione rigorosa.Ho tutto il contenuto necessario nel contesto. Ecco la revisione tecnica rigorosa delle due nuove sezioni.
+Ho letto con attenzione entrambi i PDF. Di seguito una revisione critica, con focus primario su ciò che il prof ha esplicitamente segnalato — **le dimostrazioni** — e poi una lettura complessiva rispetto a `comando.pdf`.
 
 ---
 
-## Revisione matematica — Chapter 3 (modifiche recenti)
+## 1. Analisi delle dimostrazioni
 
-### 1. Derivazione completa di γ* (§3.2.1) ✅ Corretta
+### Proposizione 1.1 (Sezione 1.5.1) ✅ Completa e corretta
 
-La derivazione è matematicamente corretta in ogni passaggio. Nello specifico:
+La struttura è solida:
+- **Strict convexity**: full column rank → $X^TX \succ 0$ → $g$ strictly convex; $h$ convex come norma scalata; somma strictly convex. Argomento classico, ogni passo è giustificato.
+- **Existence/uniqueness**: coercivity di $g$ (dimostrata via $X^TX \succ 0$) → $f$ coercive → sublevel set compatto → minimo attinto per continuità → unicità per argomento del punto medio.
 
-**Espansione di h(γ):** L'applicazione della bilinearità del prodotto interno è corretta:
+L'argomento del punto medio è corretto e completo: se $w_1 \neq w_2$ fossero entrambi minimi, la strict convexity dà $f\!\left(\tfrac{w_1+w_2}{2}\right) < \tfrac12 f(w_1)+\tfrac12 f(w_2)=f(w_1)$, contraddizione.
 
-$$h(\gamma) = \gamma^2\|g_i\|^2 + 2\gamma(1-\gamma)\langle g_i, d_{i-1}\rangle + (1-\gamma)^2\|d_{i-1}\|^2$$
-
-**Raccolta dei termini (eq. 3.7):** Il passaggio da (3.6) a (3.7) è corretto. Il riconoscimento di $\|g_i - d_{i-1}\|^2 = \|g_i\|^2 - 2\langle g_i, d_{i-1}\rangle + \|d_{i-1}\|^2$ come coefficiente quadratico è algebricamente esatto.
-
-**Caso $g_i = d_{i-1}$:** Il coefficiente del termine quadratico si annulla, $h(\gamma) = \|d_{i-1}\|^2$ è costante, ogni $\gamma$ è ottimale. La convenzione $\gamma_i = 1$ è appropriata e coerente con l'inizializzazione $d_0 = g_0$. ✅
-
-**Caso $g_i \neq d_{i-1}$:** La parabola ha leading coefficient $\|g_i - d_{i-1}\|^2 > 0$ (strettamente convessa), annullamento di $h'(\gamma^*) = 0$ produce la formula (3.5). ✅
-
-**Giustificazione del clipping:** La casistica è corretta:
-- $\gamma^* < 0$: la parabola è crescente su $[0,1]$ (siamo a destra del minimo), minimo in $\gamma=0$ ✅
-- $\gamma^* > 1$: la parabola è decrescente su $[0,1]$ (siamo a sinistra del minimo), minimo in $\gamma=1$ ✅
-- $\gamma^* \in [0,1]$: soluzione interna ✅
-
-**Interpretazione geometrica:** La connessione al caso zig-zag ($g_i \approx -d_{i-1}$, $\gamma^* \approx 1/2$) è corretta numericamente.
+**Nessuna correzione necessaria.**
 
 ---
 
-### 2. Proof del Theorem 3.1 ✅ Sostanzialmente corretta, con un'imprecisione da correggere
+### Derivazione di $\gamma^*$ (Sezione 3.2.1) ✅ Sostanzialmente completa
 
-**Part 2 — Step 1 (disuguaglianza fondamentale):**
+La derivazione è rigorosa: espansione di $h(\gamma)=\|\gamma g_i + (1-\gamma)d_{i-1}\|^2$, riconoscimento del termine $\|g_i - d_{i-1}\|^2$ come coefficiente del termine quadratico, soluzione della parabola, proiezione su $[0,1]$ con analisi dei tre casi ($\gamma^* < 0$, $\gamma^* \in [0,1]$, $\gamma^* > 1$). Il caso degenere $g_i = d_{i-1}$ è trattato separatamente.
 
-L'espansione di $\|w_{i+1} - w^*\|^2 = \|(w_i - w^*) - \alpha_i g_i\|^2$ e l'applicazione della subgradient inequality $\langle g_i, w_i - w^*\rangle \geq f(w_i) - f^*$ sono corrette. ✅
-
-**Part 2 — Step 2 (Polyak step):**
-
-La sostituzione di $\alpha_i = (f(w_i)-f^*)/\|g_i\|^2$ minimizza il membro destro di (3.10) rispetto ad $\alpha$ (è un'ottimizzazione quadratica in $\alpha$), e produce correttamente eq. (3.11) e poi (3.12) usando $\|g_i\| \leq L$. ✅
-
-**Part 2 — Step 3 (telescoping + record value bound):**
-
-Il telescoping da $i=0$ a $k-1$ è corretto. Il passaggio al record value $\bar{f}_k = \min_{h \leq k} f(w_h)$ tramite $(f(w_i)-f^*)^2 \geq (\bar{f}_k - f^*)^2$ per ogni $i \leq k$ è valido perché $f(w_i) \geq \bar{f}_k \geq f^*$. Si ottiene correttamente:
-
-$$\bar{f}_k - f^* \leq \frac{L\|w_0 - w^*\|}{\sqrt{k}} \implies \text{complessità } O(L^2/\varepsilon^2)$$
-✅
-
-**Estensione al caso deflesso ($\gamma_i < 1$, $\beta_i \leq \gamma_i$):**
-
-Il testo cita correttamente [5, Theorem 3.2] (d'Antonio & Frangioni 2009). Il claim che $\|d_i\| \leq L$ per induzione è matematicamente valido: poiché $d_i = \gamma_i g_i + (1-\gamma_i)d_{i-1}$ è combinazione convessa, $\|d_i\| \leq \gamma_i \|g_i\| + (1-\gamma_i)\|d_{i-1}\| \leq L$ per induzione da $\|d_0\| = \|g_0\| \leq L$. ✅
-
-**Part 1 come corollario:** Corretto, discende direttamente da (3.13) con $k \to \infty$. ✅
+**Una piccola imprecisione**: la frase *"ogni $\gamma$ attains the minimum e settiamo $\gamma_i = 1$ per convenzione"* dovrebbe motivare la scelta $\gamma_i=1$ in modo più esplicito — e.g., che $d_i = d_{i-1}$ qualunque $\gamma$ si scelga, quindi la scelta è irrilevante e si prende $\gamma_i=1$ per semplicità. È un dettaglio minore ma coerente col tono rigoroso del resto.
 
 ---
 
-### ⚠️ Errore concettuale in §3.3 (target-level mechanism) — da correggere
+### Teorema 2.2 — Fixed-point consistency (Sezione 2.5) ⚠️ Parzialmente incompleto
 
-C'è un'affermazione matematicamente **errata** nella descrizione del meccanismo:
+**La parte dimostrata** (implicazione "fixed point → optimality") **è corretta e completa**:
+- Al punto fisso $w_k = w_{k+1} = w^*$, le weighted normal equations danno $X^T(Xw^*-y) + 2\lambda_\text{IRLS} W_*^T W_* w^* = 0$.
+- Con $|(w^*)_i| > \varepsilon_\text{thr}$, si ha $(W_*^T W_* w^*)_i = \text{sign}((w^*)_i)$.
+- Sostituendo $\lambda_\text{IRLS} = \frac12\lambda_\text{LASSO}$ si ottiene esattamente $0 \in \partial f(w^*)$. ✓
 
-> *"when it is too optimistic (i.e. $f_\text{ref} - \delta < f^*$), the Polyak numerator $f(w_i) - (f_\text{ref} - \delta)$ becomes negligible, forcing vanishingly small steps"*
+**Il problema è nella sezione "Verification of hypotheses"** (§2.5, punto 1):
 
-Questo è sbagliato. Se $f_\text{ref} - \delta < f^*$, allora per ogni iterato ammissibile $f(w_i) \geq f^* > f_\text{ref} - \delta$, quindi il numeratore vale:
+> *"standard MM-type arguments for strictly convex surrogates [23] then force the iterates themselves to converge, $w_k \to w^*$."*
 
-$$f(w_i) - (f_\text{ref} - \delta) = \underbrace{(f(w_i) - f^*)}_{\geq 0} + \underbrace{(f^* - f_\text{ref} + \delta)}_{> 0}$$
+Questa è esattamente la "prova abbozzata" di cui parla il prof. La citazione è generica — [23] è un articolo introduttivo sugli algoritmi MM, non un teorema numerato. Per rispettare il feedback del prof bisogna scegliere una delle due opzioni:
 
-che è **strettamente maggiore** di $f(w_i) - f^*$, non trascurabile. Il target "troppo ottimistico" produce step **più grandi** del Polyak ideale, non più piccoli.
+**Opzione A** (citazione precisa): sostituire con qualcosa come *"Under strict convexity and coercivity of $f$, Theorem X in [23] (p. Y) guarantees that any MM sequence converges to the unique minimizer."* — ma bisogna verificare che [23] contenga effettivamente quel risultato con quelle ipotesi.
 
-Il meccanismo reale che causa stagnazione è diverso: quando $f_\text{ref} - \delta < f^*$, la **condizione di miglioramento** $f(w_{i+1}) \leq f_\text{ref} - \delta/2$ non viene mai soddisfatta (poiché $f(w_{i+1}) \geq f^* > f_\text{ref} - \delta > f_\text{ref} - \delta/2$), quindi il contatore di pazienza $r$ si accumula e scatta la contrazione $\delta \leftarrow \delta\rho$. Col ripetersi di questo ciclo, $\delta \to 0$ e $f_\text{ref} - \delta \to f_\text{ref} \geq f^*$: il target risale sopra $f^*$ e gli step diventano piccoli **perché $\delta$ è piccolo**, non per il motivo descritto.
-
-**Correzione suggerita per §3.3:**
-
-> Sostituire il periodo incriminato con: *"When the target is too optimistic ($f_\text{ref} - \delta < f^*$), the improvement condition $f(w_{i+1}) \leq f_\text{ref} - \delta/2$ can never be satisfied, so the patience counter exhausts and triggers $\delta \leftarrow \delta\rho$. Repeated contractions drive $\delta \to 0$, so $f_\text{ref} - \delta \to f_\text{ref} \geq f^*$: the target is restored above $f^*$, and thereafter the step sizes become small as $\delta \approx 0$, causing the algorithm to settle near the best iterate found."*
-
----
-
-### ⚠️ Imprecisione minore in §3.5.2 (bounded subgradients)
-
-> *"all iterates lie in the compact sublevel set $\{w : f(w) \leq f(w_0)\}$"*
-
-Tecnicamente impreciso: i singoli iterati $w_i$ possono **uscire** da questo insieme in un metodo a subgradienti (l'update $w_{i+1} = w_i - \alpha_i d_i$ non garantisce $f(w_{i+1}) \leq f(w_i)$ — ed è proprio il punto di forza/debolezza del metodo). Ciò che rimane nell'insieme è $w_\text{best}$.
-
-L'argomento standard per la limitatezza dei subgradienti in pratica si basa sulla coercività di $f$ e sulla non-crescita di $\bar{f}_i$: le iterazioni non si allontanano indefinitamente perché con $\alpha_i$ piccoli anche le escursioni da $w_\text{best}$ restano bounded. La formulazione è recuperabile aggiungendo "approximately" o restringendo l'affermazione a $w_\text{best}$.
+**Opzione B** (prova self-contained): la convergenza $w_k \to w^*$ si può provare direttamente da: (i) $\{f(w_k)\}$ decrescente e bounded below → converge; (ii) ogni sottosuccessione ha un punto limite $\bar{w}$; (iii) per continuità di $Q$ e per il MM descent, $\bar{w}$ è un punto fisso; (iv) Theorem 2.2 implica $\bar{w}=w^*$; (v) $f$ strictly convex + unico minimo → $w_k \to w^*$. Questo è dimostrabile in pochi righi e sarebbe clean.
 
 ---
 
-### Riepilogo
+### Teorema 3.1 — Convergenza SGPTL (Sezione 3.5.2) ⚠️⚠️ Problema strutturale
 
-| Sezione | Stato |
+Questo è il punto più critico rispetto al commento del prof.
+
+**La prova fornita (Steps 1–3)** è rigorosa e corretta **ma vale solo per $\gamma_i = 1$** (plain subgradient con Polyak step esatto). Il teorema enunciato è invece per Algorithm 2 con direzioni deflesse ($\gamma_i < 1$, $\beta_i \leq \gamma_i$) e target-level invece di $f^*$.
+
+La sezione *"Extension to deflected directions"* dice:
+
+> *"The complete convergence analysis [...] is carried out in [5, Theorem 3.2]."*
+
+E la sezione *"Role of the target-level mechanism"* è puramente qualitativa.
+
+**Il problema**: la struttura attuale è esattamente ciò che il prof critica — si dimostra un caso semplificato e si delega il caso generale a una referenza. La prova non corrisponde all'enunciato del teorema.
+
+Le opzioni sono:
+
+**Opzione A — citazione pura** *(raccomandata)*: Rimuovere Steps 1–3 dall'interno del teorema. Riformulare come:
+
+> *"Theorem 3.1 follows from [5, Theorem 3.2] applied to Algorithm 2. We verify the hypotheses: [lista delle ipotesi]. The O(L²/ε²) bound and Part 1 then follow directly."*
+
+Questo è rigoroso, onesto, e in linea col commento del prof ("o si fa per bene, o si riporta un indicatore bibliografico preciso"). La verifica delle ipotesi rimane un contributo sostanziale.
+
+**Opzione B — prova completa**: Estendere Steps 1–3 al caso deflesso. Il passaggio chiave — che la deflection con $\beta_i \leq \gamma_i$ preserva la disuguaglianza fondamentale — richiede mostrare che $\langle d_i, w_i - w^*\rangle \geq \beta_i(f(w_i)-f^*)$, che è il contenuto di [5, Theorem 3.2]. È dimostrabile in 10–15 righe seguendo la struttura di d'Antonio & Frangioni (2009).
+
+**Ulteriore problema**: il bound sulla norma dei subgradients è giustificato in modo informale (*"la target-level mechanism keeps the steps bounded [...] by Lipschitz continuity on this compact set"*). Questo è corretto concettualmente, ma è ancora un argomento qualitativo. Per essere precisi, bisognerebbe identificare la costante $L$ esplicitamente o citare il risultato esatto.
+
+---
+
+### Tasso di convergenza lineare di IRLS (Sezione 2.5) ⚠️ Sketch non dichiarato
+
+Questo è un altro caso che il prof potrebbe contestare. Il testo dice:
+
+> *"IRLS [...] exhibits linear (geometric) convergence [...] consistent with the analysis carried out by Daubechies et al. [6] for the closely related basis-pursuit IRLS algorithm, where local exponential (linear-rate) convergence is established under sparsity and null-space assumptions on the design matrix."*
+
+La parola "consistent with" segnala che non si sta citando un teorema applicabile direttamente, ma si sta argomentando per analogia. Il problema è doppio:
+1. Le ipotesi di [6] (sparse recovery, null-space property) non coincidono esattamente con il setup ELM LASSO.
+2. Non viene indicato quale teorema specifico di [6] si intende.
+
+**Fix necessario**: o si cita il Theorem X di [6] con le sue ipotesi, si mostra che si applicano al setup ELM, e si conclude il tasso lineare — oppure si ammette esplicitamente che il tasso lineare è *osservato empiricamente* e non garantito dalla teoria disponibile, citando comunque [6] come riferimento.
+
+---
+
+## 2. Revisione generale rispetto a `comando.pdf`
+
+### Struttura del report (Sezione 4 di `comando.pdf`)
+
+| Requisito | Stato |
 |---|---|
-| Derivazione γ* — espansione, caso costante, annullamento, clipping | ✅ Corretta |
-| Theorem 3.1 Part 2 — Step 1 (disug. fondamentale) | ✅ Corretta |
-| Theorem 3.1 Part 2 — Step 2 (Polyak step ottimale) | ✅ Corretta |
-| Theorem 3.1 Part 2 — Step 3 (telescoping + record bound) | ✅ Corretta |
-| Estensione deflessione (cita [5, Thm 3.2], bound $\|d_i\|\leq L$) | ✅ Corretta |
-| Theorem 3.1 Part 1 come corollario | ✅ Corretta |
-| §3.3 — claim "numeratore trascurabile se troppo ottimista" | ❌ Errato — da correggere |
-| §3.5.2 — "tutti gli iterati nel sublevel set" | ⚠️ Impreciso |
+| Title page con group/project number e statement del progetto | ✅ |
+| Sezione introduttiva con problema + algoritmi + notazione | ✅ |
+| Proprietà attese (convergenza, rate, complessità) | ✅ (§2.7, §3.6, Cap. 4) |
+| Ipotesi dei teoremi verificate sul problema ELM | ✅ con riserve sui proof |
+| Codice | Non visibile nel report |
+| Descrizione experimental setup | ❌ Assente (Cap. 5 vuoto) |
+| Risultati sperimentali | ❌ Assente (Cap. 5 vuoto) |
+| Conclusioni | ❌ Assente (Cap. 6 vuoto) |
+
+### Aderenza al focus del corso
+
+Il `comando.pdf` è molto esplicito: *"we focus on the mathematical side of algorithms (quality of the obtained solutions, in terms of gap or residual, and efficiency in obtaining it)"*. Il report lo rispetta — il Cap. 4 è ben calibrato su questo. La sezione 4.5 di `comando.pdf` dice che gli esperimenti devono verificare convergenza teorica, confrontare algoritmi in termini di iterazioni e CPU time, studiare l'effetto dei parametri algoritmici. Tutto questo è assente (Cap. 5 vuoto).
+
+### Potenziale nota critica del prof sulla sezione 4.3.2
+
+L'analisi di complessità totale in §4.3.2 conclude che IRLS è sempre preferibile nel regime $M \gg H$. Questa è una conclusione forte che dovrà essere **validata sperimentalmente** nel Cap. 5 — grafici di scaling, wall-clock time vs $H$ e $M$, numero di iterazioni per $\varepsilon$ fissato. Se i dati sperimentali non concordano con le previsioni teoriche, bisognerà discuterne.
+
+### Focus eccessivo su DSM vs plain subgradient (§3.1)
+
+La sezione 3.1 spiega perché il plain subgradient è inadeguato. È pedagogicamente utile, ma `comando.pdf` avverte: *"do not write long paragraphs about things that have little or no import for the task at hand"*. La motivazione potrebbe essere condensata.
+
+---
+
+## 3. Verdict e priorità di intervento
+
+Il report è matematicamente solido e ben scritto. I capitoli 1–4 sono chiari, ben organizzati, e il livello di dettaglio teorico è appropriato. **La risposta alla revisione del prof richiede però interventi precisi:**
+
+**Priorità 1 — blocante:**
+- **Teorema 3.1**: scegliere tra prova completa del caso deflesso o citazione precisa di [5, Theorem 3.2] con verifica esplicita delle ipotesi. L'ibrido attuale non è accettabile per il prof.
+- **Teorema 2.2**: la convergenza della sequenza $w_k \to w^*$ va o provata self-contained (4–5 steps) o citata con teorema/pagina precisa di [23].
+
+**Priorità 2 — rilevante:**
+- **Tasso lineare IRLS**: o citare il teorema preciso di [6] con verifica ipotesi, o riformulare come osservazione empirica.
+- **γ* derivazione**: aggiungere una frase sul perché la scelta $\gamma_i=1$ nel caso degenere è irrilevante.
+
+**Priorità 3 — completamento:**
+- Cap. 5 (setup sperimentale + risultati) e Cap. 6 (conclusioni) sono necessari per la sottomissione finale. Il setup dovrebbe descrivere dataset scelti/generati, range di $M$, $H$, valori di $\lambda$, e le metriche di confronto previste dalla teoria.

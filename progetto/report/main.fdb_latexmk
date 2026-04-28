@@ -1,12 +1,12 @@
 # Fdb version 4
-["biber main"] 1777369153.22823 "main.bcf" "main.bbl" "main" 1777369158.02605 0
-  "main.bcf" 1777369157.93977 113050 f510d24a783f6eb21640393dbf50197d "pdflatex"
+["biber main"] 1777385457.08712 "main.bcf" "main.bbl" "main" 1777385462.26967 0
+  "main.bcf" 1777385462.18128 112953 20f641e13c2df7067e83837c68e2d6e1 "pdflatex"
   "references.bib" 1777368888.30349 7538 e0c59222a72e782644aa764fa34eb62b ""
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1777369156.41043 "main.tex" "main.pdf" "main" 1777369158.02631 0
+["pdflatex"] 1777385460.55792 "main.tex" "main.pdf" "main" 1777385462.26993 0
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm" 1136768653 1536 e07581a4bb3136ece9eeb4c3ffab8233 ""
@@ -163,19 +163,19 @@
   "/usr/local/texlive/2025/texmf-var/web2c/pdftex/pdflatex.fmt" 1762014249 3345735 45d227c75567e94fd8e00c25f4ba6ba6 ""
   "/usr/local/texlive/2025/texmf.cnf" 1741450484 577 418a7058ec8e006d8704f60ecd22c938 ""
   "1_introduction/report.tex" 1777368011.58108 12259 024e3c2981f108bfea9bdd3929e33e5e ""
-  "2_algo_1_IRLS/algo1.tex" 1777367491.59945 20306 9fc1d2e6383ddb983695aac3017d8c4c ""
-  "3_algo_2_DSM/chapter3.tex" 1777367500.71676 29481 37dbb815ae9269a44f3b287879501997 ""
+  "2_algo_1_IRLS/algo1.tex" 1777385256.74364 20894 c13b458b63d56da864975eacfb945d0b ""
+  "3_algo_2_DSM/chapter3.tex" 1777385449.99512 29756 b8e20f53becf763145bc3ef080866f22 ""
   "4_algo_comparison/comparison.tex" 1777367507.83104 12331 82b97a7ba8c7ea8ac96d34186b598214 ""
   "5_results/results.tex" 1777369143.38124 52 c8de1575de7cdd7f2a00b79aebbaa609 ""
   "6_conclusions/conclusions.tex" 1777369144.50763 47 fcbe2f53080effeb0a9dbf324985d4f5 ""
   "images/cherubino_pant541.png" 1777368345.91363 164399 35acb288a44c404ffd063bc22487e4be ""
   "images/elm.png" 1777368348.88819 160307 9dd0f263efc9c47247044aa98e35de94 ""
-  "main.aux" 1777369157.93501 23339 326084be14ff270c4fb6ae4e7421235b "pdflatex"
-  "main.bbl" 1777369154.74126 33757 da4610132502817e6034a8bd2ac31122 "biber main"
-  "main.out" 1777369157.93897 9123 d81f476aec96d7037b90cb91aeb839c6 "pdflatex"
-  "main.run.xml" 1777369157.94028 2305 52095dfad395b381e9a32937e764a41c "pdflatex"
+  "main.aux" 1777385462.17636 23347 7e83e052f1b9407290f120519671c3a4 "pdflatex"
+  "main.bbl" 1777385458.85998 33757 da4610132502817e6034a8bd2ac31122 "biber main"
+  "main.out" 1777385462.18044 9123 d81f476aec96d7037b90cb91aeb839c6 "pdflatex"
+  "main.run.xml" 1777385462.18189 2305 52095dfad395b381e9a32937e764a41c "pdflatex"
   "main.tex" 1777369148.25859 2550 cb608f3ddf0d08bcb9598e12a6b35b3a ""
-  "main.toc" 1777369157.94033 5415 8a1e9500045859bf1b35e57daebe44d2 "pdflatex"
+  "main.toc" 1777385462.18195 5415 8a1e9500045859bf1b35e57daebe44d2 "pdflatex"
   (generated)
   "main.aux"
   "main.bcf"

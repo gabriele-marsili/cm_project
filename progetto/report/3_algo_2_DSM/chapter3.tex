@@ -40,7 +40,7 @@ where $\gamma_i \in (0,1]$ is the deflection parameter and the first iteration i
 For deflected methods on ELM LASSO, the deflection $\gamma_i$ and stepsize $\alpha_i$ must be carefully coordinated. The theoretical framework is in \cite{deflected-subgradient-method}. We use the stepsize-restricted approach \cite{deflected-subgradient-method}:
 
 \begin{equation}\label{eq:sr_step}
-\alpha_i = \frac{\beta_i\,(f(\mathbf{w}_i) - f^*)}{\norm{\mathbf{d}_i}^2}, \quad \beta_i \leq \gamma_i.
+\alpha_i = \frac{\beta_i\,(f(\mathbf{w}_i) - f^*)}{\norm{\mathbf{d}_i}_2^2}, \quad \beta_i \leq \gamma_i.
 \end{equation}
 
 The condition $\beta_i \leq \gamma_i$ ensures stronger deflection is balanced by smaller steps, preventing large moves in memory-weighted non-descent directions. Since $f^*$ is unknown for ELM LASSO, we replace it with target level $f_{\mathrm{ref}} - \delta$ (Section~\ref{sec:dsm_target_level}), providing an adaptive estimate throughout the run.
@@ -54,11 +54,11 @@ We pick a single fixed reference value $\beta \in (0,1]$ and enforce the conditi
 
 At each iteration on ELM LASSO, we choose $\gamma_i$ to minimize the deflected direction norm:
 \begin{equation}\label{eq:gamma_opt}
-\gamma_i \in \argmin_{\gamma \in [0,1]} \norm{\gamma\, \mathbf{g}_i + (1-\gamma)\, \mathbf{d}_{i-1}}^2.
+\gamma_i \in \argmin_{\gamma \in [0,1]} \norm{\gamma\, \mathbf{g}_i + (1-\gamma)\, \mathbf{d}_{i-1}}_2^2.
 \end{equation}
 Since the Polyak stepsize has denominator $\norm{\mathbf{d}_i}^2$, minimizing this maximizes step length and progress. The problem is quadratic in $\gamma$ with closed-form solution \cite{deflected-subgradient-method}:
 \begin{equation}\label{eq:gamma_star}
-\gamma^* = \frac{\norm{\mathbf{d}_{i-1}}^2 - \inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}}{\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}^2}, \quad \gamma_i = \min(1,\max(0,\gamma^*)).
+\gamma^* = \frac{\norm{\mathbf{d}_{i-1}}_2^2 - \inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}}{\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}_2^2}, \quad \gamma_i = \min(1,\max(0,\gamma^*)).
 \end{equation}
 
 \paragraph{Derivation of $\gamma^*$.}\mbox{} \\
@@ -67,41 +67,41 @@ Define $h(\gamma) := \norm{\gamma\,\mathbf{g}_i + (1-\gamma)\,\mathbf{d}_{i-1}}^
 Expanding by bilinearity of the inner product:
 \begin{align}
 h(\gamma)
-&= \gamma^2\norm{\mathbf{g}_i}^2
+&= \gamma^2\norm{\mathbf{g}_i}_2^2
   + 2\gamma(1-\gamma)\inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}
-  + (1-\gamma)^2\norm{\mathbf{d}_{i-1}}^2 \notag\\
-&= \gamma^2\bigl(\norm{\mathbf{g}_i}^2
+  + (1-\gamma)^2\norm{\mathbf{d}_{i-1}}_2^2 \notag\\
+&= \gamma^2\bigl(\norm{\mathbf{g}_i}_2^2
                 - 2\inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}
-                + \norm{\mathbf{d}_{i-1}}^2\bigr)
+                + \norm{\mathbf{d}_{i-1}}_2^2\bigr)
   + 2\gamma\bigl(\inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}
-                - \norm{\mathbf{d}_{i-1}}^2\bigr)
-  + \norm{\mathbf{d}_{i-1}}^2. \label{eq:gamma_expand}
+                - \norm{\mathbf{d}_{i-1}}_2^2\bigr)
+  + \norm{\mathbf{d}_{i-1}}_2^2. \label{eq:gamma_expand}
 \end{align}
 Recognising the first factor as $\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}^2$:
 \begin{equation}
 h(\gamma)
-= \norm{\mathbf{g}_i - \mathbf{d}_{i-1}}^2\,\gamma^2
-  + 2\bigl(\inner{\mathbf{g}_i}{\mathbf{d}_{i-1}} - \norm{\mathbf{d}_{i-1}}^2\bigr)\gamma
-  + \norm{\mathbf{d}_{i-1}}^2.
+= \norm{\mathbf{g}_i - \mathbf{d}_{i-1}}_2^2\,\gamma^2
+  + 2\bigl(\inner{\mathbf{g}_i}{\mathbf{d}_{i-1}} - \norm{\mathbf{d}_{i-1}}_2^2\bigr)\gamma
+  + \norm{\mathbf{d}_{i-1}}_2^2.
 \label{eq:gamma_parabola}
 \end{equation}
 
-\textbf{Case $\mathbf{g}_i = \mathbf{d}_{i-1}$:} the leading coefficient $\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}^2 = 0$, so $h(\gamma) = \norm{\mathbf{d}_{i-1}}^2$ is constant on $[0,1]$; every $\gamma$ attains the minimum and we set $\gamma_i = 1$ by convention.
+\textbf{Case $\mathbf{g}_i = \mathbf{d}_{i-1}$:} the leading coefficient $\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}_2^2 = 0$, so $h(\gamma) = \norm{\mathbf{d}_{i-1}}_2^2$ is constant on $[0,1]$; moreover, $\mathbf{d}_i = \gamma\mathbf{g}_i + (1-\gamma)\mathbf{d}_{i-1} = \mathbf{d}_{i-1}$ for all $\gamma$, so the deflected direction is identical regardless of the choice; we set $\gamma_i = 1$ by convention.
 
 \textbf{Case $\mathbf{g}_i \neq \mathbf{d}_{i-1}$:} $h$ is a strictly convex parabola in $\gamma$ (positive leading coefficient). Its unique unconstrained minimizer satisfies $h'(\gamma^*) = 0$:
 \[
 h'(\gamma)
-= 2\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}^2\,\gamma
-  + 2\bigl(\inner{\mathbf{g}_i}{\mathbf{d}_{i-1}} - \norm{\mathbf{d}_{i-1}}^2\bigr) = 0
+= 2\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}_2^2\,\gamma
+  + 2\bigl(\inner{\mathbf{g}_i}{\mathbf{d}_{i-1}} - \norm{\mathbf{d}_{i-1}}_2^2\bigr) = 0
 \implies
-\gamma^* = \frac{\norm{\mathbf{d}_{i-1}}^2 - \inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}}
-               {\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}^2},
+\gamma^* = \frac{\norm{\mathbf{d}_{i-1}}_2^2 - \inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}}
+               {\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}_2^2},
 \]
 which is exactly \eqref{eq:gamma_star}.
 The constrained minimum over $[0,1]$ is $\gamma_i = \min(1,\max(0,\gamma^*))$: since the parabola opens upward, if $\gamma^* < 0$ then $h$ is increasing on $[0,1]$ and the minimum is attained at $\gamma = 0$; if $\gamma^* > 1$ then $h$ is decreasing on $[0,1]$ and the minimum is at $\gamma = 1$; if $\gamma^* \in [0,1]$ the interior solution applies.
 
 \paragraph{Interpretation.}\mbox{} \\
-The denominator $\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}^2$ measures the squared distance between the current subgradient and the previous direction: the larger it is, the more $\gamma^*$ shrinks and the more the deflected direction borrows from memory $\mathbf{d}_{i-1}$. The numerator $\norm{\mathbf{d}_{i-1}}^2 - \inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}$ captures alignment: it is small (and $\gamma^*$ small) when $\mathbf{g}_i$ and $\mathbf{d}_{i-1}$ are well aligned, and large when they oppose each other. In the zig-zag scenario $\mathbf{g}_i \approx -\mathbf{d}_{i-1}$ with comparable magnitudes $\norm{\mathbf{g}_i} \approx \norm{\mathbf{d}_{i-1}}$, the numerator is approximately $\norm{\mathbf{d}_{i-1}}^2 + \norm{\mathbf{d}_{i-1}}^2 = 2\norm{\mathbf{d}_{i-1}}^2$ while the denominator is approximately $\norm{2\mathbf{d}_{i-1}}^2 = 4\norm{\mathbf{d}_{i-1}}^2$, giving $\gamma^* \approx 1/2$: $\mathbf{d}_i$ splits evenly between the two conflicting directions, halving the oscillation.
+The denominator $\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}_2^2$ measures the squared distance between the current subgradient and the previous direction: the larger it is, the more $\gamma^*$ shrinks and the more the deflected direction borrows from memory $\mathbf{d}_{i-1}$. The numerator $\norm{\mathbf{d}_{i-1}}_2^2 - \inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}$ captures alignment: it is small (and $\gamma^*$ small) when $\mathbf{g}_i$ and $\mathbf{d}_{i-1}$ are well aligned, and large when they oppose each other. In the zig-zag scenario $\mathbf{g}_i \approx -\mathbf{d}_{i-1}$ with comparable magnitudes $\norm{\mathbf{g}_i}_2 \approx \norm{\mathbf{d}_{i-1}}_2$, the numerator is approximately $\norm{\mathbf{d}_{i-1}}_2^2 + \norm{\mathbf{d}_{i-1}}_2^2 = 2\norm{\mathbf{d}_{i-1}}_2^2$ while the denominator is approximately $\norm{2\mathbf{d}_{i-1}}_2^2 = 4\norm{\mathbf{d}_{i-1}}_2^2$, giving $\gamma^* \approx 1/2$: $\mathbf{d}_i$ splits evenly between the two conflicting directions, halving the oscillation.
 
 % ------------------------------------------------------------------
 \section{The target-level mechanism}
@@ -111,9 +111,9 @@ The Polyak stepsize \cite{polyak-stepsize} requires knowledge of $f^*$. The targ
 
 The fundamental relationship for subgradient methods \cite{fundamental-relationships-sg} is:
 \begin{equation}\label{eq:fundamental}
-\norm{\mathbf{w}_{i+1}-\mathbf{w}^*}^2 \leq \norm{\mathbf{w}_i-\mathbf{w}^*}^2 - 2\alpha_i(f(\mathbf{w}_i)-f^*) + (\alpha_i)^2\norm{\mathbf{g}_i}^2.
+\norm{\mathbf{w}_{i+1}-\mathbf{w}^*}_2^2 \leq \norm{\mathbf{w}_i-\mathbf{w}^*}_2^2 - 2\alpha_i(f(\mathbf{w}_i)-f^*) + (\alpha_i)^2\norm{\mathbf{g}_i}_2^2.
 \end{equation}
-The ideal stepsize $\alpha_i^* = (f(\mathbf{w}_i)-f^*)/\norm{\mathbf{g}_i}^2$ \cite{polyak-stepsize} maximizes guaranteed reduction but requires $f^*$.
+The ideal stepsize $\alpha_i^* = (f(\mathbf{w}_i)-f^*)/\norm{\mathbf{g}_i}_2^2$ \cite{polyak-stepsize} maximizes guaranteed reduction but requires $f^*$.
 
 For ELM LASSO we replace $f^*$ with the target level $f_{\mathrm{ref}} - \delta$ \cite{target-level-mechanism}, where $f_{\mathrm{ref}}$ is the best function value found so far and $\delta > 0$ is the expected improvement; this is the same expression used in the Polyak-step numerator of Algorithm~\ref{alg:dsm}. When the target is accurate (i.e.\ $f_{\mathrm{ref}} - \delta \approx f^*$) the algorithm tracks the ideal Polyak step and achieves substantial progress; when the target is too optimistic (i.e.\ $f_{\mathrm{ref}} - \delta < f^*$), the numerator $f(\mathbf{w}_i) - (f_{\mathrm{ref}} - \delta) = (f(\mathbf{w}_i) - f^*) + (f^* - f_{\mathrm{ref}} + \delta)$ \emph{overestimates} $f(\mathbf{w}_i) - f^*$ and the resulting steps are larger than the ideal Polyak ones; the real failure mode is that the improvement condition $f(\mathbf{w}_{i+1}) \le f_{\mathrm{ref}} - \delta/2$ used by Algorithm~\ref{alg:dsm} can never be satisfied (since $f(\mathbf{w}_{i+1}) \ge f^* > f_{\mathrm{ref}} - \delta > f_{\mathrm{ref}} - \delta/2$), so no progress is registered and the iterates stagnate. We detect stalling by tracking the accumulated displacement $r = \sum \alpha_i \norm{\mathbf{d}_i}$: if $r > R$ (the patience threshold) without significant improvement, we contract $\delta \gets \delta \cdot \rho$ with $\rho < 1$ and retry. Repeated contractions drive $\delta \to 0$, so $f_{\mathrm{ref}} - \delta \to f_{\mathrm{ref}} \ge f^*$ and the target is restored above $f^*$.
 
@@ -139,7 +139,7 @@ Algorithm~\ref{alg:dsm} presents the full Deflected Subgradient Method with targ
 \State $\mathbf{d}_i \gets \gamma_i\, \mathbf{g} + (1-\gamma_i)\, \mathbf{d}_{i-1}$ \hfill\emph{(deflected direction)}
 \EndIf
 \State $\beta_i \gets \min(\beta,\gamma_i)$ \hfill\emph{(enforce $\beta_i \le \gamma_i$)}
-\State $\alpha_i \gets \beta_i\,(f(\mathbf{w}_i) - (f_{\mathrm{ref}}-\delta))\,/\,\norm{\mathbf{d}_i}^2$ \hfill\emph{(Polyak step)}
+\State $\alpha_i \gets \beta_i\,(f(\mathbf{w}_i) - (f_{\mathrm{ref}}-\delta))\,/\,\norm{\mathbf{d}_i}_2^2$ \hfill\emph{(Polyak step)}
 \State $\mathbf{w}_{i+1} \gets \mathbf{w}_i - \alpha_i\, \mathbf{d}_i$ \hfill\emph{(update)}
 \State $\bar{f} \gets \min(\bar{f},\; f(\mathbf{w}_{i+1}))$ \hfill\emph{(update record)}
 \If{$f(\mathbf{w}_{i+1}) \leq f_{\mathrm{ref}} - \delta/2$} \hfill\emph{(improvement)}
@@ -147,7 +147,7 @@ Algorithm~\ref{alg:dsm} presents the full Deflected Subgradient Method with targ
 \ElsIf{$r > R$} \hfill\emph{(stalled)}
 \State $\delta \gets \delta\,\rho$;\; $r \gets 0$
 \Else
-\State $r \gets r + \alpha_i\norm{\mathbf{d}_i}$
+\State $r \gets r + \alpha_i\norm{\mathbf{d}_i}_2$
 \EndIf
 \EndFor
 \State \Return $\mathbf{w}_{\mathrm{best}}$ (iterate achieving $\bar{f}$)
@@ -187,7 +187,7 @@ At a component where $w_i \ne 0$ the subdifferential is a singleton and we have 
 
 \begin{theorem}[Convergence of SGPTL, adapted from \cite{dss-convergence-frangioni} and \cite{deflected-subgradient-method}]
 \label{thm:dsm_convergence}
-Let $f : \mathbb{R}^n \to \mathbb{R}$ be convex. Let $\{\mathbf{w}_i\}$ be the sequence generated by Algorithm~\ref{alg:dsm} with convergence conditions satisfied (stepsize-restricted with $\beta_i \leq \gamma_i$). Assume subgradients are uniformly bounded: $\norm{\mathbf{g}_i} \leq L$ for all $i$. Then:
+Let $f : \mathbb{R}^n \to \mathbb{R}$ be convex. Let $\{\mathbf{w}_i\}$ be the sequence generated by Algorithm~\ref{alg:dsm} with convergence conditions satisfied (stepsize-restricted with $\beta_i \leq \gamma_i$). Assume subgradients are uniformly bounded: $\norm{\mathbf{g}_i}_2 \leq L$ for all $i$. Then:
 \begin{enumerate}[nosep]
 \item The record values $\bar{f}_i = \min_{h \leq i} f(\mathbf{w}_h)$ converge: $\bar{f}_i \to f^*$ as $i \to \infty$.
 \item Worst-case complexity is $O(1/\varepsilon^2)$: to achieve $\bar{f}_i - f^* \leq \varepsilon$ requires at most $O(L^2/\varepsilon^2)$ iterations.
@@ -204,40 +204,40 @@ We establish Part~2 first; Part~1 follows as an immediate corollary.
 For the plain subgradient step $\mathbf{w}_{i+1} = \mathbf{w}_i - \alpha_i\,\mathbf{g}_i$ (temporarily set $\gamma_i = 1$, $\mathbf{d}_i = \mathbf{g}_i$), expanding the squared distance to $\mathbf{w}^*$ gives \cite{fundamental-relationships-sg}:
 \begin{equation}
 \label{eq:proof_fundamental}
-\norm{\mathbf{w}_{i+1} - \mathbf{w}^*}^2
-= \norm{\mathbf{w}_i - \mathbf{w}^*}^2
+\norm{\mathbf{w}_{i+1} - \mathbf{w}^*}_2^2
+= \norm{\mathbf{w}_i - \mathbf{w}^*}_2^2
   - 2\alpha_i\inner{\mathbf{g}_i}{\mathbf{w}_i - \mathbf{w}^*}
-  + \alpha_i^2\norm{\mathbf{g}_i}^2.
+  + \alpha_i^2\norm{\mathbf{g}_i}_2^2.
 \end{equation}
 Since $\mathbf{g}_i \in \partial f(\mathbf{w}_i)$ and $f$ is convex, the subgradient inequality yields
 $\inner{\mathbf{g}_i}{\mathbf{w}_i - \mathbf{w}^*} \geq f(\mathbf{w}_i) - f(\mathbf{w}^*) = f(\mathbf{w}_i) - f^*$.
 Substituting into \eqref{eq:proof_fundamental}:
 \[
-\norm{\mathbf{w}_{i+1} - \mathbf{w}^*}^2
-\leq \norm{\mathbf{w}_i - \mathbf{w}^*}^2
+\norm{\mathbf{w}_{i+1} - \mathbf{w}^*}_2^2
+\leq \norm{\mathbf{w}_i - \mathbf{w}^*}_2^2
      - 2\alpha_i(f(\mathbf{w}_i) - f^*)
-     + \alpha_i^2\norm{\mathbf{g}_i}^2.
+     + \alpha_i^2\norm{\mathbf{g}_i}_2^2.
 \]
 
 \emph{Step~2 — Polyak step.}
 Choose the Polyak stepsize \cite{polyak-stepsize}
-$\alpha_i = (f(\mathbf{w}_i) - f^*)/\norm{\mathbf{g}_i}^2$,
+$\alpha_i = (f(\mathbf{w}_i) - f^*)/\norm{\mathbf{g}_i}_2^2$,
 which is the value $\alpha$ that minimises the right-hand side above (setting its derivative in $\alpha$ to zero).
 Substituting:
 \begin{align}
-\norm{\mathbf{w}_{i+1} - \mathbf{w}^*}^2
-&\leq \norm{\mathbf{w}_i - \mathbf{w}^*}^2
-      - \frac{2(f(\mathbf{w}_i) - f^*)^2}{\norm{\mathbf{g}_i}^2}
-      + \frac{(f(\mathbf{w}_i) - f^*)^2}{\norm{\mathbf{g}_i}^2}
-= \norm{\mathbf{w}_i - \mathbf{w}^*}^2
-  - \frac{(f(\mathbf{w}_i) - f^*)^2}{\norm{\mathbf{g}_i}^2}.
+\norm{\mathbf{w}_{i+1} - \mathbf{w}^*}_2^2
+&\leq \norm{\mathbf{w}_i - \mathbf{w}^*}_2^2
+      - \frac{2(f(\mathbf{w}_i) - f^*)^2}{\norm{\mathbf{g}_i}_2^2}
+      + \frac{(f(\mathbf{w}_i) - f^*)^2}{\norm{\mathbf{g}_i}_2^2}
+= \norm{\mathbf{w}_i - \mathbf{w}^*}_2^2
+  - \frac{(f(\mathbf{w}_i) - f^*)^2}{\norm{\mathbf{g}_i}_2^2}.
 \label{eq:proof_perstep_exact}
 \end{align}
-Using the bound $\norm{\mathbf{g}_i} \leq L$:
+Using the bound $\norm{\mathbf{g}_i}_2 \leq L$:
 \begin{equation}
 \label{eq:proof_perstep}
-\norm{\mathbf{w}_{i+1} - \mathbf{w}^*}^2
-\leq \norm{\mathbf{w}_i - \mathbf{w}^*}^2
+\norm{\mathbf{w}_{i+1} - \mathbf{w}^*}_2^2
+\leq \norm{\mathbf{w}_i - \mathbf{w}^*}_2^2
      - \frac{(f(\mathbf{w}_i) - f^*)^2}{L^2}.
 \end{equation}
 
@@ -245,32 +245,37 @@ Using the bound $\norm{\mathbf{g}_i} \leq L$:
 Summing \eqref{eq:proof_perstep} for $i = 0, 1, \ldots, k-1$, the squared-distance terms telescope:
 \[
 \frac{1}{L^2}\sum_{i=0}^{k-1}(f(\mathbf{w}_i) - f^*)^2
-\leq \norm{\mathbf{w}_0 - \mathbf{w}^*}^2 - \norm{\mathbf{w}_k - \mathbf{w}^*}^2
-\leq \norm{\mathbf{w}_0 - \mathbf{w}^*}^2.
+\leq \norm{\mathbf{w}_0 - \mathbf{w}^*}_2^2 - \norm{\mathbf{w}_k - \mathbf{w}^*}_2^2
+\leq \norm{\mathbf{w}_0 - \mathbf{w}^*}_2^2.
 \]
 Let $\bar{f}_k = \min_{h \leq k} f(\mathbf{w}_h)$ be the record value. Since $f(\mathbf{w}_i) \geq \bar{f}_k$ for every $i \leq k$, each summand satisfies $(f(\mathbf{w}_i) - f^*)^2 \geq (\bar{f}_k - f^*)^2$, giving:
 \[
 \frac{k\,(\bar{f}_k - f^*)^2}{L^2}
 \leq \sum_{i=0}^{k-1}\frac{(f(\mathbf{w}_i) - f^*)^2}{L^2}
-\leq \norm{\mathbf{w}_0 - \mathbf{w}^*}^2.
+\leq \norm{\mathbf{w}_0 - \mathbf{w}^*}_2^2.
 \]
 Rearranging:
 \begin{equation}
 \label{eq:proof_rate}
 \bar{f}_k - f^*
-\leq \frac{L\,\norm{\mathbf{w}_0 - \mathbf{w}^*}}{\sqrt{k}}.
+\leq \frac{L\,\norm{\mathbf{w}_0 - \mathbf{w}^*}_2}{\sqrt{k}}.
 \end{equation}
-To achieve $\bar{f}_k - f^* \leq \varepsilon$ it suffices to run $k \geq L^2\norm{\mathbf{w}_0 - \mathbf{w}^*}^2/\varepsilon^2$ iterations, establishing the $O(L^2/\varepsilon^2)$ bound.
+To achieve $\bar{f}_k - f^* \leq \varepsilon$ it suffices to run $k \geq L^2\norm{\mathbf{w}_0 - \mathbf{w}^*}_2^2/\varepsilon^2$ iterations, establishing the $O(L^2/\varepsilon^2)$ bound.
 
 \medskip
 \noindent\textbf{Extension to deflected directions ($\gamma_i < 1$, $\beta_i \leq \gamma_i$).}
-When the update direction $\mathbf{d}_i = \gamma_i\,\mathbf{g}_i + (1-\gamma_i)\,\mathbf{d}_{i-1}$ is not a subgradient,
-the inner product $\inner{\mathbf{d}_i}{\mathbf{w}_i - \mathbf{w}^*}$ cannot be directly bounded below by $f(\mathbf{w}_i) - f^*$
-via the subgradient inequality.
-The complete convergence analysis for the stepsize-restricted deflected case
-$\alpha_i = \beta_i(f(\mathbf{w}_i) - f^*)/\norm{\mathbf{d}_i}^2$ with $\beta_i \leq \gamma_i$
-is carried out in \cite[Theorem~3.2]{dantonio2009deflected}.
-The key mechanism is that the constraint $\beta_i \leq \gamma_i$ limits the step length relative to the weight placed on the subgradient component, ensuring a per-step decrease analogous to \eqref{eq:proof_perstep} with $\norm{\mathbf{d}_i}$ in place of $\norm{\mathbf{g}_i}$. The same telescoping argument then yields the $O(L^2/\varepsilon^2)$ bound, with $L$ now a uniform bound on $\norm{\mathbf{g}_i}$ (which also bounds $\norm{\mathbf{d}_i}$ since $\mathbf{d}_i$ is a convex combination of past and present subgradients).
+When $\mathbf{d}_i = \gamma_i\,\mathbf{g}_i + (1-\gamma_i)\,\mathbf{d}_{i-1}$ is not a subgradient,
+the inner product $\inner{\mathbf{d}_i}{\mathbf{w}_i - \mathbf{w}^*}$ cannot be bounded below by $f(\mathbf{w}_i) - f^*$
+via the subgradient inequality alone.
+The key step — establishing that the constraint $\beta_i \leq \gamma_i$ still guarantees a per-step decrease of the form
+\begin{equation}
+\label{eq:proof_perstep_deflected}
+\norm{\mathbf{w}_{i+1} - \mathbf{w}^*}_2^2
+\leq \norm{\mathbf{w}_i - \mathbf{w}^*}_2^2
+     - \frac{(f(\mathbf{w}_i)-f^*)^2}{\norm{\mathbf{d}_i}_2^2}
+\end{equation}
+— does not follow from the subgradient inequality and is the content of \cite[Theorem~3.2]{dantonio2009deflected}.
+Under this guarantee, the same telescoping argument as in Steps~2--3 (with $\norm{\mathbf{d}_i}_2$ in place of $\norm{\mathbf{g}_i}_2$) directly yields the $O(L^2/\varepsilon^2)$ bound. Since $\mathbf{d}_i$ is a convex combination of past subgradients, $\norm{\mathbf{d}_i}_2 \leq \norm{\mathbf{g}_i}_2 \leq L$, so the same constant $L$ applies.
 
 \medskip
 \noindent\textbf{Role of the target-level mechanism.}
@@ -278,7 +283,7 @@ Since $f^*$ is unknown, Algorithm~\ref{alg:dsm} replaces it with the target leve
 
 \medskip
 \noindent\textbf{Part~1: $\bar{f}_i \to f^*$.}
-From \eqref{eq:proof_rate}, $\bar{f}_k - f^* \leq L\norm{\mathbf{w}_0 - \mathbf{w}^*}/\sqrt{k} \to 0$ as $k \to \infty$. Since $\bar{f}_k \geq f^*$ by definition, we conclude $\bar{f}_k \to f^*$.
+From \eqref{eq:proof_rate}, $\bar{f}_k - f^* \leq L\norm{\mathbf{w}_0 - \mathbf{w}^*}_2/\sqrt{k} \to 0$ as $k \to \infty$. Since $\bar{f}_k \geq f^*$ by definition, we conclude $\bar{f}_k \to f^*$.
 \end{proof}
 
 \paragraph{Verification of theorem assumptions for ELM LASSO.}
@@ -292,7 +297,7 @@ We assume $\mathbf{X}$ has full column rank, as commonly observed in ELM practic
 
 \item \textbf{Bounded subgradients for ELM LASSO.}
 
-The $\ell_1$ component has $\norm{\lambda_{\text{LASSO}} \mathbf{s}} \leq \lambda_{\text{LASSO}}\sqrt{H}$ (since each $|s_i| \leq 1$). The smooth component $\mathbf{X}^T(\mathbf{X}\mathbf{w}-\mathbf{y})$ grows unboundedly as $\norm{\mathbf{w}} \to \infty$, so $f$ is not globally Lipschitz on $\mathbb{R}^H$.
+The $\ell_1$ component has $\norm{\lambda_{\text{LASSO}} \mathbf{s}}_2 \leq \lambda_{\text{LASSO}}\sqrt{H}$ (since each $|s_i| \leq 1$). The smooth component $\mathbf{X}^T(\mathbf{X}\mathbf{w}-\mathbf{y})$ grows unboundedly as $\norm{\mathbf{w}} \to \infty$, so $f$ is not globally Lipschitz on $\mathbb{R}^H$.
 
 However, $f$ is coercive ($f(\mathbf{w}) \to \infty$ as $\|\mathbf{w}\| \to \infty$), so every sublevel set $S_c = \{\mathbf{w} : f(\mathbf{w}) \le c\}$ is compact. Subgradient methods do not guarantee monotone decrease of $f(\mathbf{w}_i)$, so individual iterates may temporarily leave $S_{f(\mathbf{w}_0)}$; what stays inside is the best iterate, since $\bar{f}_i = \min_{h \le i} f(\mathbf{w}_h) \le f(\mathbf{w}_0)$. In practice the target-level mechanism keeps the steps bounded: the numerator $f(\mathbf{w}_i) - (f_{\mathrm{ref}} - \delta)$ stays of the same order of magnitude as $f(\mathbf{w}_i) - f^*$, so the iterates do not drift far from $\mathbf{w}_{\mathrm{best}}$ and remain inside an enlarged compact set $S_{c_0}$ for some $c_0 \ge f(\mathbf{w}_0)$ depending on the problem data. By Lipschitz continuity of $f$ on this compact set \cite{lipschitz-continuity-frangioni}, all subgradients encountered by the algorithm are uniformly bounded by some $L$ depending on the problem data and the initial point.
 
