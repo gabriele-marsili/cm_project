@@ -61,8 +61,47 @@ Since the Polyak stepsize has denominator $\norm{\mathbf{d}_i}^2$, minimizing th
 \gamma^* = \frac{\norm{\mathbf{d}_{i-1}}^2 - \inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}}{\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}^2}, \quad \gamma_i = \min(1,\max(0,\gamma^*)).
 \end{equation}
 
-\paragraph{Derivation and interpretation.}\mbox{} \\
-The minimization problem in \eqref{eq:gamma_opt} is a quadratic function in $\gamma$. Expanding $\norm{\gamma\, \mathbf{g}_i + (1-\gamma)\, \mathbf{d}_{i-1}}^2$ yields a parabola in $\gamma$; setting its derivative to zero and solving gives \eqref{eq:gamma_star}. The denominator $\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}^2$ measures the Euclidean distance between current and previous directions: if they are very different, the denominator is large, making $\gamma^*$ smaller and emphasizing memory $\mathbf{d}_{i-1}$. The numerator $\norm{\mathbf{d}_{i-1}}^2 - \inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}$ captures alignment: when $\mathbf{g}_i$ and $\mathbf{d}_{i-1}$ point in similar directions, this term is small, again reducing $\gamma^*$. Conversely, when $\mathbf{g}_i$ opposes $\mathbf{d}_{i-1}$ (poor alignment), we reduce reliance on the current gradient, dampening oscillations. The clipping $\gamma_i = \min(1,\max(0,\gamma^*))$ ensures $\gamma_i \in [0,1]$.
+\paragraph{Derivation of $\gamma^*$.}\mbox{} \\
+We solve the unconstrained version of \eqref{eq:gamma_opt} over $\gamma \in \mathbb{R}$ and then project onto $[0,1]$.
+Define $h(\gamma) := \norm{\gamma\,\mathbf{g}_i + (1-\gamma)\,\mathbf{d}_{i-1}}^2$.
+Expanding by bilinearity of the inner product:
+\begin{align}
+h(\gamma)
+&= \gamma^2\norm{\mathbf{g}_i}^2
+  + 2\gamma(1-\gamma)\inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}
+  + (1-\gamma)^2\norm{\mathbf{d}_{i-1}}^2 \notag\\
+&= \gamma^2\bigl(\norm{\mathbf{g}_i}^2
+                - 2\inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}
+                + \norm{\mathbf{d}_{i-1}}^2\bigr)
+  + 2\gamma\bigl(\inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}
+                - \norm{\mathbf{d}_{i-1}}^2\bigr)
+  + \norm{\mathbf{d}_{i-1}}^2. \label{eq:gamma_expand}
+\end{align}
+Recognising the first factor as $\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}^2$:
+\begin{equation}
+h(\gamma)
+= \norm{\mathbf{g}_i - \mathbf{d}_{i-1}}^2\,\gamma^2
+  + 2\bigl(\inner{\mathbf{g}_i}{\mathbf{d}_{i-1}} - \norm{\mathbf{d}_{i-1}}^2\bigr)\gamma
+  + \norm{\mathbf{d}_{i-1}}^2.
+\label{eq:gamma_parabola}
+\end{equation}
+
+\textbf{Case $\mathbf{g}_i = \mathbf{d}_{i-1}$:} the leading coefficient $\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}^2 = 0$, so $h(\gamma) = \norm{\mathbf{d}_{i-1}}^2$ is constant on $[0,1]$; every $\gamma$ attains the minimum and we set $\gamma_i = 1$ by convention.
+
+\textbf{Case $\mathbf{g}_i \neq \mathbf{d}_{i-1}$:} $h$ is a strictly convex parabola in $\gamma$ (positive leading coefficient). Its unique unconstrained minimizer satisfies $h'(\gamma^*) = 0$:
+\[
+h'(\gamma)
+= 2\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}^2\,\gamma
+  + 2\bigl(\inner{\mathbf{g}_i}{\mathbf{d}_{i-1}} - \norm{\mathbf{d}_{i-1}}^2\bigr) = 0
+\implies
+\gamma^* = \frac{\norm{\mathbf{d}_{i-1}}^2 - \inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}}
+               {\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}^2},
+\]
+which is exactly \eqref{eq:gamma_star}.
+The constrained minimum over $[0,1]$ is $\gamma_i = \min(1,\max(0,\gamma^*))$: since the parabola opens upward, if $\gamma^* < 0$ then $h$ is increasing on $[0,1]$ and the minimum is attained at $\gamma = 0$; if $\gamma^* > 1$ then $h$ is decreasing on $[0,1]$ and the minimum is at $\gamma = 1$; if $\gamma^* \in [0,1]$ the interior solution applies.
+
+\paragraph{Interpretation.}\mbox{} \\
+The denominator $\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}^2$ measures the squared distance between the current subgradient and the previous direction: the larger it is, the more $\gamma^*$ shrinks and the more the deflected direction borrows from memory $\mathbf{d}_{i-1}$. The numerator $\norm{\mathbf{d}_{i-1}}^2 - \inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}$ captures alignment: it is small (and $\gamma^*$ small) when $\mathbf{g}_i$ and $\mathbf{d}_{i-1}$ are well aligned, and large when they oppose each other. In the zig-zag scenario $\mathbf{g}_i \approx -\mathbf{d}_{i-1}$ with comparable magnitudes $\norm{\mathbf{g}_i} \approx \norm{\mathbf{d}_{i-1}}$, the numerator is approximately $\norm{\mathbf{d}_{i-1}}^2 + \norm{\mathbf{d}_{i-1}}^2 = 2\norm{\mathbf{d}_{i-1}}^2$ while the denominator is approximately $\norm{2\mathbf{d}_{i-1}}^2 = 4\norm{\mathbf{d}_{i-1}}^2$, giving $\gamma^* \approx 1/2$: $\mathbf{d}_i$ splits evenly between the two conflicting directions, halving the oscillation.
 
 % ------------------------------------------------------------------
 \section{The target-level mechanism}
@@ -76,7 +115,7 @@ The fundamental relationship for subgradient methods \cite{fundamental-relations
 \end{equation}
 The ideal stepsize $\alpha_i^* = (f(\mathbf{w}_i)-f^*)/\norm{\mathbf{g}_i}^2$ \cite{polyak-stepsize} maximizes guaranteed reduction but requires $f^*$.
 
-For ELM LASSO we replace $f^*$ with the target level $f_{\mathrm{ref}} - \delta$ \cite{target-level-mechanism}, where $f_{\mathrm{ref}}$ is the best function value found so far and $\delta > 0$ is the expected improvement; this is the same expression used in the Polyak-step numerator of Algorithm~\ref{alg:dsm}. When the target is accurate, the algorithm achieves substantial progress; when it is too optimistic (i.e.\ $f_{\mathrm{ref}} - \delta < f^*$), the Polyak numerator $f(\mathbf{w}_i) - (f_{\mathrm{ref}} - \delta)$ becomes negligible, forcing vanishingly small steps and causing stagnation. We detect stalling by tracking the accumulated displacement $r = \sum \alpha_i \norm{\mathbf{d}_i}$: if $r > R$ (the patience threshold) without significant improvement, we contract $\delta \gets \delta \cdot \rho$ with $\rho < 1$ and retry.
+For ELM LASSO we replace $f^*$ with the target level $f_{\mathrm{ref}} - \delta$ \cite{target-level-mechanism}, where $f_{\mathrm{ref}}$ is the best function value found so far and $\delta > 0$ is the expected improvement; this is the same expression used in the Polyak-step numerator of Algorithm~\ref{alg:dsm}. When the target is accurate (i.e.\ $f_{\mathrm{ref}} - \delta \approx f^*$) the algorithm tracks the ideal Polyak step and achieves substantial progress; when the target is too optimistic (i.e.\ $f_{\mathrm{ref}} - \delta < f^*$), the numerator $f(\mathbf{w}_i) - (f_{\mathrm{ref}} - \delta) = (f(\mathbf{w}_i) - f^*) + (f^* - f_{\mathrm{ref}} + \delta)$ \emph{overestimates} $f(\mathbf{w}_i) - f^*$ and the resulting steps are larger than the ideal Polyak ones; the real failure mode is that the improvement condition $f(\mathbf{w}_{i+1}) \le f_{\mathrm{ref}} - \delta/2$ used by Algorithm~\ref{alg:dsm} can never be satisfied (since $f(\mathbf{w}_{i+1}) \ge f^* > f_{\mathrm{ref}} - \delta > f_{\mathrm{ref}} - \delta/2$), so no progress is registered and the iterates stagnate. We detect stalling by tracking the accumulated displacement $r = \sum \alpha_i \norm{\mathbf{d}_i}$: if $r > R$ (the patience threshold) without significant improvement, we contract $\delta \gets \delta \cdot \rho$ with $\rho < 1$ and retry. Repeated contractions drive $\delta \to 0$, so $f_{\mathrm{ref}} - \delta \to f_{\mathrm{ref}} \ge f^*$ and the target is restored above $f^*$.
 
 % ------------------------------------------------------------------
 \section{The complete algorithm}
@@ -155,6 +194,93 @@ Let $f : \mathbb{R}^n \to \mathbb{R}$ be convex. Let $\{\mathbf{w}_i\}$ be the s
 \end{enumerate}
 \end{theorem}
 
+\begin{proof}
+We establish Part~2 first; Part~1 follows as an immediate corollary.
+
+\medskip
+\noindent\textbf{Part~2: $O(L^2/\varepsilon^2)$ complexity.}
+
+\emph{Step~1 — Fundamental inequality.}
+For the plain subgradient step $\mathbf{w}_{i+1} = \mathbf{w}_i - \alpha_i\,\mathbf{g}_i$ (temporarily set $\gamma_i = 1$, $\mathbf{d}_i = \mathbf{g}_i$), expanding the squared distance to $\mathbf{w}^*$ gives \cite{fundamental-relationships-sg}:
+\begin{equation}
+\label{eq:proof_fundamental}
+\norm{\mathbf{w}_{i+1} - \mathbf{w}^*}^2
+= \norm{\mathbf{w}_i - \mathbf{w}^*}^2
+  - 2\alpha_i\inner{\mathbf{g}_i}{\mathbf{w}_i - \mathbf{w}^*}
+  + \alpha_i^2\norm{\mathbf{g}_i}^2.
+\end{equation}
+Since $\mathbf{g}_i \in \partial f(\mathbf{w}_i)$ and $f$ is convex, the subgradient inequality yields
+$\inner{\mathbf{g}_i}{\mathbf{w}_i - \mathbf{w}^*} \geq f(\mathbf{w}_i) - f(\mathbf{w}^*) = f(\mathbf{w}_i) - f^*$.
+Substituting into \eqref{eq:proof_fundamental}:
+\[
+\norm{\mathbf{w}_{i+1} - \mathbf{w}^*}^2
+\leq \norm{\mathbf{w}_i - \mathbf{w}^*}^2
+     - 2\alpha_i(f(\mathbf{w}_i) - f^*)
+     + \alpha_i^2\norm{\mathbf{g}_i}^2.
+\]
+
+\emph{Step~2 — Polyak step.}
+Choose the Polyak stepsize \cite{polyak-stepsize}
+$\alpha_i = (f(\mathbf{w}_i) - f^*)/\norm{\mathbf{g}_i}^2$,
+which is the value $\alpha$ that minimises the right-hand side above (setting its derivative in $\alpha$ to zero).
+Substituting:
+\begin{align}
+\norm{\mathbf{w}_{i+1} - \mathbf{w}^*}^2
+&\leq \norm{\mathbf{w}_i - \mathbf{w}^*}^2
+      - \frac{2(f(\mathbf{w}_i) - f^*)^2}{\norm{\mathbf{g}_i}^2}
+      + \frac{(f(\mathbf{w}_i) - f^*)^2}{\norm{\mathbf{g}_i}^2}
+= \norm{\mathbf{w}_i - \mathbf{w}^*}^2
+  - \frac{(f(\mathbf{w}_i) - f^*)^2}{\norm{\mathbf{g}_i}^2}.
+\label{eq:proof_perstep_exact}
+\end{align}
+Using the bound $\norm{\mathbf{g}_i} \leq L$:
+\begin{equation}
+\label{eq:proof_perstep}
+\norm{\mathbf{w}_{i+1} - \mathbf{w}^*}^2
+\leq \norm{\mathbf{w}_i - \mathbf{w}^*}^2
+     - \frac{(f(\mathbf{w}_i) - f^*)^2}{L^2}.
+\end{equation}
+
+\emph{Step~3 — Telescoping and record-value bound.}
+Summing \eqref{eq:proof_perstep} for $i = 0, 1, \ldots, k-1$, the squared-distance terms telescope:
+\[
+\frac{1}{L^2}\sum_{i=0}^{k-1}(f(\mathbf{w}_i) - f^*)^2
+\leq \norm{\mathbf{w}_0 - \mathbf{w}^*}^2 - \norm{\mathbf{w}_k - \mathbf{w}^*}^2
+\leq \norm{\mathbf{w}_0 - \mathbf{w}^*}^2.
+\]
+Let $\bar{f}_k = \min_{h \leq k} f(\mathbf{w}_h)$ be the record value. Since $f(\mathbf{w}_i) \geq \bar{f}_k$ for every $i \leq k$, each summand satisfies $(f(\mathbf{w}_i) - f^*)^2 \geq (\bar{f}_k - f^*)^2$, giving:
+\[
+\frac{k\,(\bar{f}_k - f^*)^2}{L^2}
+\leq \sum_{i=0}^{k-1}\frac{(f(\mathbf{w}_i) - f^*)^2}{L^2}
+\leq \norm{\mathbf{w}_0 - \mathbf{w}^*}^2.
+\]
+Rearranging:
+\begin{equation}
+\label{eq:proof_rate}
+\bar{f}_k - f^*
+\leq \frac{L\,\norm{\mathbf{w}_0 - \mathbf{w}^*}}{\sqrt{k}}.
+\end{equation}
+To achieve $\bar{f}_k - f^* \leq \varepsilon$ it suffices to run $k \geq L^2\norm{\mathbf{w}_0 - \mathbf{w}^*}^2/\varepsilon^2$ iterations, establishing the $O(L^2/\varepsilon^2)$ bound.
+
+\medskip
+\noindent\textbf{Extension to deflected directions ($\gamma_i < 1$, $\beta_i \leq \gamma_i$).}
+When the update direction $\mathbf{d}_i = \gamma_i\,\mathbf{g}_i + (1-\gamma_i)\,\mathbf{d}_{i-1}$ is not a subgradient,
+the inner product $\inner{\mathbf{d}_i}{\mathbf{w}_i - \mathbf{w}^*}$ cannot be directly bounded below by $f(\mathbf{w}_i) - f^*$
+via the subgradient inequality.
+The complete convergence analysis for the stepsize-restricted deflected case
+$\alpha_i = \beta_i(f(\mathbf{w}_i) - f^*)/\norm{\mathbf{d}_i}^2$ with $\beta_i \leq \gamma_i$
+is carried out in \cite[Theorem~3.2]{dantonio2009deflected}.
+The key mechanism is that the constraint $\beta_i \leq \gamma_i$ limits the step length relative to the weight placed on the subgradient component, ensuring a per-step decrease analogous to \eqref{eq:proof_perstep} with $\norm{\mathbf{d}_i}$ in place of $\norm{\mathbf{g}_i}$. The same telescoping argument then yields the $O(L^2/\varepsilon^2)$ bound, with $L$ now a uniform bound on $\norm{\mathbf{g}_i}$ (which also bounds $\norm{\mathbf{d}_i}$ since $\mathbf{d}_i$ is a convex combination of past and present subgradients).
+
+\medskip
+\noindent\textbf{Role of the target-level mechanism.}
+Since $f^*$ is unknown, Algorithm~\ref{alg:dsm} replaces it with the target level $f_{\mathrm{ref}} - \delta$ \cite{target-level-mechanism}. When $f_{\mathrm{ref}} - \delta > f^*$ the Polyak numerator $f(\mathbf{w}_i) - (f_{\mathrm{ref}} - \delta)$ underestimates $f(\mathbf{w}_i) - f^*$, producing shorter steps. The contraction rule $\delta \gets \delta\rho$ (triggered when no sufficient progress is recorded over the patience window $R$) prevents the target from remaining forever below $f^*$: as $\delta \to 0$ the reference $f_{\mathrm{ref}} - \delta$ converges to $f_{\mathrm{ref}} \geq f^*$, so the estimate eventually tracks $f^*$ from above and the bound~\eqref{eq:proof_rate} holds asymptotically.
+
+\medskip
+\noindent\textbf{Part~1: $\bar{f}_i \to f^*$.}
+From \eqref{eq:proof_rate}, $\bar{f}_k - f^* \leq L\norm{\mathbf{w}_0 - \mathbf{w}^*}/\sqrt{k} \to 0$ as $k \to \infty$. Since $\bar{f}_k \geq f^*$ by definition, we conclude $\bar{f}_k \to f^*$.
+\end{proof}
+
 \paragraph{Verification of theorem assumptions for ELM LASSO.}
 
 \begin{enumerate}
@@ -168,7 +294,7 @@ We assume $\mathbf{X}$ has full column rank, as commonly observed in ELM practic
 
 The $\ell_1$ component has $\norm{\lambda_{\text{LASSO}} \mathbf{s}} \leq \lambda_{\text{LASSO}}\sqrt{H}$ (since each $|s_i| \leq 1$). The smooth component $\mathbf{X}^T(\mathbf{X}\mathbf{w}-\mathbf{y})$ grows unboundedly as $\norm{\mathbf{w}} \to \infty$, so $f$ is not globally Lipschitz on $\mathbb{R}^H$.
 
-However, the target-level mechanism prevents arbitrarily large steps: since $f$ is coercive (i.e., $f(\mathbf{w}) \to \infty$ as $\|\mathbf{w}\| \to \infty$) and $\bar{f}_i$ is non-increasing, all iterates lie in the compact sublevel set $\{\mathbf{w} : f(\mathbf{w}) \leq f(\mathbf{w}_0)\}$. By Lipschitz continuity on this compact set \cite{lipschitz-continuity-frangioni}, all subgradients are uniformly bounded by some $L$ depending on the problem data and initial point.
+However, $f$ is coercive ($f(\mathbf{w}) \to \infty$ as $\|\mathbf{w}\| \to \infty$), so every sublevel set $S_c = \{\mathbf{w} : f(\mathbf{w}) \le c\}$ is compact. Subgradient methods do not guarantee monotone decrease of $f(\mathbf{w}_i)$, so individual iterates may temporarily leave $S_{f(\mathbf{w}_0)}$; what stays inside is the best iterate, since $\bar{f}_i = \min_{h \le i} f(\mathbf{w}_h) \le f(\mathbf{w}_0)$. In practice the target-level mechanism keeps the steps bounded: the numerator $f(\mathbf{w}_i) - (f_{\mathrm{ref}} - \delta)$ stays of the same order of magnitude as $f(\mathbf{w}_i) - f^*$, so the iterates do not drift far from $\mathbf{w}_{\mathrm{best}}$ and remain inside an enlarged compact set $S_{c_0}$ for some $c_0 \ge f(\mathbf{w}_0)$ depending on the problem data. By Lipschitz continuity of $f$ on this compact set \cite{lipschitz-continuity-frangioni}, all subgradients encountered by the algorithm are uniformly bounded by some $L$ depending on the problem data and the initial point.
 
 \end{enumerate}
 
