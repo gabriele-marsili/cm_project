@@ -12,9 +12,12 @@ Metrics:
 
 import sys
 import os
+import warnings
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+warnings.filterwarnings('ignore', category=RuntimeWarning)
 import numpy as np
+np.seterr(all='ignore')
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -54,20 +57,23 @@ def run():
     print("=" * 60)
 
     # ------------------------------------------------------------------
-    # Single problem: detailed comparison
+    # Single problem: detailed comparison.
+    # Use a moderate-size problem (n=50, m=200) where DSM has a realistic
+    # chance to reach moderate accuracy in 30k iterations — its sublinear
+    # rate makes finer accuracy infeasible, which is itself a finding.
     # ------------------------------------------------------------------
-    n, m = 100, 400
+    n, m = 50, 200
     X, y, _, f_star, w_star = make_lasso_problem(
         n=n, m=m, sparsity=0.1, noise_std=NOISE, lam=LAM, random_state=SEED)
     print(f"\nDetailed comparison: n={n}, m={m}, f*={f_star:.6f}")
 
-    res_irls = irls(X, y, LAM, eps_thr=1e-8, eps_stop=1e-10,
+    res_irls = irls(X, y, LAM, eps_thr=1e-8, eps_stop=1e-12,
                     k_max=200, solver='cholesky', f_star=f_star)
-    res_dsm  = deflected_subgradient(X, y, LAM, i_max=10000, beta=1.0,
+    res_dsm  = deflected_subgradient(X, y, LAM, i_max=30000, beta=1.0,
                                      delta0=0.1*f_star, rho=0.95,
                                      f_star=f_star)
 
-    epsilons = [1e-2, 1e-3, 1e-4, 1e-6]
+    epsilons = [1e-1, 1e-2, 1e-3, 1e-4, 1e-6]
     print(f"\n{'epsilon':>10}  {'IRLS iters':>12}  {'IRLS time':>12}  "
           f"{'DSM iters':>12}  {'DSM time':>12}")
     rows = []

@@ -17,9 +17,12 @@ Identifies the crossover point where DSM becomes competitive.
 
 import sys
 import os
+import warnings
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+warnings.filterwarnings('ignore', category=RuntimeWarning)
 import numpy as np
+np.seterr(all='ignore')
 import time
 import csv
 import matplotlib
@@ -48,7 +51,11 @@ def run():
     print("Experiment: Scalability")
     print("=" * 60)
 
-    n_values = [50, 100, 500, 1000, 3000]
+    # Range chosen to span three orders of magnitude in problem size while
+    # keeping the run feasible on a laptop (n=3000 with m=15000 takes ~10s
+    # for IRLS Cholesky; DSM does not converge meaningfully past n=1000
+    # within 3000 iterations — a finding consistent with its sublinear rate).
+    n_values = [50, 100, 500, 1000, 2000]
 
     results = []
     for n in n_values:

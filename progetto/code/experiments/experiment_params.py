@@ -18,9 +18,12 @@ Also studies the effect of lambda on sparsity and convergence.
 
 import sys
 import os
+import warnings
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+warnings.filterwarnings('ignore', category=RuntimeWarning)
 import numpy as np
+np.seterr(all='ignore')
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -126,19 +129,30 @@ def run():
     axes[0].grid(True, which='both', alpha=0.3)
 
     # ==================================================================
-    # 4. DSM: effect of rho
+    # 4. DSM: effect of rho.
+    # We deliberately start from w_0 = 0 (NOT the OLS warm start used in
+    # production) so that the patience mechanism is actively triggered
+    # and the contraction factor rho has observable effect on the
+    # trajectory.  With the OLS warm start the algorithm starts very
+    # close to the optimum and rho would never play a measurable role.
     # ==================================================================
-    print("\n--- DSM: varying rho ---")
-    rho_vals = [0.7, 0.8, 0.9, 0.95, 0.99]
+    print("\n--- DSM: varying rho (cold start w0=0 to expose the effect) ---")
+    rho_vals = [0.5, 0.7, 0.9, 0.95, 0.99]
     colors4  = plt.cm.Purples(np.linspace(0.3, 1.0, len(rho_vals)))
 
+    n_dsm = X.shape[1]
     for rho, color in zip(rho_vals, colors4):
-        res = deflected_subgradient(X, y, LAM, i_max=5000, beta=1.0,
-                                    delta0=0.1*f_star, rho=rho, f_star=f_star)
+        res = deflected_subgradient(
+            X, y, LAM, w0=np.zeros(n_dsm),
+            i_max=10000, beta=1.0,
+            delta0=0.1*f_star, rho=rho, R=200.0, f_star=f_star,
+        )
         gaps = np.maximum(res['gaps'], 1e-16)
-        label = f'$\\rho = {rho}$'
+        n_contractions = int(np.sum(np.diff(res['delta_hist']) < 0))
+        label = f'$\\rho = {rho}$  ({n_contractions} contr.)'
         axes[1].semilogy(gaps, color=color, lw=1.0, label=label)
-        print(f"  rho={rho}: final gap={gaps[-1]:.2e}")
+        print(f"  rho={rho}: final gap={gaps[-1]:.2e}, "
+              f"contractions={n_contractions}")
 
     axes[1].set_xlabel('Iteration $i$')
     axes[1].set_ylabel(r'$\bar{f}^i - f^*$')

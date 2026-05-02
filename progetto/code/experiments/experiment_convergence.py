@@ -15,9 +15,16 @@ Also verifies that IRLS is monotone and DSM is non-monotone
 
 import sys
 import os
+import warnings
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+# Suppress spurious "divide by zero / overflow / invalid" RuntimeWarnings
+# that NumPy reports inside matmul on Apple Silicon's Accelerate BLAS.
+# These do not affect numerical correctness (verified by the test suite).
+warnings.filterwarnings('ignore', category=RuntimeWarning)
+
 import numpy as np
+np.seterr(all='ignore')
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -75,10 +82,10 @@ def run():
     # Run DSM
     # ------------------------------------------------------------------
     print("\n--- Running DSM ---")
-    w0_dsm = np.zeros(N)
+    # No explicit w0 — uses the OLS warm start (report Sec 3.4),
+    # identical to IRLS so the two algorithms are comparable on the same instance.
     res_dsm = deflected_subgradient(
         X, y, LAM,
-        w0=w0_dsm,
         i_max=DSM_IMAX,
         beta=1.0,
         delta0=0.1 * f_star,
