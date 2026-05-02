@@ -1,2 +1,88 @@
 \chapter{Conclusions}
 \label{chap:conclusions}
+
+We solved the ELM LASSO problem
+\begin{equation*}
+    \min_{\mathbf{w}\in\mathbb{R}^{H}}\;
+    f(\mathbf{w}) = \tfrac{1}{2}\,\|\mathbf{X}\mathbf{w}-\mathbf{y}\|_{2}^{2}
+    + \lambda_\text{LASSO}\,\|\mathbf{w}\|_{1}
+\end{equation*}
+with two algorithms whose convergence properties sit at opposite ends
+of the nonsmooth-optimisation spectrum. IRLS reformulates the
+non-differentiable $\ell_{1}$ penalty as a sequence of smooth quadratic
+surrogates and inherits the linear rate of the MM framework; SGPTL
+keeps the non-smoothness explicit and pays for it with the
+$\Omega(L^{2}/\varepsilon^{2})$ lower bound that limits any first-order
+method on convex non-differentiable functions.
+
+\paragraph{What the experiments confirmed.}
+On synthetic ELM-style instances the empirical behaviour tracks the
+theory of Chapter~\ref{chap:comparison} closely. IRLS produced a
+straight line on semilog gap-versus-iteration plots, monotone
+non-increasing $f$ at every seed we tried, and a sparse iterate at
+convergence with the support recovered to within two percentage points
+of the ground truth. SGPTL produced an oscillating
+$f(\mathbf{w}_{i})$ stabilised by a monotone record value
+$\bar{f}^{i}$, a sublinear gap curve that flattens as the iterations
+accumulate, and an iterate with zero exact zeros, in line with the
+absence of any explicit thresholding mechanism. The $O(MH^{2})$
+pre-computation cost of IRLS was visible on the scalability plot as a
+clean cubic slope at $M=5H$, and the four-orders-of-magnitude gap
+between the two methods at the same iteration budget ($1.5\cdot
+10^{-6}$ for IRLS at iteration $100$ versus $3.9\cdot 10^{-2}$ for
+SGPTL at iteration $8000$) is exactly what the
+$O(\log\varepsilon^{-1})$ versus $O(\varepsilon^{-2})$ contrast
+predicts.
+
+\paragraph{Where the theoretical bounds proved conservative.}
+A few observations did not have a clean theoretical counterpart in the
+report and are worth recording. The IRLS final gap saturated at around
+$10^{-10}$ for $\varepsilon_\text{thr}=10^{-12}$, but pushing
+$\varepsilon_\text{thr}$ further did not improve the gap further: the
+linear solver hits floating-point limits before the safety mechanism
+does, so the ``smaller $\varepsilon_\text{thr}$ is always sharper''
+intuition has a hard floor. The SGPTL contraction factor $\rho$
+behaved as predicted in trajectory but had no observable effect on the
+final gap on our problems: once the patience mechanism is working, all
+$\rho\in[0.5,0.99]$ reached the same plateau within the iteration
+budget and only differed in how aggressively the target was contracted,
+which suggests the $O(L^{2}/\varepsilon^{2})$ bound is the binding
+constraint and $\rho$ is essentially a transient knob. Finally, the
+OLS warm start mandated by Section~\ref{sec:dsm_algorithm} placed
+SGPTL so close to the optimum on these instances that the patience
+mechanism was rarely exercised; we had to switch to a cold start to
+expose any sensitivity to $\rho$ at all.
+
+\paragraph{Recommendation for the ELM LASSO problem.}
+On the project's intended regime, $M\gg H$ with $\mathbf{W}_{1}$ fixed
+random and the output layer trained offline once, IRLS is the natural
+choice. It has a single numerical knob ($\varepsilon_\text{thr}$),
+delivers genuinely sparse iterates without post-processing, and reaches
+machine-precision accuracy in tens to a few hundred iterations on every
+problem size we tested. SGPTL becomes competitive only when $H^{2}\gg
+M$, i.e. when the hidden layer is wide and the training set is small
+enough that the $O(MH^{2})$ pre-computation cost of IRLS no longer
+amortises, or when the dense $H\times H$ matrix
+$\mathbf{X}^{\top}\mathbf{X}$ does not fit in memory. Neither regime
+applies to the project's setting; the moderate hidden-layer sizes
+accessible on a laptop ($H\le 2000$) all fall on the IRLS side of the
+crossover. SGPTL retains value as a sanity check (a different algorithm
+converging to the same $f^{*}$ within the achievable accuracy is a
+useful indication that the implementation is correct) and as a
+baseline to quantify what we gain from exploiting the structure of the
+LASSO problem through the MM smoothing rather than treating it as a
+generic non-smooth convex programme.
+
+\paragraph{Limitations and possible extensions.}
+We did not test the algorithms on real ELM datasets because the
+project's evaluation criterion is the optimisation gap, not the
+learning quality, and synthetic instances with known $\mathbf{w}^{*}$
+are the only setting where the gap is meaningful. We did not implement
+an accelerated subgradient variant (for example Nesterov smoothing of
+the $\ell_{1}$ term) that would close some of the rate gap with IRLS,
+since the project specification fixes SGPTL as Algorithm~A2. We also
+did not explore very ill-conditioned $\mathbf{X}$ where the IRLS
+linear rate would degrade and the per-iteration cost advantage of
+SGPTL would have more room to matter; column normalisation kept
+conditioning bounded across all our experiments, which is the regime
+our analysis covers.
