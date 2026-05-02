@@ -29,11 +29,14 @@ absence of any explicit thresholding mechanism. The $O(MH^{2})$
 pre-computation cost of IRLS was visible on the scalability plot as a
 clean cubic slope at $M=5H$, and the gap between the two methods at
 the same iteration budget ($1.5\cdot 10^{-6}$ for IRLS at iteration
-$100$ versus $4.6\cdot 10^{-4}$ for SGPTL at iteration $8000$) lines
-up with what the $O(\log\varepsilon^{-1})$ versus $O(\varepsilon^{-2})$
-contrast predicts: SGPTL needed roughly $3000\times$ the iteration
-count IRLS used to reach $\varepsilon=10^{-2}$, and another factor
-of $6\times$ to reach $10^{-3}$.
+$100$ versus $4.5\cdot 10^{-6}$ for SGPTL at iteration $8000$ on the
+convergence instance) lines up with the
+$O(\log\varepsilon^{-1})$ versus $O(\varepsilon^{-2})$ comparison.
+On the moderate problem of Section~\ref{sec:iters-to-eps} the gap
+SGPTL needed roughly $700\times$ the iteration count IRLS used to
+reach $\varepsilon=10^{-2}$ ($2126$ versus $3$), and another factor
+of $5\times$ to reach $10^{-3}$ ($10591$ versus $7$): the multiplier
+grows with accuracy as the rates predict.
 
 \paragraph{Where the theoretical bounds proved conservative.}
 A few observations did not have a clean theoretical counterpart in the

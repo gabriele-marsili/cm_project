@@ -1,148 +1,134 @@
 """
 experiment_scalability.py
 -------------------------
-Experiment 4b: Scalability study.
-
-Vary n (number of hidden neurons / features):
-  n in {50, 100, 500, 1000, 5000}  with m = 5n
-
-Measure:
-  - Total CPU time for IRLS (fixed eps_stop tolerance)
-  - Total CPU time for DSM (fixed iteration budget)
-  - Time per iteration for each
-  - Final gap achieved
-
-Identifies the crossover point where DSM becomes competitive.
+Scaling of total wall-clock time as the hidden-layer size H grows
+(M = 5H). Produces scalability.pdf and scalability.csv for Chapter 5.
 """
 
-import sys
-import os
-import warnings
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
-warnings.filterwarnings('ignore', category=RuntimeWarning)
-import numpy as np
-np.seterr(all='ignore')
-import time
 import csv
+import os
+import sys
+import time
+import warnings
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir))
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+import numpy as np
+np.seterr(all="ignore")
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
 from src import irls, deflected_subgradient, make_lasso_problem
-from src.lasso_utils import f_lasso
+from _plot_style import apply_style, style_axes, COLOR_IRLS, COLOR_DSM, COLOR_AUX
+apply_style()
 
-SEED    = 42
-LAM     = 0.1
-NOISE   = 0.05
-M_RATIO = 5          # m = M_RATIO * n
 
+SEED         = 42
+LAMBDA       = 0.10
+NOISE        = 0.05
+M_RATIO      = 5
 IRLS_KMAX    = 100
-IRLS_EPSSTOP = 1e-6
+IRLS_EPSSTOP = 1e-8
 DSM_IMAX     = 3000
 
-FIG_DIR = os.path.join(os.path.dirname(__file__), '..', 'results', 'figures')
-TAB_DIR = os.path.join(os.path.dirname(__file__), '..', 'results', 'tables')
+FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
+TAB_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "tables")
 os.makedirs(FIG_DIR, exist_ok=True)
 os.makedirs(TAB_DIR, exist_ok=True)
 
 
-def run():
+def run() -> None:
     print("=" * 60)
-    print("Experiment: Scalability")
+    print("Scalability experiment")
     print("=" * 60)
 
-    # Range chosen to span three orders of magnitude in problem size while
-    # keeping the run feasible on a laptop (n=3000 with m=15000 takes ~10s
-    # for IRLS Cholesky; DSM does not converge meaningfully past n=1000
-    # within 3000 iterations — a finding consistent with its sublinear rate).
-    n_values = [50, 100, 500, 1000, 2000]
-
-    results = []
-    for n in n_values:
-        m = M_RATIO * n
-        print(f"\nn={n:5d}, m={m:6d} ...", end=' ', flush=True)
+    H_values = [50, 100, 500, 1000, 2000]
+    rows = []
+    for H in H_values:
+        M = M_RATIO * H
+        print(f"\nH={H:5d}, M={M:6d} ...", end=" ", flush=True)
 
         X, y, _, f_star, _ = make_lasso_problem(
-            n=n, m=m, sparsity=0.1, noise_std=NOISE, lam=LAM,
-            random_state=SEED)
+            n=H, m=M, sparsity=0.1, noise_std=NOISE,
+            lam=LAMBDA, random_state=SEED,
+        )
 
-        # IRLS
         t0 = time.perf_counter()
-        res_i = irls(X, y, LAM, eps_thr=1e-8, eps_stop=IRLS_EPSSTOP,
-                     k_max=IRLS_KMAX, solver='cholesky', f_star=f_star)
-        t_irls = time.perf_counter() - t0
+        ri = irls(X, y, LAMBDA, eps_thr=1e-8, eps_stop=IRLS_EPSSTOP,
+                  k_max=IRLS_KMAX, solver="cholesky", f_star=f_star)
+        ti = time.perf_counter() - t0
 
-        # DSM
         t0 = time.perf_counter()
-        res_d = deflected_subgradient(X, y, LAM, i_max=DSM_IMAX, beta=1.0,
-                                      delta0=0.1*f_star, rho=0.95,
-                                      f_star=f_star)
-        t_dsm = time.perf_counter() - t0
+        rd = deflected_subgradient(X, y, LAMBDA, i_max=DSM_IMAX,
+                                   beta=1.0, delta0=0.1 * f_star, rho=0.9,
+                                   f_star=f_star)
+        td = time.perf_counter() - t0
 
-        gap_irls = res_i['gaps'][-1] if res_i['gaps'] else float('nan')
-        gap_dsm  = res_d['gaps'][-1] if res_d['gaps'] else float('nan')
-        iter_irls = res_i['n_iter']
-        iter_dsm  = res_d['n_iter']
-
-        print(f"IRLS {t_irls:.3f}s ({iter_irls} iter, gap={gap_irls:.1e})  |  "
-              f"DSM {t_dsm:.3f}s ({iter_dsm} iter, gap={gap_dsm:.1e})")
-
-        results.append({
-            'n': n, 'm': m,
-            't_irls': t_irls, 'iter_irls': iter_irls, 'gap_irls': gap_irls,
-            't_dsm':  t_dsm,  'iter_dsm':  iter_dsm,  'gap_dsm':  gap_dsm,
+        gi = ri["gaps"][-1] if ri["gaps"] else float("nan")
+        gd = rd["gaps"][-1] if rd["gaps"] else float("nan")
+        ki = ri["n_iter"]
+        kd = rd["n_iter"]
+        print(f"IRLS {ti:.3f}s ({ki} iter, gap={gi:.1e})  |  "
+              f"SGPTL {td:.3f}s ({kd} iter, gap={gd:.1e})")
+        rows.append({
+            "n": H, "m": M,
+            "t_irls": ti, "iter_irls": ki, "gap_irls": gi,
+            "t_dsm":  td, "iter_dsm":  kd, "gap_dsm":  gd,
         })
 
-    # ------------------------------------------------------------------
-    # Table
-    # ------------------------------------------------------------------
-    tab_path = os.path.join(TAB_DIR, 'scalability.csv')
-    with open(tab_path, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=results[0].keys())
-        writer.writeheader()
-        writer.writerows(results)
+    # --- table ---
+    tab_path = os.path.join(TAB_DIR, "scalability.csv")
+    with open(tab_path, "w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=rows[0].keys())
+        w.writeheader()
+        w.writerows(rows)
     print(f"\nSaved: {tab_path}")
 
-    # ------------------------------------------------------------------
-    # Plots
-    # ------------------------------------------------------------------
-    ns      = [r['n'] for r in results]
-    t_irls  = [r['t_irls'] for r in results]
-    t_dsm   = [r['t_dsm']  for r in results]
+    # --- plot ---
+    Hs    = np.array([r["n"] for r in rows], dtype=float)
+    t_irl = np.array([r["t_irls"] for r in rows])
+    t_dsm = np.array([r["t_dsm"]  for r in rows])
+    per_irl = t_irl / np.array([max(r["iter_irls"], 1) for r in rows])
+    per_dsm = t_dsm / np.array([max(r["iter_dsm"],  1) for r in rows])
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.2))
 
     ax = axes[0]
-    ax.loglog(ns, t_irls, 'b-o', label='IRLS')
-    ax.loglog(ns, t_dsm,  'r-s', label='DSM')
-    # Reference O(n^3) line
-    ref = [t_irls[0] * (n / ns[0])**3 for n in ns]
-    ax.loglog(ns, ref, 'b--', alpha=0.4, label='$O(n^3)$')
-    ax.set_xlabel('$n$ (features / hidden neurons)')
-    ax.set_ylabel('CPU time (s)')
-    ax.set_title('Scalability: total time')
-    ax.legend()
-    ax.grid(True, which='both', alpha=0.3)
+    ax.loglog(Hs, t_irl, color=COLOR_IRLS, marker="o", markersize=5,
+              linewidth=1.4, label="IRLS")
+    ax.loglog(Hs, t_dsm, color=COLOR_DSM,  marker="s", markersize=5,
+              linewidth=1.4, label="SGPTL")
+    ref_irl = t_irl[0] * (Hs / Hs[0]) ** 3
+    ref_dsm = t_dsm[0] * (Hs / Hs[0]) ** 2
+    ax.loglog(Hs, ref_irl, color=COLOR_IRLS, linestyle="--",
+              alpha=0.45, linewidth=1.0, label=r"$O(H^{3})$")
+    ax.loglog(Hs, ref_dsm, color=COLOR_DSM, linestyle="--",
+              alpha=0.45, linewidth=1.0, label=r"$O(H^{2})$")
+    ax.set_xlabel(r"$H$ (hidden-layer size, $M=5H$)")
+    ax.set_ylabel("total CPU time (s)")
+    ax.set_title("Total time")
+    ax.legend(loc="upper left")
+    style_axes(ax)
 
     ax = axes[1]
-    t_irls_per = [r['t_irls'] / max(r['iter_irls'], 1) for r in results]
-    t_dsm_per  = [r['t_dsm']  / max(r['iter_dsm'],  1) for r in results]
-    ax.loglog(ns, t_irls_per, 'b-o', label='IRLS (per iter)')
-    ax.loglog(ns, t_dsm_per,  'r-s', label='DSM (per iter)')
-    ax.set_xlabel('$n$')
-    ax.set_ylabel('Time per iteration (s)')
-    ax.set_title('Per-iteration cost')
-    ax.legend()
-    ax.grid(True, which='both', alpha=0.3)
+    ax.loglog(Hs, per_irl, color=COLOR_IRLS, marker="o", markersize=5,
+              linewidth=1.4, label="IRLS")
+    ax.loglog(Hs, per_dsm, color=COLOR_DSM,  marker="s", markersize=5,
+              linewidth=1.4, label="SGPTL")
+    ax.set_xlabel(r"$H$")
+    ax.set_ylabel("per-iteration CPU time (s)")
+    ax.set_title("Per-iteration cost")
+    ax.legend(loc="upper left")
+    style_axes(ax)
 
-    plt.tight_layout()
-    path = os.path.join(FIG_DIR, 'scalability.pdf')
-    plt.savefig(path, bbox_inches='tight')
+    fig.tight_layout()
+    path = os.path.join(FIG_DIR, "scalability.pdf")
+    fig.savefig(path)
     print(f"Saved: {path}")
-    plt.close()
-
-    return results
+    plt.close(fig)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()

@@ -1,42 +1,42 @@
 """
 experiment_comparison.py
 ------------------------
-Experiment 4d: Head-to-head comparison of IRLS (A1) vs DSM (A2).
-
-Metrics:
-  - Iterations to reach f(w) - f* <= epsilon (for several epsilon values)
-  - CPU time to reach same accuracy
-  - Solution quality: ||w - w_star||, sparsity pattern
-  - Tests on several problem sizes
+Head-to-head IRLS vs SGPTL on a moderate problem. Reports iterations
+and CPU time required to reach a target accuracy and produces a
+side-by-side semilog comparison figure for Chapter 5.
 """
 
-import sys
-import os
-import warnings
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
-warnings.filterwarnings('ignore', category=RuntimeWarning)
-import numpy as np
-np.seterr(all='ignore')
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import csv
+import os
+import sys
+import warnings
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir))
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+import numpy as np
+np.seterr(all="ignore")
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
 from src import irls, deflected_subgradient, make_lasso_problem
 from src.lasso_utils import f_lasso
+from _plot_style import apply_style, style_axes, COLOR_IRLS, COLOR_DSM, COLOR_FCUR
+apply_style()
 
-SEED    = 42
-LAM     = 0.1
-NOISE   = 0.05
 
-FIG_DIR = os.path.join(os.path.dirname(__file__), '..', 'results', 'figures')
-TAB_DIR = os.path.join(os.path.dirname(__file__), '..', 'results', 'tables')
+SEED   = 42
+LAMBDA = 0.10
+NOISE  = 0.05
+
+FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
+TAB_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "tables")
 os.makedirs(FIG_DIR, exist_ok=True)
 os.makedirs(TAB_DIR, exist_ok=True)
 
 
 def iters_to_reach(gaps, threshold):
-    """First iteration index where gap <= threshold; or None."""
     for i, g in enumerate(gaps):
         if g <= threshold:
             return i
@@ -44,104 +44,107 @@ def iters_to_reach(gaps, threshold):
 
 
 def time_to_reach(gaps, times, threshold):
-    """CPU time at first iteration where gap <= threshold; or None."""
     for g, t in zip(gaps, times):
         if g <= threshold:
             return t
     return None
 
 
-def run():
+def run() -> None:
     print("=" * 60)
-    print("Experiment: IRLS vs DSM Comparison")
+    print("IRLS vs SGPTL comparison")
     print("=" * 60)
 
-    # ------------------------------------------------------------------
-    # Single problem: detailed comparison.
-    # Use a moderate-size problem (n=50, m=200) where DSM has a realistic
-    # chance to reach moderate accuracy in 30k iterations — its sublinear
-    # rate makes finer accuracy infeasible, which is itself a finding.
-    # ------------------------------------------------------------------
-    n, m = 50, 200
+    H, M = 50, 200
     X, y, _, f_star, w_star = make_lasso_problem(
-        n=n, m=m, sparsity=0.1, noise_std=NOISE, lam=LAM, random_state=SEED)
-    print(f"\nDetailed comparison: n={n}, m={m}, f*={f_star:.6f}")
+        n=H, m=M, sparsity=0.1, noise_std=NOISE,
+        lam=LAMBDA, random_state=SEED,
+    )
+    print(f"Problem: H={H}, M={M}, lambda={LAMBDA}, f*={f_star:.6f}")
 
-    res_irls = irls(X, y, LAM, eps_thr=1e-8, eps_stop=1e-12,
-                    k_max=200, solver='cholesky', f_star=f_star)
-    res_dsm  = deflected_subgradient(X, y, LAM, i_max=30000, beta=1.0,
-                                     delta0=0.1*f_star, rho=0.95,
+    res_irls = irls(X, y, LAMBDA, eps_thr=1e-8, eps_stop=1e-12,
+                    k_max=300, solver="cholesky", f_star=f_star)
+    res_dsm  = deflected_subgradient(X, y, LAMBDA, i_max=30000,
+                                     beta=1.0, delta0=0.1 * f_star, rho=0.9,
                                      f_star=f_star)
 
-    epsilons = [1e-1, 1e-2, 1e-3, 1e-4, 1e-6]
-    print(f"\n{'epsilon':>10}  {'IRLS iters':>12}  {'IRLS time':>12}  "
-          f"{'DSM iters':>12}  {'DSM time':>12}")
+    # -------- table --------
+    eps_grid = [1e-1, 1e-2, 1e-3, 1e-4, 1e-6]
     rows = []
-    for eps in epsilons:
-        i_irls = iters_to_reach(res_irls['gaps'], eps)
-        t_irls = time_to_reach(res_irls['gaps'], res_irls['times'], eps)
-        i_dsm  = iters_to_reach(res_dsm['gaps'],  eps)
-        t_dsm  = time_to_reach(res_dsm['gaps'],  res_dsm['times'],  eps)
-        print(f"{eps:>10.0e}  {str(i_irls):>12}  {str(round(t_irls,4)) if t_irls else 'N/A':>12}  "
-              f"{str(i_dsm):>12}  {str(round(t_dsm,4)) if t_dsm else 'N/A':>12}")
-        rows.append([eps, i_irls, t_irls, i_dsm, t_dsm])
+    print(f"\n{'eps':>6}  {'IRLS iter':>10}  {'IRLS time':>10}  "
+          f"{'SGPTL iter':>11}  {'SGPTL time':>11}")
+    for eps in eps_grid:
+        ki = iters_to_reach(res_irls["gaps"], eps)
+        ti = time_to_reach(res_irls["gaps"], res_irls["times"], eps)
+        kd = iters_to_reach(res_dsm["gaps"], eps)
+        td = time_to_reach(res_dsm["gaps"], res_dsm["times"], eps)
+        rows.append([eps, ki, ti, kd, td])
+        ti_s = f"{ti:.2e}" if ti is not None else "  ---"
+        td_s = f"{td:.2e}" if td is not None else "  ---"
+        ki_s = str(ki) if ki is not None else "---"
+        kd_s = str(kd) if kd is not None else "---"
+        print(f"{eps:>6.0e}  {ki_s:>10}  {ti_s:>10}  {kd_s:>11}  {td_s:>11}")
 
-    # Save table
-    tab_path = os.path.join(TAB_DIR, 'comparison_table.csv')
-    with open(tab_path, 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(['epsilon', 'irls_iters', 'irls_time', 'dsm_iters', 'dsm_time'])
-        writer.writerows(rows)
-    print(f"\nSaved: {tab_path}")
+    tab_path = os.path.join(TAB_DIR, "comparison_table.csv")
+    with open(tab_path, "w", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(["epsilon", "irls_iters", "irls_time", "dsm_iters", "dsm_time"])
+        w.writerows(rows)
+    print(f"Saved: {tab_path}")
 
-    # ------------------------------------------------------------------
-    # Plot: gap vs iterations for both (same axes, log scale)
-    # ------------------------------------------------------------------
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+    # -------- plot --------
+    fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.2))
 
-    # vs iterations
+    irls_gaps = np.maximum(res_irls["gaps"], 1e-16)
+    dsm_gaps  = np.maximum(res_dsm["gaps"],  1e-16)
+    dsm_curr  = np.maximum([f - f_star for f in res_dsm["f_vals"]], 1e-16)
+
     ax = axes[0]
-    irls_gaps = np.maximum(res_irls['gaps'], 1e-16)
-    dsm_gaps  = np.maximum(res_dsm['gaps'],  1e-16)
-    ax.semilogy(irls_gaps, 'b-o', ms=4, lw=1.5, label='IRLS (A1)')
-    ax.semilogy(dsm_gaps,  'r-',  lw=1,  label='DSM (A2)')
-    ax.set_xlabel('Iteration')
-    ax.set_ylabel('$f - f^*$')
-    ax.set_title('Convergence vs iterations')
-    ax.legend()
-    ax.grid(True, which='both', alpha=0.3)
+    ax.semilogy(irls_gaps, color=COLOR_IRLS, marker="o", markersize=2.5,
+                linewidth=1.4, label="IRLS")
+    ax.semilogy(dsm_curr, color=COLOR_FCUR, linewidth=0.5, alpha=0.45,
+                label=r"SGPTL  $f(w_i) - f^{*}$")
+    ax.semilogy(dsm_gaps, color=COLOR_DSM, linewidth=1.4,
+                label=r"SGPTL  $\bar{f}^{i} - f^{*}$")
+    ax.set_xlabel("Iteration")
+    ax.set_ylabel(r"gap to $f^{*}$")
+    ax.set_title("vs. iterations")
+    ax.legend(loc="upper right")
+    style_axes(ax)
 
-    # vs CPU time
     ax = axes[1]
-    ax.semilogy(res_irls['times'], irls_gaps, 'b-o', ms=4, lw=1.5, label='IRLS (A1)')
-    ax.semilogy(res_dsm['times'],  dsm_gaps,  'r-',  lw=1,  label='DSM (A2)')
-    ax.set_xlabel('CPU time (s)')
-    ax.set_ylabel('$f - f^*$')
-    ax.set_title('Convergence vs CPU time')
-    ax.legend()
-    ax.grid(True, which='both', alpha=0.3)
+    ax.semilogy(res_irls["times"], irls_gaps,
+                color=COLOR_IRLS, marker="o", markersize=2.5,
+                linewidth=1.4, label="IRLS")
+    ax.semilogy(res_dsm["times"], dsm_curr,
+                color=COLOR_FCUR, linewidth=0.5, alpha=0.45,
+                label=r"SGPTL  $f(w_i) - f^{*}$")
+    ax.semilogy(res_dsm["times"], dsm_gaps,
+                color=COLOR_DSM, linewidth=1.4,
+                label=r"SGPTL  $\bar{f}^{i} - f^{*}$")
+    ax.set_xlabel("CPU time (s)")
+    ax.set_ylabel(r"gap to $f^{*}$")
+    ax.set_title("vs. CPU time")
+    ax.legend(loc="upper right")
+    style_axes(ax)
 
-    plt.suptitle(f'IRLS vs DSM  (n={n}, m={m}, $\\lambda$={LAM})')
-    plt.tight_layout()
-    path = os.path.join(FIG_DIR, 'comparison_irls_dsm.pdf')
-    plt.savefig(path, bbox_inches='tight')
+    fig.suptitle(rf"$H={H}$, $M={M}$, $\lambda_{{\mathrm{{LASSO}}}}={LAMBDA}$",
+                 y=1.02, fontsize=11)
+    fig.tight_layout()
+    path = os.path.join(FIG_DIR, "comparison_irls_dsm.pdf")
+    fig.savefig(path)
     print(f"Saved: {path}")
-    plt.close()
+    plt.close(fig)
 
-    # ------------------------------------------------------------------
-    # Solution quality
-    # ------------------------------------------------------------------
-    w_irls = res_irls['w']
-    w_dsm  = res_dsm['w']
-    print(f"\nSolution quality:")
-    print(f"  ||w_irls - w*|| = {np.linalg.norm(w_irls - w_star):.4e}")
-    print(f"  ||w_dsm  - w*|| = {np.linalg.norm(w_dsm  - w_star):.4e}")
-    print(f"  IRLS sparsity   = {np.mean(np.abs(w_irls) < 1e-6):.2%}")
-    print(f"  DSM  sparsity   = {np.mean(np.abs(w_dsm)  < 1e-6):.2%}")
-    print(f"  True sparsity   = {np.mean(np.abs(w_star) < 1e-6):.2%}")
-
-    return res_irls, res_dsm
+    # -------- solution quality summary --------
+    w_irls, w_dsm = res_irls["w"], res_dsm["w"]
+    print("\nSolution quality:")
+    print(f"  ||w_irls - w*||_2 = {np.linalg.norm(w_irls - w_star):.3e}")
+    print(f"  ||w_dsm  - w*||_2 = {np.linalg.norm(w_dsm  - w_star):.3e}")
+    print(f"  IRLS sparsity   = {np.mean(np.abs(w_irls) < 1e-6):.0%}")
+    print(f"  DSM  sparsity   = {np.mean(np.abs(w_dsm)  < 1e-6):.0%}")
+    print(f"  True sparsity   = {np.mean(np.abs(w_star) < 1e-6):.0%}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()
