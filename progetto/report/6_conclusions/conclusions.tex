@@ -27,12 +27,13 @@ $\bar{f}^{i}$, a sublinear gap curve that flattens as the iterations
 accumulate, and an iterate with zero exact zeros, in line with the
 absence of any explicit thresholding mechanism. The $O(MH^{2})$
 pre-computation cost of IRLS was visible on the scalability plot as a
-clean cubic slope at $M=5H$, and the four-orders-of-magnitude gap
-between the two methods at the same iteration budget ($1.5\cdot
-10^{-6}$ for IRLS at iteration $100$ versus $3.9\cdot 10^{-2}$ for
-SGPTL at iteration $8000$) is exactly what the
-$O(\log\varepsilon^{-1})$ versus $O(\varepsilon^{-2})$ contrast
-predicts.
+clean cubic slope at $M=5H$, and the gap between the two methods at
+the same iteration budget ($1.5\cdot 10^{-6}$ for IRLS at iteration
+$100$ versus $4.6\cdot 10^{-4}$ for SGPTL at iteration $8000$) lines
+up with what the $O(\log\varepsilon^{-1})$ versus $O(\varepsilon^{-2})$
+contrast predicts: SGPTL needed roughly $3000\times$ the iteration
+count IRLS used to reach $\varepsilon=10^{-2}$, and another factor
+of $6\times$ to reach $10^{-3}$.
 
 \paragraph{Where the theoretical bounds proved conservative.}
 A few observations did not have a clean theoretical counterpart in the
@@ -41,17 +42,27 @@ $10^{-10}$ for $\varepsilon_\text{thr}=10^{-12}$, but pushing
 $\varepsilon_\text{thr}$ further did not improve the gap further: the
 linear solver hits floating-point limits before the safety mechanism
 does, so the ``smaller $\varepsilon_\text{thr}$ is always sharper''
-intuition has a hard floor. The SGPTL contraction factor $\rho$
-behaved as predicted in trajectory but had no observable effect on the
-final gap on our problems: once the patience mechanism is working, all
-$\rho\in[0.5,0.99]$ reached the same plateau within the iteration
-budget and only differed in how aggressively the target was contracted,
-which suggests the $O(L^{2}/\varepsilon^{2})$ bound is the binding
-constraint and $\rho$ is essentially a transient knob. Finally, the
-OLS warm start mandated by Section~\ref{sec:dsm_algorithm} placed
-SGPTL so close to the optimum on these instances that the patience
-mechanism was rarely exercised; we had to switch to a cold start to
-expose any sensitivity to $\rho$ at all.
+intuition has a hard floor. The SGPTL contraction factor $\rho$ has a clear effect on the final
+gap, with a U-shaped sensitivity centred near $\rho=0.9$ that matches
+the report's recommendation in Section~\ref{sec:dsm_parameters}; the
+extremes either contract $\delta$ too quickly ($\rho=0.5$, no time for
+a better $f_\text{ref}$ to be found before the target collapses on it)
+or too slowly ($\rho=0.99$, target stays below $f^{*}$ for too long).
+Finally, the OLS warm start mandated by
+Section~\ref{sec:dsm_algorithm} interacts unfavourably with the
+greedy deflection. The current subgradient becomes nearly aligned
+with $\mathbf{d}_{i-1}$ within a few tens of iterations,
+$\gamma_{i}\to 0$, and the stepsize-restricted
+$\beta_{i}=\min(\beta,\gamma_{i})$ multiplies the Polyak step by that
+same vanishing factor, so the iterate stops moving before the
+travel-distance counter $r$ can ever reach $R$ to trigger a
+$\delta$-contraction. We had to add an iteration-count fallback to
+the patience mechanism — contract $\delta$ and reset
+$\mathbf{d}_{i-1}=\mathbf{0}$ when $\bar{f}^{i}$ has not improved for
+$R_\text{iter}=\max(i_\text{max}/100,\,50)$ iterations — to recover
+the sublinear progress the theory predicts. The reset is consistent
+with the per-step bound~(3.14), which holds iterate-by-iterate
+without requiring persistent memory.
 
 \paragraph{Recommendation for the ELM LASSO problem.}
 On the project's intended regime, $M\gg H$ with $\mathbf{W}_{1}$ fixed

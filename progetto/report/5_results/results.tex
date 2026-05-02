@@ -61,6 +61,28 @@ All timings reported below were measured on a MacBook with an Apple~M4
 CPU. Wall-clock times are taken with \texttt{time.perf\_counter} and
 exclude the data-generation step.
 
+\paragraph{An implementation safeguard for SGPTL.}
+On instances where the OLS warm start places $\mathbf{w}_{0}$ in a
+near-stationary region, the greedy deflection drives $\gamma_{i}\to 0$
+within a few tens of iterations: the current subgradient becomes
+nearly aligned with $\mathbf{d}_{i-1}$, so the optimal $\gamma_{i}$
+that minimises $\|\mathbf{d}_{i}\|^{2}$ is very small, and the
+stepsize-restricted condition $\beta_{i}=\min(\beta,\gamma_{i})$
+multiplies the Polyak numerator by that same small factor. The result
+is $\alpha_{i}\to 0$, $\mathbf{w}$ stops moving, and the
+travel-distance counter $r=\sum\alpha_{i}\|\mathbf{d}_{i}\|$ never
+reaches the patience threshold $R$, so $\delta$ is never contracted
+and the algorithm stalls indefinitely. Our implementation augments
+the patience mechanism with a simple iteration-count fallback —
+if the record value $\bar{f}^{i}$ has not improved sufficiently for
+$R_\text{iter}=\max(i_\text{max}/100,\,50)$ consecutive iterations,
+we contract $\delta$ and reset $\mathbf{d}_{i-1}\leftarrow\mathbf{0}$,
+which forces $\gamma=1$ at the next iterate by the same convention
+the report uses at $i=0$. The reset is consistent with the
+per-step bound~(3.14): the proof works iterate-by-iterate without
+requiring persistent memory, so a single pure subgradient step inserted
+to escape stagnation does not break the convergence guarantee.
+
 \section{Convergence behaviour}
 \label{sec:convergence}
 
@@ -84,15 +106,17 @@ at machine-precision distance from $f^{*}$.
 SGPTL on the same instance, run for $8000$~iterations with $\beta=1$,
 $\delta_{0}=0.1\,f^{*}$ and $\rho=0.95$, produces the curve on the
 right panel of Figure~\ref{fig:convergence-iter}. The progress is
-visibly sublinear: the curve flattens as the iterations accumulate and
-the final gap is~$3.9\cdot 10^{-2}$, more than four orders of
-magnitude looser than what IRLS reaches in less than $1\%$ of those
-iterations on the same problem. This matches the
+visibly sublinear: a few iterations of fast initial decrease are
+followed by a long flatter regime in which $\delta$ is being
+periodically contracted by the patience mechanism. The final record
+gap after $8000$~iterations is~$4.6\cdot 10^{-4}$, two and a half
+orders of magnitude looser than IRLS reaches in less than $1\%$ of
+those iterations on the same problem. This matches the
 $\Omega(L^{2}/\varepsilon^{2})$ lower bound recalled in
-Section~\ref{sec:dsm_convergence}: pushing the gap below $10^{-3}$ requires
-roughly~$100\times$ more SGPTL iterations than getting to $10^{-2}$,
-and pushing it below $10^{-4}$ another~$100\times$, both of which are
-out of reach inside any reasonable iteration budget.
+Section~\ref{sec:dsm_convergence}: every additional decade of accuracy
+roughly multiplies the iteration count, and pushing the gap below
+$10^{-6}$ would require an iteration budget far beyond what is
+practical for this problem.
 
 \begin{figure}[H]
     \centering
@@ -110,7 +134,7 @@ wall-clock time. On this problem size the per-iteration cost advantage
 that SGPTL has over IRLS ($O(MH)$ versus $O(H^{3})$ once $\mathbf{A}$
 is precomputed) is not large enough to compensate for the difference
 in convergence rate. IRLS reaches gap~$10^{-6}$ in roughly~$3$~ms
-while SGPTL is still around~$10^{-2}$ after several hundred~ms.
+while SGPTL needs the entire iteration budget to fall below~$10^{-3}$.
 
 \begin{figure}[H]
     \centering
@@ -200,31 +224,36 @@ Section~\ref{sec:dsm_parameters}, and $R$ at its default).
 The left panel of Figure~\ref{fig:params-dsm} sweeps $\delta_{0}/f^{*}$
 on a logarithmic grid from $0.01$ to $1.0$. The shape is U-shaped, as
 expected: very small $\delta_{0}$ (factor $0.01$) places the target
-above $f^{*}$ from the start so the algorithm always
-underestimates the achievable improvement and the steps are too short;
-very large $\delta_{0}$ (factor $1.0$) does the opposite, the target
-$f_\text{ref}-\delta$ falls below $f^{*}$ and the
-patience-driven contractions take a long time to drag it back. The best
-performance on this instance is at $\delta_{0}=0.05\,f^{*}$, with a
-final gap of $1.8\cdot 10^{-2}$. The default $\delta_{0}=0.1\,f^{*}$
-that we use elsewhere is essentially indistinguishable
-($2.5\cdot 10^{-2}$).
+above $f^{*}$ from the start so the algorithm always underestimates
+the achievable improvement and the steps are too short; very large
+$\delta_{0}$ (factor $1.0$) does the opposite, the target
+$f_\text{ref}-\delta$ falls below $f^{*}$ and the patience-driven
+contractions need to be invoked many times before the target rises
+back above $f^{*}$. The best performance on this instance is at
+$\delta_{0}=0.05\,f^{*}$ with a final gap of $4.2\cdot 10^{-4}$,
+roughly two orders of magnitude better than the extremes
+($3.5\cdot 10^{-2}$ at $\delta_{0}=0.01\,f^{*}$ and $3.8\cdot 10^{-3}$
+at $\delta_{0}=f^{*}$). The default $\delta_{0}=0.1\,f^{*}$ that we
+use elsewhere is close to the minimum ($7.5\cdot 10^{-4}$) and is a
+robust choice when $f^{*}$ is unknown.
 
 The right panel of Figure~\ref{fig:params-dsm} sweeps
-$\rho\in\{0.5,0.7,0.9,0.95,0.99\}$. To make $\rho$'s effect visible we
-use a cold start $\mathbf{w}_{0}=\mathbf{0}$ here, because the OLS
-warm start places SGPTL so close to the optimum that very few
-contractions are ever triggered and $\rho$ has no observable effect.
-Under cold start the contraction count grows with $\rho$ as expected
-(from $1072$ at $\rho=0.5$ to $9947$ at $\rho=0.99$), while the
-final gap is essentially the same ($1.7\cdot 10^{-2}$) across the
-range. The interpretation is that, once the contraction mechanism is
-working, the algorithm reaches the same accuracy plateau regardless of
-how aggressively it contracts; what $\rho$ controls is the trajectory
-on the way there, not the destination. This is consistent with the
-non-asymptotic nature of the sublinear rate: the
-$O(L^{2}/\varepsilon^{2})$ bound depends on the subgradient norm
-$L$ and on the distance to the optimum, not on $\rho$.
+$\rho\in\{0.5,0.7,0.9,0.95,0.99\}$ on a cold start
+$\mathbf{w}_{0}=\mathbf{0}$ to expose the contraction mechanism (the
+OLS warm start triggers few enough contractions early on that the
+fallback patience does most of the work and $\rho$'s influence is
+muted). Under cold start the picture matches the role $\rho$ plays in
+the algorithm. Aggressive contractions ($\rho=0.5$, $50$ contractions)
+shrink $\delta$ too quickly, the target collapses onto $f_\text{ref}$
+before the iterates have had time to find a better $f_\text{ref}$,
+and the final gap stays at $9.7\cdot 10^{-4}$. Slow contractions
+($\rho=0.99$, $96$ contractions) keep $\delta$ too large for too long,
+the target stays well below $f^{*}$, and progress is wasted on
+chasing an unreachable target ($1.7\cdot 10^{-2}$). The intermediate
+value $\rho=0.9$ ($96$ contractions) hits the sweet spot at
+$4.9\cdot 10^{-6}$ on this instance, consistent with the report's
+recommendation in Section~\ref{sec:dsm_parameters} to use
+$\rho\in[0.9, 0.95]$ as a default.
 
 \begin{figure}[H]
     \centering
@@ -255,15 +284,15 @@ enough for the corresponding diagonal weight to compensate.
 SGPTL on the same instance, run for $30000$~iterations with the OLS
 warm start, $\beta=1$, $\delta_{0}=0.1\,f^{*}$, $\rho=0.95$, returns a
 solution with $\|\mathbf{w}_\text{SGPTL}-\mathbf{w}^{*}\|_{2} =
-4.5\cdot 10^{-2}$ and $0\%$ sparsity within $10^{-6}$ tolerance. The
-record value $\bar{f}^{i}-f^{*}$ never falls below the $10^{-2}$
-threshold inside the $30000$-iteration budget. The lack of sparsity
-is the practical manifestation of the discussion in
-Section~\ref{sec:comp_quality}: subgradient steps move every component
-continuously and have no mechanism to pin small ones at exactly zero.
-A post-termination thresholding step would be required to recover an
-interpretable support, and the threshold itself becomes a tuning knob
-that depends on the problem scale.
+2.0\cdot 10^{-3}$ and $0\%$ sparsity within $10^{-6}$ tolerance. The
+record value $\bar{f}^{i}-f^{*}$ falls below $10^{-3}$ at iteration
+$20253$ but never reaches $10^{-4}$ inside the budget. The lack of
+sparsity is the practical manifestation of the discussion in
+Section~\ref{sec:comp_quality}: subgradient steps move every
+component continuously and have no mechanism to pin small ones at
+exactly zero. A post-termination thresholding step would be required
+to recover an interpretable support, and the threshold itself becomes
+a tuning knob that depends on the problem scale.
 
 \section{Scalability}
 \label{sec:scalability}
@@ -282,11 +311,11 @@ Table~\ref{tab:scalability} collects the numbers.
         $H$ & $M$ & $t_\text{IRLS}$ (s) & gap$_\text{IRLS}$ &
         $t_\text{SGPTL}$ (s) & gap$_\text{SGPTL}$ \\
         \midrule
-        $   50$ & $   250$ & $0.003$ & $5.1\cdot 10^{-7}$ & $0.032$ & $1.2\cdot 10^{-2}$ \\
-        $  100$ & $   500$ & $0.005$ & $1.8\cdot 10^{-7}$ & $0.041$ & $4.4\cdot 10^{-2}$ \\
-        $  500$ & $  2500$ & $0.067$ & $1.8\cdot 10^{-6}$ & $0.240$ & $2.1\cdot 10^{-1}$ \\
-        $ 1000$ & $  5000$ & $0.387$ & $7.6\cdot 10^{-6}$ & $4.332$ & $5.2\cdot 10^{-1}$ \\
-        $ 2000$ & $ 10000$ & $1.961$ & $1.0\cdot 10^{-5}$ & $16.248$ & $1.0\cdot 10^{ 0}$ \\
+        $   50$ & $   250$ & $0.006$ & $5.1\cdot 10^{-7}$ & $0.108$ & $2.1\cdot 10^{-3}$ \\
+        $  100$ & $   500$ & $0.008$ & $1.8\cdot 10^{-7}$ & $0.188$ & $6.0\cdot 10^{-3}$ \\
+        $  500$ & $  2500$ & $0.096$ & $1.8\cdot 10^{-6}$ & $1.179$ & $3.4\cdot 10^{-2}$ \\
+        $ 1000$ & $  5000$ & $0.553$ & $7.6\cdot 10^{-6}$ & $8.554$ & $6.6\cdot 10^{-2}$ \\
+        $ 2000$ & $ 10000$ & $4.313$ & $1.0\cdot 10^{-5}$ & $25.973$ & $1.3\cdot 10^{-1}$ \\
         \bottomrule
     \end{tabular}
     \caption{Total wall-clock time and final gap as $H$ grows with
@@ -313,12 +342,14 @@ fact that the SGPTL run does not deliver the same accuracy.
     \label{fig:scalability}
 \end{figure}
 
-The crossover predicted in Section~\ref{sec:comp_cost} ($H^{3}\gtrsim MH$,
-i.e. $H^{2}\gtrsim M$) does not occur in this regime since $M=5H$
-means $M\ll H^{2}$ does not hold; we should expect to see the regime
-shift only when $M$ is much smaller than $H^{2}$, i.e. when there are
-very few training samples relative to the hidden-layer size. On the
-project's intended ELM regime ($M\gg H$) IRLS dominates.
+The crossover predicted in Section~\ref{sec:comp_cost}
+($H^{3}\gtrsim MH$, i.e. $H^{2}\gtrsim M$) does not occur in this
+regime, because $M=5H$ keeps $M\sim H$ while the crossover requires
+$M\ll H^{2}$. We should expect to see the regime shift only when $M$
+is much smaller than $H^{2}$, i.e. when there are very few training
+samples relative to the hidden-layer size. On the project's intended
+ELM regime ($M\gg H$) IRLS dominates not just in iterations-to-target
+but also in raw wall-clock time.
 
 \section{Iterations to a target accuracy}
 \label{sec:iters-to-eps}
@@ -337,11 +368,11 @@ $\lambda_\text{LASSO}=0.1$).
         $\varepsilon$ & $k_\text{IRLS}$ & $t_\text{IRLS}$ (s) &
         $i_\text{SGPTL}$ & $t_\text{SGPTL}$ (s) \\
         \midrule
-        $10^{-1}$ & $  1$ & $4.7\cdot 10^{-5}$ & $    3$ & $7.9\cdot 10^{-5}$ \\
-        $10^{-2}$ & $  3$ & $1.2\cdot 10^{-4}$ & N/A & N/A \\
-        $10^{-3}$ & $  7$ & $2.3\cdot 10^{-4}$ & N/A & N/A \\
-        $10^{-4}$ & $ 19$ & $5.6\cdot 10^{-4}$ & N/A & N/A \\
-        $10^{-6}$ & $101$ & $2.8\cdot 10^{-3}$ & N/A & N/A \\
+        $10^{-1}$ & $  1$ & $4.9\cdot 10^{-5}$ & $    3$ & $2.6\cdot 10^{-4}$ \\
+        $10^{-2}$ & $  3$ & $1.4\cdot 10^{-4}$ & $ 3334$ & $6.5\cdot 10^{-2}$ \\
+        $10^{-3}$ & $  7$ & $5.3\cdot 10^{-4}$ & $20253$ & $4.1\cdot 10^{-1}$ \\
+        $10^{-4}$ & $ 19$ & $9.2\cdot 10^{-4}$ & N/A & N/A \\
+        $10^{-6}$ & $101$ & $3.1\cdot 10^{-3}$ & N/A & N/A \\
         \bottomrule
     \end{tabular}
     \caption{Iterations and wall-clock time required to reach
@@ -354,12 +385,14 @@ $\lambda_\text{LASSO}=0.1$).
 The two algorithms are competitive only at the loosest accuracy:
 SGPTL reaches $\varepsilon=10^{-1}$ in three iterations, IRLS in one,
 and at this scale the per-iteration cost difference dominates so the
-two times are within a factor of two of each other. Past $10^{-2}$
-the IRLS iteration count grows by a small constant (roughly $7\to
-19\to 101$, i.e. $2.7\times$ then $5.3\times$ per decade of accuracy)
-while SGPTL fails to make further progress in any reasonable budget.
-The qualitative pattern is the one Section~\ref{sec:comp_summary}
-predicted from the theoretical rates.
+two times are within a factor of six of each other. Past $10^{-2}$
+the SGPTL iteration count multiplies by roughly $1000\times$ per
+decade of accuracy ($3\to 3334\to 20253$, with the iteration budget
+exhausted before $10^{-4}$), while IRLS adds a small near-constant
+number per decade ($3\to 7\to 19\to 101$, i.e. $2.7\times$ to
+$5.3\times$). The contrast is the practical illustration of what
+Section~\ref{sec:comp_summary} predicted from the
+$O(\log\varepsilon^{-1})$ versus $O(\varepsilon^{-2})$ comparison.
 
 Figure~\ref{fig:comparison} overlays the two trajectories on the same
 instance.

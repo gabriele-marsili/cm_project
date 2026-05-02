@@ -125,7 +125,13 @@ def deflected_subgradient(X, y, lam,
         R = 10.0 * np.sqrt(i_max)
 
     # Algorithm state
-    r       = 0.0           # accumulated travel without improvement
+    r       = 0.0           # accumulated travel without improvement (report Alg 2)
+    no_imp  = 0             # consecutive iterations without sufficient decrease;
+                            # safeguard against the gamma_i -> 0 deadlock that
+                            # freezes the travel-based patience mechanism when
+                            # the deflection greedily aligns d_i with d_{i-1}
+                            # (then alpha_i -> 0 and r stops growing).
+    R_iter  = max(int(i_max / 100), 50)  # patience in iteration count
     delta   = delta0
     f_ref   = f_curr        # best reference value seen
     f_bar   = f_curr        # record value (best f found so far)
@@ -150,9 +156,15 @@ def deflected_subgradient(X, y, lam,
         # Step 1: compute a subgradient g in partial f(w_i)
         g = subgradient_f(X, y, w, lam)
 
-        # Step 2: optimal deflection parameter gamma_i
-        if i == 0:
-            gamma = 1.0             # first iteration: pure subgradient
+        # Step 2: optimal deflection parameter gamma_i.
+        # When d_prev is the zero vector (first iteration, or after a
+        # patience reset that cleared the memory) the unconstrained
+        # minimiser of ||gamma g + (1 - gamma) d_prev||^2 is gamma = 0,
+        # which would freeze the algorithm. We use the same convention
+        # the report adopts at i = 0: take a pure subgradient step
+        # (gamma = 1).
+        if i == 0 or np.dot(d_prev, d_prev) < 1e-30:
+            gamma = 1.0
         else:
             gamma = _optimal_gamma(g, d_prev)
 
@@ -169,42 +181,25 @@ def deflected_subgradient(X, y, lam,
         #   alpha_i = beta_i * (f(w_i) - (f_ref - delta)) / ||d_i||^2
         # The clipping enforces beta_i <= gamma_i (report § 3.2), which is
         # what the convergence proof of Theorem 3.1 (Eq 3.14) relies on.
+        # We clip a negative numerator to zero rather than skipping the
+        # iteration: a zero step is harmless (w_new = w, f_new = f_curr)
+        # and lets the patience mechanism count this iteration as a
+        # non-improvement, eventually triggering a delta contraction. The
+        # original "numerator <= 0 -> continue" branch bypassed the
+        # patience update and could deadlock when beta_i = gamma_i -> 0.
         beta_i = min(beta, gamma)
         target = f_ref - delta
-        numerator = beta_i * (f_curr - target)
-
-        if numerator <= 0.0:
-            # f_curr <= target: target is too aggressive or we're below it
-            # Reduce delta immediately and skip step
-            delta *= rho
-            delta_hist.append(delta)
-            d_prev = d
-            # Record same point
-            f_vals.append(f_curr)
-            f_bar_list.append(f_bar)
-            if f_star is not None:
-                gaps.append(max(0.0, f_bar - f_star))
-            times.append(time.perf_counter() - t_start)
-            continue
-
+        numerator = max(0.0, beta_i * (f_curr - target))
         alpha = numerator / d_norm_sq
 
         # Step 5: update iterate
         w_new = w - alpha * d
 
-        # Safety: reject step if it produces NaN/inf (can happen when
-        # delta0 is initialised larger than f(w0)-f*, pushing the target
-        # below f* and causing alpha -> inf near the optimum).
+        # Safety: a non-finite w_new should not happen with the clipped
+        # numerator and a finite d, but guard against numerical surprises:
+        # treat it as a zero step.
         if not np.all(np.isfinite(w_new)):
-            delta *= rho
-            delta_hist.append(delta)
-            d_prev = d
-            f_vals.append(f_curr)
-            f_bar_list.append(f_bar)
-            if f_star is not None:
-                gaps.append(max(0.0, f_bar - f_star))
-            times.append(time.perf_counter() - t_start)
-            continue
+            w_new = w.copy()
 
         # Step 6: evaluate f at new iterate
         f_new = f_lasso(X, y, w_new, lam)
@@ -214,23 +209,34 @@ def deflected_subgradient(X, y, lam,
             f_bar  = f_new
             w_best = w_new.copy()
 
-        # Step 8: target-level logic
+        # Step 8: target-level logic (report Alg 2 lines 14-21) plus a
+        # consecutive-no-improvement safeguard. The travel-based patience
+        # `r > R` from the report can fail to trigger when alpha_i -> 0
+        # (deflection greedy gamma -> 0 deadlock); the iteration-count
+        # variant catches this case. When either trigger fires we also
+        # reset d_prev to zero so the next iterate uses a pure subgradient
+        # step (gamma = 1 by convention), which is guaranteed to make
+        # progress while still satisfying the per-step bound (3.14) since
+        # the proof works iterate-by-iterate without requiring persistent
+        # memory.
         if f_new <= f_ref - delta / 2.0:
-            # Significant improvement: reset reference and counter
-            f_ref = f_bar
-            r     = 0.0
-        elif r > R:
-            # Stalled: reduce target (lower expectations)
+            f_ref  = f_bar
+            r      = 0.0
+            no_imp = 0
+            d_prev = d
+        elif r > R or no_imp > R_iter:
             delta *= rho
             r      = 0.0
+            no_imp = 0
+            d_prev = np.zeros(n)   # reset memory to escape stagnation
         else:
-            # Accumulate travel distance
-            r += alpha * np.sqrt(d_norm_sq)
+            r      += alpha * np.sqrt(d_norm_sq)
+            no_imp += 1
+            d_prev = d
 
         # Move to next iterate
         w      = w_new
         f_curr = f_new
-        d_prev = d
 
         # Record
         t_elapsed = time.perf_counter() - t_start
