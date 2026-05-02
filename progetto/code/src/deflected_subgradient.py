@@ -145,6 +145,7 @@ def deflected_subgradient(X, y, lam,
     # ------------------------------------------------------------------
     # Main loop
     # ------------------------------------------------------------------
+    i = -1   # so that n_iter = i + 1 == 0 if the loop body never runs
     for i in range(i_max):
         # Step 1: compute a subgradient g in partial f(w_i)
         g = subgradient_f(X, y, w, lam)
