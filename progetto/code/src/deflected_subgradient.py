@@ -20,6 +20,7 @@ Reference: Algorithm 2, guida_teorica.pdf (Project 25).
 import time
 import numpy as np
 from .lasso_utils import f_lasso, subgradient_f
+from .linear_solvers import solve_spd
 
 
 # ---------------------------------------------------------------------------
@@ -73,7 +74,9 @@ def deflected_subgradient(X, y, lam,
     X         : ndarray (m, n)   -- feature matrix
     y         : ndarray (m,)     -- target vector
     lam       : float            -- regularization parameter lambda > 0
-    w0        : ndarray (n,)     -- initial iterate (default: zeros)
+    w0        : ndarray (n,)     -- initial iterate
+                                    (default: OLS solution (X^T X)^{-1} X^T y,
+                                    same warm start as IRLS — report § 3.4)
     i_max     : int              -- maximum number of iterations
     beta      : float in (0,2)   -- Polyak step modulation (natural: 1.0)
     delta0    : float or None    -- initial gap estimate;
@@ -99,10 +102,18 @@ def deflected_subgradient(X, y, lam,
     m, n = X.shape
 
     # ------------------------------------------------------------------
-    # Initialization
+    # Initialization: OLS warm start (matches IRLS, report § 3.4)
+    #     w_0 = (X^T X)^{-1} X^T y
+    # The tiny ridge term protects against rank-deficient X^T X without
+    # affecting the solution when X has full column rank (the regime
+    # the report assumes throughout).
     # ------------------------------------------------------------------
     if w0 is None:
-        w = np.zeros(n)
+        try:
+            A0 = X.T @ X + 1e-12 * np.eye(n)
+            w = solve_spd(A0, X.T @ y, method='cholesky')
+        except Exception:
+            w = np.linalg.lstsq(X, y, rcond=None)[0]
     else:
         w = w0.copy()
 
@@ -152,10 +163,14 @@ def deflected_subgradient(X, y, lam,
             # direction is zero — at optimum or numerical issue
             break
 
-        # Step 4: Polyak stepsize with target level
-        #   alpha_i = beta * (f(w_i) - (f_ref - delta)) / ||d_i||^2
+        # Step 4: Polyak stepsize with target level (report Alg 2 lines 11-12)
+        #   beta_i = min(beta, gamma_i)        # stepsize-restricted condition
+        #   alpha_i = beta_i * (f(w_i) - (f_ref - delta)) / ||d_i||^2
+        # The clipping enforces beta_i <= gamma_i (report § 3.2), which is
+        # what the convergence proof of Theorem 3.1 (Eq 3.14) relies on.
+        beta_i = min(beta, gamma)
         target = f_ref - delta
-        numerator = beta * (f_curr - target)
+        numerator = beta_i * (f_curr - target)
 
         if numerator <= 0.0:
             # f_curr <= target: target is too aggressive or we're below it

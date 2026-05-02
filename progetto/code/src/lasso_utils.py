@@ -2,9 +2,12 @@
 lasso_utils.py
 --------------
 Common utilities for the LASSO problem:
-    min_{w in R^n}  f(w) = ||Xw - y||_2^2 + lambda * ||w||_1
+    min_{w in R^n}  f(w) = (1/2) ||Xw - y||_2^2 + lambda * ||w||_1
 
 Project 25: Extreme Learning Machine with L1 regularization.
+
+The objective uses the 1/2 factor on the quadratic term to match the report
+(Eq. 1.3, 2.1, 3.1) and to make the smooth-part gradient X^T(Xw-y).
 """
 
 import numpy as np
@@ -16,7 +19,7 @@ import numpy as np
 
 def f_lasso(X, y, w, lam):
     """
-    Evaluate the LASSO objective f(w) = ||Xw - y||^2 + lambda * ||w||_1.
+    Evaluate the LASSO objective f(w) = (1/2) ||Xw - y||^2 + lambda * ||w||_1.
 
     Parameters
     ----------
@@ -30,13 +33,13 @@ def f_lasso(X, y, w, lam):
     float : f(w)
     """
     residual = X @ w - y
-    return float(np.dot(residual, residual) + lam * np.sum(np.abs(w)))
+    return float(0.5 * np.dot(residual, residual) + lam * np.sum(np.abs(w)))
 
 
 def grad_smooth(X, y, w):
     """
-    Gradient of the smooth part g(w) = ||Xw - y||^2:
-        nabla g(w) = 2 X^T (Xw - y).
+    Gradient of the smooth part g(w) = (1/2) ||Xw - y||^2:
+        nabla g(w) = X^T (Xw - y).
 
     Parameters
     ----------
@@ -48,7 +51,7 @@ def grad_smooth(X, y, w):
     -------
     ndarray (n,)
     """
-    return 2.0 * X.T @ (X @ w - y)
+    return X.T @ (X @ w - y)
 
 
 def subgradient_f(X, y, w, lam):

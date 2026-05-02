@@ -59,12 +59,12 @@ def make_lasso_problem(n=100, m=200, sparsity=0.1, noise_std=0.1,
     # Targets
     y = X @ w_true + noise_std * rng.randn(m)
 
-    # Reference solution via sklearn (validation only, not for algorithm)
-    # sklearn Lasso minimizes (1/(2m)) ||Xw-y||^2 + alpha ||w||_1
-    # Our f = ||Xw-y||^2 + lam ||w||_1
-    # Dividing ours by 2m: (1/(2m))||Xw-y||^2 + (lam/(2m))||w||_1
-    # So alpha = lam / (2m)
-    alpha_sk = lam / (2.0 * m)
+    # Reference solution via sklearn (validation only, not for algorithm).
+    # sklearn Lasso minimizes  (1/(2m)) ||Xw-y||^2 + alpha ||w||_1.
+    # Our f = (1/2) ||Xw-y||^2 + lam ||w||_1  (report Eq 1.3).
+    # Multiplying sklearn loss by m gives  (1/2)||Xw-y||^2 + m*alpha ||w||_1,
+    # so to match our problem we set  alpha = lam / m.
+    alpha_sk = lam / m
     sk = SklearnLasso(alpha=alpha_sk, fit_intercept=False,
                       max_iter=100000, tol=1e-12)
     sk.fit(X, y)
@@ -133,8 +133,10 @@ def make_elm_problem(d=20, p=100, m=500, sparsity=0.1, noise_std=0.1,
     # Targets
     y = X_hid @ w_true + noise_std * rng.randn(m)
 
-    # Reference optimal value (sklearn)
-    alpha_sk = lam * m / 2.0
+    # Reference optimal value (sklearn).  Same mapping as make_lasso_problem:
+    # sklearn loss  (1/(2m))||Xw-y||^2 + alpha ||w||_1  ==  our f / m   when
+    # alpha = lam / m, and our f = (1/2)||Xw-y||^2 + lam ||w||_1.
+    alpha_sk = lam / m
     sk = SklearnLasso(alpha=alpha_sk, fit_intercept=False,
                       max_iter=100000, tol=1e-12)
     sk.fit(X_hid, y)

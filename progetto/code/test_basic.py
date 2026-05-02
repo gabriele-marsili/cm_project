@@ -41,16 +41,18 @@ def run_tests():
     g = grad_smooth(X, y, w)
     all_passed &= check("grad_smooth shape", g.shape == (n,))
 
-    # Numerical gradient check
+    # Numerical gradient check.  At a point where w_i != 0 for all i,
+    # the LASSO objective is differentiable and  nabla f(w) = X^T(Xw-y) + lam*sign(w).
+    # Central finite difference of f_lasso should equal grad_smooth + lam*sign(w).
     eps_fd = 1e-5
     g_num = np.zeros(n)
     for i in range(n):
         e = np.zeros(n); e[i] = eps_fd
         g_num[i] = (f_lasso(X, y, w+e, lam) - f_lasso(X, y, w-e, lam)) / (2*eps_fd)
-    # smooth gradient only: compare with grad_smooth
+    g_full = g + lam * np.sign(w)
     all_passed &= check("grad_smooth numerical check",
-                        np.allclose(g, g_num - lam * np.sign(w), atol=1e-4),
-                        f"max err={np.max(np.abs(g - (g_num - lam*np.sign(w)))):.2e}")
+                        np.allclose(g_full, g_num, atol=1e-4),
+                        f"max err={np.max(np.abs(g_full - g_num)):.2e}")
 
     # ------------------------------------------------------------------
     print("\n=== linear_solvers ===")
@@ -97,11 +99,15 @@ def run_tests():
     print("\n=== Deflected Subgradient ===")
     from src.deflected_subgradient import deflected_subgradient
 
+    # sklearn alpha to match our f = (1/2)||Xw-y||^2 + lam||w||_1 :
+    # sklearn minimises (1/(2m))||Xw-y||^2 + alpha||w||_1, so  alpha = lam / m.
     from sklearn.linear_model import Lasso as SkLasso
-    sk = SkLasso(alpha=0.1 * m2 / 2, fit_intercept=False, max_iter=10000, tol=1e-12)
+    lam_test = 0.1
+    sk = SkLasso(alpha=lam_test / m2, fit_intercept=False,
+                 max_iter=100000, tol=1e-12)
     sk.fit(X2, y2)
     w_sk = sk.coef_
-    f_star_test = f_lasso(X2, y2, w_sk, 0.1)
+    f_star_test = f_lasso(X2, y2, w_sk, lam_test)
 
     res_d = deflected_subgradient(X2, y2, lam=0.1, i_max=3000, beta=1.0,
                                    delta0=0.1*f_star_test, rho=0.95,

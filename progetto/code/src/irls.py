@@ -4,16 +4,16 @@ irls.py
 Algorithm A1: Iteratively Reweighted Least Squares (IRLS) for LASSO.
 
 Solves:
-    min_{w in R^n}  f(w) = ||Xw - y||_2^2 + lambda * ||w||_1
+    min_{w in R^n}  f(w) = (1/2) ||Xw - y||_2^2 + lambda * ||w||_1
 
-Core idea: approximate ||w||_1 with the quadratic surrogate w^T W_k^T W_k w,
-where W_k is diagonal with  (W_k)_{ii} = max(|w_{k,i}|, eps_thr)^{-1/2}.
+Core idea (report Eq 2.6): build a smooth quadratic surrogate
+    Q(w, w_k) = (1/2) ||Xw - y||^2 + (lambda/2) w^T W_k^T W_k w + (lambda/2) ||w_k||_1
+with  (W_k)_{ii} = max(|w_{k,i}|, eps_thr)^{-1/2}, so that (W_k^T W_k)_{ii} = 1/|w_{k,i}|.
 
-This turns the non-smooth problem into a sequence of weighted least-squares
-(Ridge) problems, each solved via the normal equations:
-    (X^T X + 2 lambda W_k^T W_k) w_{k+1} = X^T y
+Setting nabla_w Q = 0 gives the normal equations
+    (X^T X + lambda W_k^T W_k) w_{k+1} = X^T y.
 
-Reference: Algorithm 1, guida_teorica.pdf (Project 25).
+Reference: Report Chapter 2 (approved theory).
 """
 
 import time
@@ -101,12 +101,14 @@ def irls(X, y, lam,
         # Step 1: compute diagonal weights  D_k = diag(max(|w_i|, eps_thr)^{-1})
         diag_D = 1.0 / np.maximum(np.abs(w), eps_thr)   # shape (n,)
 
-        # Step 2: assemble Q_k = A + (lambda/2) D_k
-        #   Correct coefficient: for f = ||Xw-y||^2 + lambda||w||_1, the IRLS
-        #   fixed-point condition requires (X^TX + (lam/2)*D_k)*w = X^Ty.
+        # Step 2: assemble Q_k = A + lambda * D_k
+        #   For f = (1/2)||Xw-y||^2 + lambda||w||_1 (report Eq 1.3), the
+        #   normal equation derived from Eq (2.6) is
+        #     (X^T X + lambda W_k^T W_k) w_{k+1} = X^T y,
+        #   with (W_k^T W_k)_{ii} = 1/max(|w_i|, eps_thr) = diag_D[i].
         #   Only the diagonal of A changes each iteration => O(n).
         Q = A.copy()
-        Q[np.arange(n), np.arange(n)] += 0.5 * lam * diag_D
+        Q[np.arange(n), np.arange(n)] += lam * diag_D
 
         # Step 3: solve Q_k w_{k+1} = b
         w = solve_spd(Q, b, method=solver)
