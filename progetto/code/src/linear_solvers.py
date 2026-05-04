@@ -18,9 +18,8 @@ import scipy.linalg as la
 
 
 # ---------------------------------------------------------------------------
-# Cholesky solver
+# cholesky solver
 # ---------------------------------------------------------------------------
-
 def cholesky_solve(Q, b):
     """
     Solve the SPD system Q w = b via Cholesky factorization.
@@ -44,9 +43,8 @@ def cholesky_solve(Q, b):
 
 
 # ---------------------------------------------------------------------------
-# Conjugate Gradient solver
+# conjugate gradient solver
 # ---------------------------------------------------------------------------
-
 def conjugate_gradient(Q, b, x0=None, tol=1e-10, max_iter=None):
     """
     Solve the SPD system Q w = b via the Conjugate Gradient method.
@@ -95,9 +93,8 @@ def conjugate_gradient(Q, b, x0=None, tol=1e-10, max_iter=None):
 
 
 # ---------------------------------------------------------------------------
-# Unified interface
+# unified interface
 # ---------------------------------------------------------------------------
-
 def solve_spd(Q, b, method='cholesky', **kwargs):
     """
     Solve SPD system Q w = b.

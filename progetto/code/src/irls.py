@@ -22,14 +22,7 @@ from .linear_solvers import solve_spd
 from .lasso_utils import f_lasso
 
 
-def irls(X, y, lam,
-         eps_thr=1e-8,
-         eps_stop=1e-8,
-         k_max=200,
-         solver='cholesky',
-         w0=None,
-         f_star=None,
-         verbose=False):
+def irls(X, y, lam, eps_thr=1e-8, eps_stop=1e-8, k_max=200, solver='cholesky', w0=None, f_star=None, verbose=False):
     """
     Iteratively Reweighted Least Squares for LASSO.
 
@@ -59,25 +52,21 @@ def irls(X, y, lam,
     """
     m, n = X.shape
 
-    # ------------------------------------------------------------------
-    # Pre-compute A = X^T X and b = X^T y  (done ONCE, O(m n^2))
-    # ------------------------------------------------------------------
-    A = X.T @ X          # (n, n)
-    b = X.T @ y          # (n,)
+    # pre-compute A = X^T X and b = X^T y
+    A = X.T @ X # (n, n)
+    b = X.T @ y # (n,)
 
-    # ------------------------------------------------------------------
-    # Initialization: w0 = ordinary least-squares solution A^{-1} b
-    # ------------------------------------------------------------------
+    # initialization: w0 = ordinary least-squares solution A^{-1} b
     if w0 is None:
         try:
-            w = solve_spd(A + 1e-12 * np.eye(n), b, method=solver)
+            w = solve_spd(A + 1e-12 * np.eye(n), b, method=solver) # solves w = A^-1 b
         except Exception:
             w = np.linalg.lstsq(X, y, rcond=None)[0]
     else:
         w = w0.copy()
 
     # ------------------------------------------------------------------
-    # Storage
+    # storage
     # ------------------------------------------------------------------
     f_vals = []
     gaps   = []
@@ -93,25 +82,24 @@ def irls(X, y, lam,
     converged = False
 
     # ------------------------------------------------------------------
-    # Main loop
+    # main loop
     # ------------------------------------------------------------------
     for k in range(k_max):
         w_old = w.copy()
 
-        # Step 1: compute diagonal weights  D_k = diag(max(|w_i|, eps_thr)^{-1})
-        diag_D = 1.0 / np.maximum(np.abs(w), eps_thr)   # shape (n,)
+        # step 1: compute diagonal weights  D_k = diag(max(|w_i|, eps_thr)^{-1})
+        diag_D = 1.0 / np.maximum(np.abs(w), eps_thr) # shape (n,)
 
-        # Step 2: assemble Q_k = A + (lambda/2) D_k
-        #   Correct coefficient: for f = ||Xw-y||^2 + lambda||w||_1, the IRLS
+        # step 2: assemble Q_k = A + (lambda/2) D_k
+        #   correct coefficient: for f = ||Xw-y||^2 + lambda||w||_1, the IRLS
         #   fixed-point condition requires (X^TX + (lam/2)*D_k)*w = X^Ty.
-        #   Only the diagonal of A changes each iteration => O(n).
         Q = A.copy()
-        Q[np.arange(n), np.arange(n)] += 0.5 * lam * diag_D
+        Q[np.arange(n), np.arange(n)] += 2*lam * diag_D
 
-        # Step 3: solve Q_k w_{k+1} = b
+        # step 3: solve Q_k w_{k+1} = b
         w = solve_spd(Q, b, method=solver)
 
-        # Record
+        # record
         t_elapsed = time.perf_counter() - t_start
         f_curr = f_lasso(X, y, w, lam)
         f_vals.append(f_curr)
@@ -119,7 +107,7 @@ def irls(X, y, lam,
         if f_star is not None:
             gaps.append(max(0.0, f_curr - f_star))
 
-        # Step 4: stopping criterion (relative iterate change)
+        # step 4: stopping criterion (relative iterate change)
         delta_w = np.linalg.norm(w - w_old) / max(1.0, np.linalg.norm(w_old))
 
         if verbose:

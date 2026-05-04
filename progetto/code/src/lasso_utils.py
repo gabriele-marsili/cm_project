@@ -30,7 +30,7 @@ def f_lasso(X, y, w, lam):
     float : f(w)
     """
     residual = X @ w - y
-    return float(np.dot(residual, residual) + lam * np.sum(np.abs(w)))
+    return float(0.5 * np.dot(residual, residual) + lam * np.sum(np.abs(w)))
 
 
 def grad_smooth(X, y, w):
@@ -48,7 +48,7 @@ def grad_smooth(X, y, w):
     -------
     ndarray (n,)
     """
-    return 2.0 * X.T @ (X @ w - y)
+    return X.T @ (X @ w - y)
 
 
 def subgradient_f(X, y, w, lam):
@@ -70,7 +70,7 @@ def subgradient_f(X, y, w, lam):
     ndarray (n,)
     """
     g_smooth = grad_smooth(X, y, w)
-    s = np.sign(w)          # np.sign(0) == 0  (minimum-norm subgradient)
+    s = np.sign(w) # np.sign(0) == 0  (minimum-norm subgradient)
     return g_smooth + lam * s
 
 
@@ -90,7 +90,7 @@ def optimality_gap(X, y, w, lam, f_star):
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# helpers
 # ---------------------------------------------------------------------------
 
 def check_optimality(X, y, w, lam, tol=1e-6):

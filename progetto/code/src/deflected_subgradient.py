@@ -23,7 +23,7 @@ from .lasso_utils import f_lasso, subgradient_f
 
 
 # ---------------------------------------------------------------------------
-# Optimal deflection parameter (closed-form)
+# optimal deflection parameter (closed-form)
 # ---------------------------------------------------------------------------
 
 def _optimal_gamma(g, d_prev):
@@ -46,25 +46,16 @@ def _optimal_gamma(g, d_prev):
     diff = g - d_prev
     denom = np.dot(diff, diff)
     if denom < 1e-30:
-        return 1.0                          # g == d_prev: use pure subgradient
+        return 1.0 # g == d_prev: use pure subgradient
     gamma_star = (np.dot(d_prev, d_prev) - np.dot(g, d_prev)) / denom
     return float(np.clip(gamma_star, 0.0, 1.0))
 
 
 # ---------------------------------------------------------------------------
-# Main algorithm
+# main algorithm
 # ---------------------------------------------------------------------------
 
-def deflected_subgradient(X, y, lam,
-                           w0=None,
-                           i_max=5000,
-                           beta=1.0,
-                           delta0=None,
-                           R=None,
-                           rho=0.95,
-                           f_star=None,
-                           verbose=False,
-                           verbose_freq=500):
+def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0, delta0=None, R=None, rho=0.95, f_star=None, verbose=False, verbose_freq=500):
     """
     Deflected Subgradient Method with Target Level for LASSO.
 
@@ -99,7 +90,7 @@ def deflected_subgradient(X, y, lam,
     m, n = X.shape
 
     # ------------------------------------------------------------------
-    # Initialization
+    # initialization
     # ------------------------------------------------------------------
     if w0 is None:
         w = np.zeros(n)
@@ -113,38 +104,38 @@ def deflected_subgradient(X, y, lam,
     if R is None:
         R = 10.0 * np.sqrt(i_max)
 
-    # Algorithm state
-    r       = 0.0           # accumulated travel without improvement
-    delta   = delta0
-    f_ref   = f_curr        # best reference value seen
-    f_bar   = f_curr        # record value (best f found so far)
-    w_best  = w.copy()      # iterate achieving f_bar
-    d_prev  = np.zeros(n)   # d_{-1} = 0
+    # algorithm state
+    r = 0.0 # accumulated travel without improvement
+    delta = delta0
+    f_ref = f_curr # best reference value seen
+    f_bar = f_curr # record value (best f found so far)
+    w_best = w.copy() # iterate achieving f_bar
+    d_prev = np.zeros(n) # d_{-1} = 0
 
     # ------------------------------------------------------------------
-    # Storage
+    # storage
     # ------------------------------------------------------------------
-    f_vals      = [f_curr]
-    f_bar_list  = [f_bar]
-    gaps        = [max(0.0, f_bar - f_star)] if f_star is not None else []
-    times       = [0.0]
-    delta_hist  = [delta]
-    t_start     = time.perf_counter()
+    f_vals = [f_curr]
+    f_bar_list = [f_bar]
+    gaps = [max(0.0, f_bar - f_star)] if f_star is not None else []
+    times = [0.0]
+    delta_hist = [delta]
+    t_start = time.perf_counter()
 
     # ------------------------------------------------------------------
-    # Main loop
+    # main loop
     # ------------------------------------------------------------------
     for i in range(i_max):
-        # Step 1: compute a subgradient g in partial f(w_i)
+        # step 1: compute a subgradient g in partial f(w_i)
         g = subgradient_f(X, y, w, lam)
 
-        # Step 2: optimal deflection parameter gamma_i
+        # step 2: optimal deflection parameter gamma_i
         if i == 0:
-            gamma = 1.0             # first iteration: pure subgradient
+            gamma = 1.0 # first iteration: pure subgradient
         else:
             gamma = _optimal_gamma(g, d_prev)
 
-        # Step 3: deflected direction d_i = gamma g + (1-gamma) d_{i-1}
+        # step 3: deflected direction d_i = gamma g + (1-gamma) d_{i-1}
         d = gamma * g + (1.0 - gamma) * d_prev
 
         d_norm_sq = np.dot(d, d)
@@ -152,18 +143,18 @@ def deflected_subgradient(X, y, lam,
             # direction is zero — at optimum or numerical issue
             break
 
-        # Step 4: Polyak stepsize with target level
-        #   alpha_i = beta * (f(w_i) - (f_ref - delta)) / ||d_i||^2
+        # step 4: Polyak stepsize with target level
+        # alpha_i = beta * (f(w_i) - (f_ref - delta)) / ||d_i||^2
         target = f_ref - delta
         numerator = beta * (f_curr - target)
 
         if numerator <= 0.0:
             # f_curr <= target: target is too aggressive or we're below it
-            # Reduce delta immediately and skip step
+            # reduce delta immediately and skip step
             delta *= rho
             delta_hist.append(delta)
             d_prev = d
-            # Record same point
+            # record same point
             f_vals.append(f_curr)
             f_bar_list.append(f_bar)
             if f_star is not None:
@@ -173,12 +164,10 @@ def deflected_subgradient(X, y, lam,
 
         alpha = numerator / d_norm_sq
 
-        # Step 5: update iterate
+        # step 5: update iterate
         w_new = w - alpha * d
 
-        # Safety: reject step if it produces NaN/inf (can happen when
-        # delta0 is initialised larger than f(w0)-f*, pushing the target
-        # below f* and causing alpha -> inf near the optimum).
+        # safety: reject step if it produces NaN/inf (can happen when delta0 is initialised larger than f(w0)-f*, pushing the target below f* and causing alpha -> inf near the optimum)
         if not np.all(np.isfinite(w_new)):
             delta *= rho
             delta_hist.append(delta)
@@ -190,33 +179,33 @@ def deflected_subgradient(X, y, lam,
             times.append(time.perf_counter() - t_start)
             continue
 
-        # Step 6: evaluate f at new iterate
+        # step 6: evaluate f at new iterate
         f_new = f_lasso(X, y, w_new, lam)
 
-        # Step 7: update record value BEFORE the if-elseif-else block
+        # step 7: update record value before the if block
         if f_new < f_bar:
             f_bar  = f_new
             w_best = w_new.copy()
 
-        # Step 8: target-level logic
+        # step 8: target-level logic
         if f_new <= f_ref - delta / 2.0:
-            # Significant improvement: reset reference and counter
+            # significant improvement: reset reference and counter
             f_ref = f_bar
-            r     = 0.0
+            r = 0.0
         elif r > R:
-            # Stalled: reduce target (lower expectations)
+            # stalled: reduce target (lower expectations)
             delta *= rho
-            r      = 0.0
+            r = 0.0
         else:
-            # Accumulate travel distance
+            # accumulate travel distance
             r += alpha * np.sqrt(d_norm_sq)
 
-        # Move to next iterate
-        w      = w_new
+        # move to next iterate
+        w = w_new
         f_curr = f_new
         d_prev = d
 
-        # Record
+        # record
         t_elapsed = time.perf_counter() - t_start
         f_vals.append(f_curr)
         f_bar_list.append(f_bar)
