@@ -22,8 +22,7 @@ from sklearn.preprocessing import StandardScaler
 # Synthetic LASSO data (with known optimal f*)
 # ---------------------------------------------------------------------------
 
-def make_lasso_problem(n=100, m=200, sparsity=0.1, noise_std=0.1,
-                       lam=0.1, random_state=42):
+def make_lasso_problem(n=100, m=200, sparsity=0.1, noise_std=0.1, lam=0.1, random_state=42):
     """
     Generate a synthetic LASSO problem with known sparse ground truth.
 
@@ -46,31 +45,30 @@ def make_lasso_problem(n=100, m=200, sparsity=0.1, noise_std=0.1,
     """
     rng = np.random.RandomState(random_state)
 
-    # Sparse ground truth
+    # sparse ground truth
     k = max(1, int(sparsity * n))
     w_true = np.zeros(n)
     idx = rng.choice(n, size=k, replace=False)
     w_true[idx] = rng.randn(k)
 
-    # Feature matrix (normalized columns improve conditioning)
+    # feature matrix (normalized columns improve conditioning)
     X_raw = rng.randn(m, n)
     X = X_raw / (np.linalg.norm(X_raw, axis=0, keepdims=True) + 1e-12)
 
-    # Targets
+    # targets
     y = X @ w_true + noise_std * rng.randn(m)
 
-    # Reference solution via sklearn (validation only, not for algorithm).
-    # sklearn Lasso minimizes  (1/(2m)) ||Xw-y||^2 + alpha ||w||_1.
-    # Our f = (1/2) ||Xw-y||^2 + lam ||w||_1  (report Eq 1.3).
-    # Multiplying sklearn loss by m gives  (1/2)||Xw-y||^2 + m*alpha ||w||_1,
-    # so to match our problem we set  alpha = lam / m.
-    alpha_sk = lam / m
-    sk = SklearnLasso(alpha=alpha_sk, fit_intercept=False,
-                      max_iter=100000, tol=1e-12)
+    # reference solution via sklearn (validation only, not for algorithm)
+    # sklearn Lasso minimizes (1/(2m)) ||Xw-y||^2 + alpha ||w||_1
+    # our f = ||Xw-y||^2 + lam ||w||_1
+    # dividing ours by 2m: (1/(2m))||Xw-y||^2 + (lam/(2m))||w||_1
+    # so alpha = lam / (2m)
+    alpha_sk = lam / (2.0 * m)
+    sk = SklearnLasso(alpha=alpha_sk, fit_intercept=False, max_iter=100000, tol=1e-12)
     sk.fit(X, y)
     w_star = sk.coef_
 
-    # Compute f* with OUR objective
+    # compute f* with OUR objective
     from .lasso_utils import f_lasso
     f_star = f_lasso(X, y, w_star, lam)
 
@@ -81,8 +79,7 @@ def make_lasso_problem(n=100, m=200, sparsity=0.1, noise_std=0.1,
 # ELM-specific synthetic data
 # ---------------------------------------------------------------------------
 
-def make_elm_problem(d=20, p=100, m=500, sparsity=0.1, noise_std=0.1,
-                     activation='sigmoid', lam=0.1, random_state=42):
+def make_elm_problem(d=20, p=100, m=500, sparsity=0.1, noise_std=0.1, activation='sigmoid', lam=0.1, random_state=42):
     """
     Generate synthetic data for the full ELM pipeline.
 
@@ -124,21 +121,18 @@ def make_elm_problem(d=20, p=100, m=500, sparsity=0.1, noise_std=0.1,
     X_raw = rng.randn(m, d)
     X_hid = sigma(X_raw @ W1.T)   # (m, p)
 
-    # Sparse ground-truth output weights
+    # sparse ground-truth output weights
     k = max(1, int(sparsity * p))
     w_true = np.zeros(p)
     idx = rng.choice(p, size=k, replace=False)
     w_true[idx] = rng.randn(k)
 
-    # Targets
+    # targets
     y = X_hid @ w_true + noise_std * rng.randn(m)
 
-    # Reference optimal value (sklearn).  Same mapping as make_lasso_problem:
-    # sklearn loss  (1/(2m))||Xw-y||^2 + alpha ||w||_1  ==  our f / m   when
-    # alpha = lam / m, and our f = (1/2)||Xw-y||^2 + lam ||w||_1.
-    alpha_sk = lam / m
-    sk = SklearnLasso(alpha=alpha_sk, fit_intercept=False,
-                      max_iter=100000, tol=1e-12)
+    # reference optimal value (sklearn)
+    alpha_sk = lam * m / 2.0 # ??????????
+    sk = SklearnLasso(alpha=alpha_sk, fit_intercept=False, max_iter=100000, tol=1e-12)
     sk.fit(X_hid, y)
     w_star = sk.coef_
 
@@ -175,11 +169,11 @@ def load_real_dataset(name='diabetes', test_size=0.2, random_state=42):
 
     X, y = data.data, data.target
 
-    # Standardize features
+    # standardize features
     scaler = StandardScaler()
     X = scaler.fit_transform(X)
 
-    # Train/test split (manual, no sklearn split to avoid dependency)
+    # train-test split (manual, no sklearn split to avoid dependency)
     rng = np.random.RandomState(random_state)
     idx = rng.permutation(len(y))
     n_test = int(test_size * len(y))

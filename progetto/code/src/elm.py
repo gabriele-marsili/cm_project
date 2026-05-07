@@ -24,7 +24,7 @@ from .deflected_subgradient import deflected_subgradient
 
 
 # ---------------------------------------------------------------------------
-# Activation functions
+# activation functions
 # ---------------------------------------------------------------------------
 
 def _sigmoid(z):
@@ -63,24 +63,23 @@ class ELM:
 
     def __init__(self, d, p, activation='sigmoid', lam=0.1, random_state=42):
         if activation not in _ACTIVATIONS:
-            raise ValueError(f"Unknown activation '{activation}'. "
-                             f"Choose from {list(_ACTIVATIONS)}.")
-        self.d          = d
-        self.p          = p
+            raise ValueError(f"Unknown activation '{activation}'. Choose from {list(_ACTIVATIONS)}.")
+        self.d = d
+        self.p = p
         self.activation = activation
-        self.lam        = lam
-        self.sigma      = _ACTIVATIONS[activation]
+        self.lam = lam
+        self.sigma = _ACTIVATIONS[activation]
 
-        # Generate fixed random hidden-layer weights W1 in R^{p x d}
+        # generate fixed random hidden-layer weights W1 in R^{p x d}
         rng = np.random.RandomState(random_state)
         self.W1 = rng.randn(p, d)
 
-        # Output weights (set after fitting)
+        # output weights (set after fitting)
         self.w = None
         self._fit_result = None
 
     # ------------------------------------------------------------------
-    # Transform: compute hidden activations
+    # transform: compute hidden activations
     # ------------------------------------------------------------------
 
     def transform(self, X_raw):
@@ -95,13 +94,11 @@ class ELM:
         -------
         X_hidden : ndarray (m, p)  -- hidden activations sigma(X_raw W1^T)
         """
-        # Each row x: W1 x = W1 @ x.  For all rows: X_raw @ W1^T
-        return self.sigma(X_raw @ self.W1.T)   # (m, p)
+        return self.sigma(X_raw @ self.W1.T) # (m, p)
 
     # ------------------------------------------------------------------
-    # Fit: learn output weights
+    # fit: learn output weights
     # ------------------------------------------------------------------
-
     def fit(self, X_raw, y, solver='irls', **solver_kwargs):
         """
         Fit the ELM by solving the LASSO problem on the hidden features.
@@ -117,7 +114,7 @@ class ELM:
         -------
         self   (for method chaining)
         """
-        X_hidden = self.transform(X_raw)   # (m, p)
+        X_hidden = self.transform(X_raw) # (m, p)
 
         if solver == 'irls':
             result = irls(X_hidden, y, self.lam, **solver_kwargs)
@@ -131,9 +128,8 @@ class ELM:
         return self
 
     # ------------------------------------------------------------------
-    # Predict
+    # predict
     # ------------------------------------------------------------------
-
     def predict(self, X_raw):
         """
         Predict targets for new inputs.
@@ -148,13 +144,12 @@ class ELM:
         """
         if self.w is None:
             raise RuntimeError("Model is not fitted yet. Call fit() first.")
-        X_hidden = self.transform(X_raw)   # (m, p)
+        X_hidden = self.transform(X_raw) # (m, p)
         return X_hidden @ self.w
 
     # ------------------------------------------------------------------
-    # Convenience properties
+    # convenience properties (@property is a decorator for read-only attributes)
     # ------------------------------------------------------------------
-
     @property
     def sparsity(self):
         """Fraction of output weights that are (approximately) zero."""

@@ -73,7 +73,7 @@ def subgradient_f(X, y, w, lam):
     ndarray (n,)
     """
     g_smooth = grad_smooth(X, y, w)
-    s = np.sign(w)          # np.sign(0) == 0  (minimum-norm subgradient)
+    s = np.sign(w) # np.sign(0) == 0  (minimum-norm subgradient)
     return g_smooth + lam * s
 
 
@@ -93,7 +93,7 @@ def optimality_gap(X, y, w, lam, f_star):
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# helpers
 # ---------------------------------------------------------------------------
 
 def check_optimality(X, y, w, lam, tol=1e-6):
