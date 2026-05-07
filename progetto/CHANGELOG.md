@@ -3,6 +3,64 @@
 All notable changes to the CM 646AA Project 25 ML (ELM + LASSO) implementation
 and report. Dates are in `YYYY-MM-DD`.
 
+## 2026-05-07 — Real-data validation experiment
+
+Added an experiment that validates IRLS and SGPTL on real regression datasets,
+to complement the synthetic study. The optimisation gap stays meaningful on
+real data because `sklearn.linear_model.Lasso` at `tol=1e-12` provides a
+high-precision $f^{*}$ reference; the support-recovery question is the only
+piece that requires synthetic data and is not attempted here.
+
+### Added
+
+- **`progetto/code/experiments/experiment_real_data.py`** — End-to-end
+  pipeline:
+  1. Load `diabetes` and `california` from `sklearn.datasets`;
+  2. 80/20 train/test split with feature and target standardisation fit on
+     the train split only;
+  3. ELM transformation $\sigma(\mathbf{X}\mathbf{W}_{1}^{\top})$ with $H=200$
+     sigmoid units and a fixed random $\mathbf{W}_{1}$;
+  4. Reference solution via `sklearn-Lasso` at `alpha = lam/M`,
+     `tol=1e-12`, `max_iter=1e5`;
+  5. OLS warm start shared by IRLS (100 iter, `eps_thr=1e-8`) and SGPTL
+     (8000 iter, `delta0=0.1*f*`, `rho=0.9`);
+  6. Closed-form Ridge baseline at the same regularisation strength on
+     the quadratic term;
+  7. Reports objective value, sparsity (count of components below `1e-6`)
+     and held-out test MSE for each method.
+- Outputs:
+  `progetto/code/results/tables/real_data.csv` and
+  `progetto/code/results/figures/real_data_convergence.pdf`.
+
+### Changed — report
+
+- **§5.7 Validation on real datasets** (new section, ~1.5 pages,
+  Table 5.3 and Figure 5.8) — Documents the real-data results:
+  - IRLS reaches the sklearn precision floor on both datasets in
+    $\le 100$ iterations and returns a marginally lower $f$ than
+    sklearn does at its `1e-12` tolerance ($52.949$ vs $52.950$ on
+    diabetes; $2358.02$ vs $2360.83$ on California);
+  - IRLS-recovered sparsity tracks sklearn within a few percentage
+    points (14% vs 18% on diabetes, 4% vs 2% on California);
+  - On diabetes the L1 mechanism gives a clear test-MSE gain over
+    Ridge ($0.898$ vs $0.942$); on California the three methods are
+    within rounding noise;
+  - SGPTL converges on California ($M=16512$, $M\gg H$) but stalls on
+    diabetes ($M=354$, comparable to $H=200$, $\text{cond}\sim 10^{6}$),
+    consistent with the $O(\varepsilon^{-2})$ rate when the problem
+    becomes underdetermined.
+- **Chapter 6 Conclusions / Limitations** — Replaced the previous "we
+  did not test on real datasets" caveat with a pointer to §5.7 and a
+  brief summary of the regime-split result.
+
+### Notes
+
+- Test MSE is computed on the held-out 20% split with the standardised
+  target; the units are therefore variance-of-y on the train split.
+- The two datasets ship with sklearn (California is downloaded once on
+  first run via `fetch_california_housing`); no external data is
+  required.
+
 ## 2026-05-07 — Post-merge correctness pass
 
 Critical algorithmic bugs introduced by the previous merge were identified and

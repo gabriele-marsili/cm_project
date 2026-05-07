@@ -1,12 +1,12 @@
 # Fdb version 4
-["biber main"] 1777385457.08712 "main.bcf" "main.bbl" "main" 1778148161.39682 0
-  "main.bcf" 1778148161.30732 112953 20f641e13c2df7067e83837c68e2d6e1 "pdflatex"
+["biber main"] 1777385457.08712 "main.bcf" "main.bbl" "main" 1778152493.8323 0
+  "main.bcf" 1778152493.74208 112953 20f641e13c2df7067e83837c68e2d6e1 "pdflatex"
   "references.bib" 1777368888.30349 7538 e0c59222a72e782644aa764fa34eb62b ""
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1778148159.78493 "main.tex" "main.pdf" "main" 1778148161.39704 0
+["pdflatex"] 1778152492.22265 "main.tex" "main.pdf" "main" 1778152493.83253 0
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm" 1136768653 1536 e07581a4bb3136ece9eeb4c3ffab8233 ""
@@ -46,6 +46,7 @@
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmti10.tfm" 1136768653 1480 aa8e34af0eb6a2941b776984cf1dfdc4 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmti7.tfm" 1136768653 1492 86331993fe614793f5e7e755835c31c5 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmtt10.tfm" 1136768653 768 1321e9409b4137d6fb428ac9dc956269 ""
+  "/usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmtt8.tfm" 1136768653 768 d7b9a2629a0c353102ad947dc9221d49 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb" 1248133631 34811 78b52f49e893bcba91bd7581cdc144c0 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb" 1248133631 32080 340ef9bf63678554ee606688e7b5339d ""
   "/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx7.pfb" 1248133631 32007 e8fa0078355f39467039935974716569 ""
@@ -174,8 +175,8 @@
   "2_algo_1_IRLS/algo1.tex" 1777385256.74364 20894 c13b458b63d56da864975eacfb945d0b ""
   "3_algo_2_DSM/chapter3.tex" 1777385449.99512 29756 b8e20f53becf763145bc3ef080866f22 ""
   "4_algo_comparison/comparison.tex" 1777367507.83104 12331 82b97a7ba8c7ea8ac96d34186b598214 ""
-  "5_results/results.tex" 1778148094.49313 21507 d79b7e86bb74c17d0fbd9cc5fcdcd385 ""
-  "6_conclusions/conclusions.tex" 1778148135.54782 6243 b2a12afb9cc1c16b3cc6b5d1e8b862c4 ""
+  "5_results/results.tex" 1778152458.44361 26909 2e4ddac6a4527f8e063d9a087ac91c42 ""
+  "6_conclusions/conclusions.tex" 1778152476.15203 6741 d426e3848edab70612fe3f532913f070 ""
   "images/cherubino_pant541.png" 1777368345.91363 164399 35acb288a44c404ffd063bc22487e4be ""
   "images/comparison_irls_dsm.pdf" 1777720142.05418 50792 c43ad0a6e88bdfd0e09b9295fdd4b45b ""
   "images/convergence_vs_iter.pdf" 1777720142.05465 38653 8ccd77cea3e4a6ad14b0d7e6b55ed4d6 ""
@@ -184,13 +185,14 @@
   "images/elm.png" 1777368348.88819 160307 9dd0f263efc9c47247044aa98e35de94 ""
   "images/params_dsm.pdf" 1777720142.05589 32288 703b461d5555c39d515140bae26c202c ""
   "images/params_irls.pdf" 1777720142.05644 40785 58553ae20a04ad68ed13547d58c5a5a0 ""
+  "images/real_data_convergence.pdf" 1778152482.86419 26286 bd88d3a698ebff66da30923837aa4863 ""
   "images/scalability.pdf" 1777720142.05689 26462 a97b0f1e797fc6d27baf749994446ff8 ""
-  "main.aux" 1778148161.30233 31119 367e2731e0830b02124eeb733ea0e856 "pdflatex"
+  "main.aux" 1778152493.73693 32786 63659dddb7dca1502aca609b560d0226 "pdflatex"
   "main.bbl" 1777385458.85998 33757 da4610132502817e6034a8bd2ac31122 "biber main"
-  "main.out" 1778148161.30655 10549 6aa2d6873db955fc144e5eaa65133a55 "pdflatex"
-  "main.run.xml" 1778148161.30783 2305 52095dfad395b381e9a32937e764a41c "pdflatex"
+  "main.out" 1778152493.74124 10748 092da4df2c2c8e92441984a57e6d8889 "pdflatex"
+  "main.run.xml" 1778152493.7426 2305 52095dfad395b381e9a32937e764a41c "pdflatex"
   "main.tex" 1777369148.25859 2550 cb608f3ddf0d08bcb9598e12a6b35b3a ""
-  "main.toc" 1778148161.30788 6814 35060defd2388a1f124c43bcdd100dbf "pdflatex"
+  "main.toc" 1778152493.74266 6902 3009cf22080d4c878e0b7cb0ddc8ee6e "pdflatex"
   (generated)
   "main.aux"
   "main.bcf"

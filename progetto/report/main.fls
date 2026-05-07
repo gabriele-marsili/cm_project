@@ -371,6 +371,13 @@ INPUT ./images/comparison_irls_dsm.pdf
 INPUT ./images/comparison_irls_dsm.pdf
 INPUT ./images/comparison_irls_dsm.pdf
 INPUT ./images/comparison_irls_dsm.pdf
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmtt8.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmtt8.tfm
+INPUT ./images/real_data_convergence.pdf
+INPUT ./images/real_data_convergence.pdf
+INPUT ./images/real_data_convergence.pdf
+INPUT ./images/real_data_convergence.pdf
+INPUT ./images/real_data_convergence.pdf
 INPUT ./6_conclusions/conclusions.tex
 INPUT ./6_conclusions/conclusions.tex
 INPUT ./6_conclusions/conclusions.tex

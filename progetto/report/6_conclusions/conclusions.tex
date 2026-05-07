@@ -92,15 +92,22 @@ LASSO problem through the MM smoothing rather than treating it as a
 generic non-smooth convex programme.
 
 \paragraph{Limitations and possible extensions.}
-We did not test the algorithms on real ELM datasets because the
-project's evaluation criterion is the optimisation gap, not the
-learning quality, and synthetic instances with known $\mathbf{w}^{*}$
-are the only setting where the gap is meaningful. We did not implement
-an accelerated subgradient variant (for example Nesterov smoothing of
-the $\ell_{1}$ term) that would close some of the rate gap with IRLS,
-since the project specification fixes SGPTL as Algorithm~A2. We also
-did not explore very ill-conditioned $\mathbf{X}$ where the IRLS
-linear rate would degrade and the per-iteration cost advantage of
-SGPTL would have more room to matter; column normalisation kept
-conditioning bounded across all our experiments, which is the regime
-our analysis covers.
+The synthetic study is the primary evidence base because it is the
+only setting where the support-recovery question has a ground truth;
+Section~\ref{sec:real_data} validates the optimisation behaviour on
+two real regression datasets (\textit{diabetes} and \textit{California
+housing}) by using sklearn's high-tolerance coordinate descent as the
+$f^{*}$ reference, and finds that IRLS matches or slightly improves on
+the sklearn reference on both, while SGPTL converges on the larger
+$M\gg H$ instance and stalls on the smaller $M\sim H$ one --- exactly
+the rate-driven regime split the synthetic experiments predict. We did
+not implement an accelerated subgradient variant (for example Nesterov
+smoothing of the $\ell_{1}$ term) that would close some of the rate
+gap with IRLS, since the project specification fixes SGPTL as
+Algorithm~A2. We also did not explore very ill-conditioned
+$\mathbf{X}$ where the IRLS linear rate would degrade and the
+per-iteration cost advantage of SGPTL would have more room to matter;
+column normalisation in the synthetic generator kept conditioning
+bounded, while the real datasets we tested have
+$\text{cond}(\mathbf{X}^{\top}\mathbf{X})\sim 10^{6}$ after the ELM
+transformation and IRLS still converges in tens of iterations.

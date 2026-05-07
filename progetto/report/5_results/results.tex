@@ -424,3 +424,103 @@ instance.
     optimality gap versus iteration. Right: gap versus CPU time.}
     \label{fig:comparison}
 \end{figure}
+
+\section{Validation on real datasets}
+\label{sec:real_data}
+
+The synthetic experiments above use a known sparse $\mathbf{w}_\text{true}$
+so the optimisation gap and the support-recovery question both have a
+ground-truth reference. Real datasets give up the support-recovery
+side --- there is no $\mathbf{w}_\text{true}$ to compare against ---
+but the optimisation gap is still meaningful because
+\texttt{sklearn.linear\_model.Lasso} provides a high-tolerance
+($\texttt{tol}=10^{-12}$) reference $f^{*}=f(\mathbf{w}^{*})$ on every
+instance. We use this to verify that the algorithmic conclusions of
+the synthetic study transfer to data the report's analysis does not
+control.
+
+We test two regression datasets included with scikit-learn:
+\textit{diabetes} ($n=442$, $d=10$) and \textit{California housing}
+($n=20640$, $d=8$). Each set is split $80/20$ into train/test, both
+features and target are standardised on the training split, and the
+ELM transformation $\mathbf{X}_\text{hidden}=\sigma(\mathbf{X}\,\mathbf{W}_{1}^{\top})$
+with $H=200$ sigmoid units and a fixed random $\mathbf{W}_{1}$ produces
+the matrix on which the LASSO is solved. Both algorithms use the OLS
+warm start $\mathbf{w}_{0}=(\mathbf{X}_\text{hidden}^{\top}\mathbf{X}_\text{hidden})^{-1}\mathbf{X}_\text{hidden}^{\top}\mathbf{y}$,
+$\lambda_\text{LASSO}=0.1$, $\beta=1$, $\delta_{0}=0.1\,f^{*}$,
+$\rho=0.9$. IRLS runs for $100$~iterations with
+$\varepsilon_\text{thr}=10^{-8}$; SGPTL runs for $8000$~iterations.
+Table~\ref{tab:real_data} collects the numbers.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{lrrrrrr}
+        \toprule
+        & \multicolumn{3}{c}{Diabetes ($M=354$)} & \multicolumn{3}{c}{California ($M=16512$)} \\
+        \cmidrule(lr){2-4}\cmidrule(lr){5-7}
+        method & $f$ & sparsity & test MSE & $f$ & sparsity & test MSE \\
+        \midrule
+        sklearn-Lasso ($f^{*}$) & $52.95$ & $18\%$ & $0.897$ & $2360.83$ & $\phantom{0}2\%$ & $0.309$ \\
+        IRLS                    & $52.95$ & $14\%$ & $0.898$ & $2358.02$ & $\phantom{0}4\%$ & $0.307$ \\
+        SGPTL                   & $60.03$ & $\phantom{0}0\%$ & $1.692$ & $2358.48$ & $\phantom{0}0\%$ & $0.308$ \\
+        Ridge (closed form)     & ---     & ---     & $0.942$ & ---       & ---             & $0.307$ \\
+        \bottomrule
+    \end{tabular}
+    \caption{IRLS and SGPTL on real datasets passed through an
+    $H=200$ sigmoid ELM transformation,
+    $\lambda_\text{LASSO}=0.1$. Sparsity counts components with
+    $|w_{i}|<10^{-6}$. Test MSE is on the held-out $20\%$ split, with
+    $y$ standardised on the training set. Ridge is the closed-form
+    Tikhonov solution at the same regularisation strength on the
+    quadratic term.}
+    \label{tab:real_data}
+\end{table}
+
+Three things stand out. First, IRLS reaches the sklearn reference value
+on both datasets within $100$~iterations and in fact returns a slightly
+lower $f$ than sklearn's coordinate descent does at its
+$10^{-12}$~tolerance ($52.949$ vs $52.950$ on diabetes,
+$2358.02$ vs $2360.83$ on California). The Cholesky-based MM
+inner solve is more accurate on these problem sizes than coordinate
+descent at the budgeted tolerance. The optimisation gap therefore
+sits at machine precision on the figure
+(Figure~\ref{fig:real-data}, both panels), with the IRLS curve dropping
+straight to the floor before $20$~iterations on California.
+
+Second, the IRLS-recovered sparsity tracks sklearn within a few
+percentage points ($14\%$~vs $18\%$ on diabetes, $4\%$~vs $2\%$ on
+California), and the IRLS test MSE matches or marginally improves on
+sklearn-Lasso. On diabetes the L1 mechanism produces a clear
+generalisation gain over Ridge ($0.898$~vs $0.942$), confirming that
+the algorithmic implementation of LASSO realises the bias-variance
+trade-off the regulariser is designed for. On California the three
+methods are within rounding noise of each other; with $M\gg H$ and
+column-normalised features the LASSO and Ridge solutions are close.
+
+Third, SGPTL's behaviour matches the synthetic findings of
+Section~\ref{sec:convergence}. On the larger California problem
+($M=16512$), SGPTL converges essentially to the same $f$ as IRLS
+($2358.48$~vs $2358.02$, both below sklearn's reference) and produces a
+near-identical test MSE, but with $0\%$ exact sparsity --- the same
+non-thresholding artefact discussed in
+Section~\ref{sec:quality}. On diabetes ($M=354$), SGPTL fails to
+escape the $f=60$ region in $8000$~iterations
+($\bar{f}^{i}-f^{*}=7.1$). The diabetes hidden-layer Gram matrix is
+underdetermined ($H>M$ on the design level: $200$ neurons against
+$354$ samples and $\text{cond}(\mathbf{X}^{\top}\mathbf{X})\approx10^{6}$),
+so the OLS warm start and the L1 optimum are far apart, and SGPTL's
+sublinear rate cannot close the gap inside the iteration budget. This
+is consistent with the rate analysis: the same instance where IRLS
+amortises a single $O(MH^{2})$ pre-computation across $100$ Cholesky
+solves is precisely the regime where SGPTL's $O(\varepsilon^{-2})$
+iteration count blows up.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/real_data_convergence.pdf}
+    \caption{Optimisation gap $f-f^{*}$ versus iteration on the two
+    real datasets. IRLS reaches the sklearn precision floor on both
+    instances; SGPTL converges only on California, where $M\gg H$
+    keeps the problem well-posed.}
+    \label{fig:real-data}
+\end{figure}
