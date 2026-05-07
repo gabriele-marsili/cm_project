@@ -10,19 +10,20 @@ spiegano l'**implementazione** così come è scritta nei file `.py`.
 
 | File | Cosa contiene | Quando leggerlo |
 |---|---|---|
-| [`01-architecture.md`](01-architecture.md) | Mappa dei file, divisione delle responsabilità, come la matematica del report vive nel codice (objective, gradient, sub-gradient, KKT, mapping sklearn). | Per orientarsi prima di toccare qualunque cosa. |
-| [`02-algorithms.md`](02-algorithms.md) | IRLS e SGPTL spiegati riga per riga, con i riferimenti al report. La parte SGPTL include la storia del bug γ→0 e perché il safeguard di pazienza è necessario. | Per capire *come* gli algoritmi sono implementati e *perché* si è scelto questo o quello. |
-| [`03-experiments-and-tests.md`](03-experiments-and-tests.md) | Cosa misura ogni esperimento, quali figure / tabelle produce, come è organizzata la test suite, come riprodurre i risultati del report. | Per ri-eseguire o estendere gli esperimenti, e per aggiungere nuovi test. |
+| [`01-architecture.md`](01-architecture.md) | Mappa dei file, divisione delle responsabilità, come la matematica del report vive nel codice (objective, gradient, sub-gradient, KKT, mapping sklearn α=λ/M). | Per orientarsi prima di toccare qualunque cosa. |
+| [`02-algorithms.md`](02-algorithms.md) | IRLS e SGPTL spiegati riga per riga, con i riferimenti al report. La parte SGPTL include la storia del bug γ→0, il vincolo β_i = min(β, γ_i), e perché il safeguard iteration-count è necessario. | Per capire *come* gli algoritmi sono implementati e *perché* si è scelto questo o quello. |
+| [`03-experiments-and-tests.md`](03-experiments-and-tests.md) | Cosa misura ogni esperimento (5 script, inclusa la validazione real-data su diabetes / California), quali figure / tabelle produce, come è organizzata la test suite, come riprodurre i risultati del report. | Per ri-eseguire o estendere gli esperimenti, e per aggiungere nuovi test. |
 
 ## Quickstart 5 minuti
 
 ```bash
 cd progetto/code
-python -m pytest tests/                       # 53 test, ~2.3 s
+python -m pytest tests/                       # 53 test, ~2.4 s
 python experiments/experiment_convergence.py  # genera 3 figure in results/figures/
 python experiments/experiment_comparison.py   # 1 figura + 1 tabella CSV
 python experiments/experiment_params.py       # 2 figure
 python experiments/experiment_scalability.py  # 1 figura + 1 tabella
+python experiments/experiment_real_data.py    # 1 figura + 1 tabella su dataset reali
 ```
 
 Le figure finiscono in `results/figures/*.pdf` e le tabelle in
@@ -70,10 +71,11 @@ progetto/code/
 │
 ├── experiments/                  # Script che producono figure + tabelle
 │   ├── _plot_style.py            # Stile matplotlib condiviso
-│   ├── experiment_convergence.py
-│   ├── experiment_comparison.py
-│   ├── experiment_params.py
-│   └── experiment_scalability.py
+│   ├── experiment_convergence.py # Cap. 5.2 — gap vs iterazione/CPU
+│   ├── experiment_params.py      # Cap. 5.3 — sensibilità eps_thr/lambda/delta_0/rho
+│   ├── experiment_comparison.py  # Cap. 5.4-5.6 — quality, iters-to-eps
+│   ├── experiment_scalability.py # Cap. 5.5 — scaling con H
+│   └── experiment_real_data.py   # Cap. 5.7 — diabetes + California housing
 │
 ├── tests/                        # Pytest suite (53 test)
 │   ├── conftest.py               # Fixture condivise
@@ -98,6 +100,35 @@ progetto/code/
 ├── test_basic.py                 # Smoke test legacy (kept for reference)
 └── README.md                     # README di alto livello del codice
 ```
+
+## Stato corrente (2026-05-07)
+
+Ultimi cambiamenti rilevanti, in ordine cronologico inverso:
+
+1. **Validation real-data** (`experiment_real_data.py`, §5.7 del report) —
+   Pipeline ELM + LASSO su `diabetes` e `california_housing` di sklearn.
+   IRLS matcha la precisione di sklearn-Lasso entro 100 iterazioni;
+   SGPTL converge su California ($M\gg H$) ma stalla su diabetes
+   ($M\sim H$, $\text{cond}\sim10^{6}$).
+2. **Correzione algoritmica post-merge** (vedi `progetto/CHANGELOG.md`) —
+   Quattro bug corretti in `src/`:
+   - IRLS coefficient `2λD_k → λD_k` (il punto fisso ora soddisfa il KKT
+     di λ, non di 2λ);
+   - sklearn α: `λ/(2m) → λ/m` in `data_generation.py` (allineato a §5.1
+     del report);
+   - SGPTL: `_optimal_gamma` ora ritorna 1 quando `‖d_prev‖² ≈ 0`,
+     `β_i = min(β, γ_i)` rispetta il vincolo del report §3.2, e il
+     fallback iteration-count (`R_iter = max(i_max/100, 50)`) di §5.1
+     ora è effettivamente implementato e scatta ad ogni iterazione;
+   - Tutti gli script in `experiments/` ora passano l'OLS warm start a
+     SGPTL (era un cold start zeros).
+3. **Capitoli 5 e 6 del report riscritti** con i numeri reali dopo i
+   fix. La storia qualitativa è invariata (IRLS lineare batte SGPTL
+   sublineare), ma i valori specifici dei gap erano artefatti del bug
+   `f_star` e sono stati sostituiti con le misure corrette.
+
+`progetto/CHANGELOG.md` contiene il dettaglio completo dei commit di
+questo ciclo.
 
 ## Per chi è questo documento
 

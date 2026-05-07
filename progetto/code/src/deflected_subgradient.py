@@ -143,6 +143,7 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0, delta0=None,
     times = [0.0]
     delta_hist = [delta]
     t_start = time.perf_counter()
+    i = -1   # so n_iter = i + 1 = 0 if i_max == 0 and the loop never runs
 
     # ------------------------------------------------------------------
     # main loop
