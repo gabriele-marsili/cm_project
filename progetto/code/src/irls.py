@@ -4,7 +4,7 @@ irls.py
 Algorithm A1: Iteratively Reweighted Least Squares (IRLS) for LASSO.
 
 Solves:
-    min_{w in R^n}  f(w) = ||Xw - y||_2^2 + lambda * ||w||_1
+    min_{w in R^n}  f(w) = (1/2) ||Xw - y||_2^2 + lambda * ||w||_1
 
 Core idea: approximate ||w||_1 with the quadratic surrogate w^T W_k^T W_k w,
 where W_k is diagonal with  (W_k)_{ii} = max(|w_{k,i}|, eps_thr)^{-1/2}.
@@ -90,11 +90,12 @@ def irls(X, y, lam, eps_thr=1e-8, eps_stop=1e-8, k_max=200, solver='cholesky', w
         # step 1: compute diagonal weights  D_k = diag(max(|w_i|, eps_thr)^{-1})
         diag_D = 1.0 / np.maximum(np.abs(w), eps_thr) # shape (n,)
 
-        # step 2: assemble Q_k = A + (lambda/2) D_k
-        #   correct coefficient: for f = ||Xw-y||^2 + lambda||w||_1, the IRLS
-        #   fixed-point condition requires (X^TX + (lam/2)*D_k)*w = X^Ty.
+        # step 2: assemble Q_k = A + lam * D_k
+        #   for f = (1/2)||Xw-y||^2 + lam||w||_1 the AM-GM surrogate is
+        #   (1/2)||Xw-y||^2 + (lam/2)(w^T D_k w + ||w_k||_1), minimised by
+        #   (X^TX + lam*D_k) w = X^Ty. Fixed point satisfies KKT of f with lam.
         Q = A.copy()
-        Q[np.arange(n), np.arange(n)] += 2*lam * diag_D
+        Q[np.arange(n), np.arange(n)] += lam * diag_D
 
         # step 3: solve Q_k w_{k+1} = b
         w = solve_spd(Q, b, method=solver)

@@ -68,11 +68,17 @@ def run() -> None:
     print(f"Problem: H={H}, M={M}, lambda={LAMBDA}, f*={f_star:.6f}")
     print(f"True sparsity: {np.mean(np.abs(w_star) < 1e-6):.0%}")
 
+    # OLS warm start shared by both algorithms (report §5.2)
+    from src.linear_solvers import solve_spd
+    A = X.T @ X
+    b = X.T @ y
+    w_ols = solve_spd(A + 1e-12 * np.eye(H), b, method="cholesky")
+
     # --- IRLS ---
     res_irls = irls(X, y, LAMBDA,
                     eps_thr=1e-8, eps_stop=1e-12,
                     k_max=IRLS_KMAX, solver="cholesky",
-                    f_star=f_star, verbose=False)
+                    w0=w_ols, f_star=f_star, verbose=False)
     print(f"IRLS : {res_irls['n_iter']} iter, "
           f"final gap = {res_irls['gaps'][-1]:.3e}, "
           f"converged = {res_irls['converged']}")
@@ -80,7 +86,7 @@ def run() -> None:
     # --- SGPTL ---
     res_dsm = deflected_subgradient(
         X, y, LAMBDA,
-        i_max=DSM_IMAX, beta=1.0,
+        w0=w_ols, i_max=DSM_IMAX, beta=1.0,
         delta0=0.1 * f_star, rho=DSM_RHO,
         f_star=f_star, verbose=False,
     )

@@ -55,14 +55,21 @@ def run() -> None:
             lam=LAMBDA, random_state=SEED,
         )
 
+        # OLS warm start shared by both algorithms (report §5.2)
+        from src.linear_solvers import solve_spd
+        A = X.T @ X
+        b = X.T @ y
+        w_ols = solve_spd(A + 1e-12 * np.eye(H), b, method="cholesky")
+
         t0 = time.perf_counter()
         ri = irls(X, y, LAMBDA, eps_thr=1e-8, eps_stop=IRLS_EPSSTOP,
-                  k_max=IRLS_KMAX, solver="cholesky", f_star=f_star)
+                  k_max=IRLS_KMAX, solver="cholesky",
+                  w0=w_ols, f_star=f_star)
         ti = time.perf_counter() - t0
 
         t0 = time.perf_counter()
-        rd = deflected_subgradient(X, y, LAMBDA, i_max=DSM_IMAX,
-                                   beta=1.0, delta0=0.1 * f_star, rho=0.9,
+        rd = deflected_subgradient(X, y, LAMBDA, w0=w_ols, i_max=DSM_IMAX,
+                                   beta=1.0, delta0=0.1 * f_star, rho=0.95,
                                    f_star=f_star)
         td = time.perf_counter() - t0
 

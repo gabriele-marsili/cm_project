@@ -60,10 +60,10 @@ def make_lasso_problem(n=100, m=200, sparsity=0.1, noise_std=0.1, lam=0.1, rando
 
     # reference solution via sklearn (validation only, not for algorithm)
     # sklearn Lasso minimizes (1/(2m)) ||Xw-y||^2 + alpha ||w||_1
-    # our f = ||Xw-y||^2 + lam ||w||_1
-    # dividing ours by 2m: (1/(2m))||Xw-y||^2 + (lam/(2m))||w||_1
-    # so alpha = lam / (2m)
-    alpha_sk = lam / (2.0 * m)
+    # our f = (1/2) ||Xw-y||^2 + lam ||w||_1
+    # multiplying sklearn by m: (1/2)||Xw-y||^2 + (m*alpha)||w||_1
+    # so alpha = lam / m  (report §5.1: alpha_sklearn = lambda_LASSO / M)
+    alpha_sk = lam / m
     sk = SklearnLasso(alpha=alpha_sk, fit_intercept=False, max_iter=100000, tol=1e-12)
     sk.fit(X, y)
     w_star = sk.coef_
@@ -131,7 +131,8 @@ def make_elm_problem(d=20, p=100, m=500, sparsity=0.1, noise_std=0.1, activation
     y = X_hid @ w_true + noise_std * rng.randn(m)
 
     # reference optimal value (sklearn)
-    alpha_sk = lam * m / 2.0 # ??????????
+    # same scaling as make_lasso_problem: alpha = lam / m
+    alpha_sk = lam / m
     sk = SklearnLasso(alpha=alpha_sk, fit_intercept=False, max_iter=100000, tol=1e-12)
     sk.fit(X_hid, y)
     w_star = sk.coef_

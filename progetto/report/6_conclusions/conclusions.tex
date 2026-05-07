@@ -29,28 +29,32 @@ absence of any explicit thresholding mechanism. The $O(MH^{2})$
 pre-computation cost of IRLS was visible on the scalability plot as a
 clean cubic slope at $M=5H$, and the gap between the two methods at
 the same iteration budget ($1.5\cdot 10^{-6}$ for IRLS at iteration
-$100$ versus $4.5\cdot 10^{-6}$ for SGPTL at iteration $8000$ on the
-convergence instance) lines up with the
-$O(\log\varepsilon^{-1})$ versus $O(\varepsilon^{-2})$ comparison.
-On the moderate problem of Section~\ref{sec:iters-to-eps} the gap
-SGPTL needed roughly $700\times$ the iteration count IRLS used to
-reach $\varepsilon=10^{-2}$ ($2126$ versus $3$), and another factor
-of $5\times$ to reach $10^{-3}$ ($10591$ versus $7$): the multiplier
-grows with accuracy as the rates predict.
+$100$ versus $1.7\cdot 10^{-2}$ for SGPTL at iteration $8000$ on the
+convergence instance, four orders of magnitude apart) lines up with
+the $O(\log\varepsilon^{-1})$ versus $O(\varepsilon^{-2})$ comparison.
+On the moderate problem of Section~\ref{sec:iters-to-eps} IRLS reached
+$\varepsilon=10^{-2}$ in $3$~iterations against SGPTL's failure to
+reach the same threshold within $30000$~iterations, illustrating how
+quickly the rate gap dominates as the accuracy target tightens.
 
 \paragraph{Where the theoretical bounds proved conservative.}
 A few observations did not have a clean theoretical counterpart in the
-report and are worth recording. The IRLS final gap saturated at around
+report and are worth recording. The IRLS final gap saturated around
 $10^{-10}$ for $\varepsilon_\text{thr}=10^{-12}$, but pushing
 $\varepsilon_\text{thr}$ further did not improve the gap further: the
 linear solver hits floating-point limits before the safety mechanism
 does, so the ``smaller $\varepsilon_\text{thr}$ is always sharper''
-intuition has a hard floor. The SGPTL contraction factor $\rho$ has a clear effect on the final
-gap, with a U-shaped sensitivity centred near $\rho=0.9$ that matches
-the report's recommendation in Section~\ref{sec:dsm_parameters}; the
-extremes either contract $\delta$ too quickly ($\rho=0.5$, no time for
-a better $f_\text{ref}$ to be found before the target collapses on it)
-or too slowly ($\rho=0.99$, target stays below $f^{*}$ for too long).
+intuition has a hard floor. The SGPTL contraction factor $\rho$ proved
+less influential than the theory suggests at OLS warm start, where the
+iteration-count fallback fixes $\delta$'s effective schedule and the
+gap stays on a $1.7\cdot 10^{-2}$ plateau across $\rho\in[0.5,0.95]$;
+the cold-start sweep from Section~\ref{sec:params} is the only regime
+where $\rho$ matters significantly and there $\rho=0.99$ slightly
+outperforms the $\rho=0.9$ default ($8.5\cdot 10^{-3}$ versus
+$1.7\cdot 10^{-2}$). The initial gap estimate $\delta_{0}$ is the more
+sensitive parameter, with a clear failure mode at $\delta_{0}\le
+0.01\,f^{*}$ (target above $f^{*}$, iterate locked) and a U-shaped
+optimum at $\delta_{0}=0.1\,f^{*}$.
 Finally, the OLS warm start mandated by
 Section~\ref{sec:dsm_algorithm} interacts unfavourably with the
 greedy deflection. The current subgradient becomes nearly aligned

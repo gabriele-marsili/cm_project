@@ -62,9 +62,16 @@ def run() -> None:
     )
     print(f"Problem: H={H}, M={M}, lambda={LAMBDA}, f*={f_star:.6f}")
 
+    # OLS warm start shared by both algorithms (report §5.2)
+    from src.linear_solvers import solve_spd
+    A = X.T @ X
+    b = X.T @ y
+    w_ols = solve_spd(A + 1e-12 * np.eye(H), b, method="cholesky")
+
     res_irls = irls(X, y, LAMBDA, eps_thr=1e-8, eps_stop=1e-12,
-                    k_max=300, solver="cholesky", f_star=f_star)
-    res_dsm  = deflected_subgradient(X, y, LAMBDA, i_max=30000,
+                    k_max=300, solver="cholesky",
+                    w0=w_ols, f_star=f_star)
+    res_dsm  = deflected_subgradient(X, y, LAMBDA, w0=w_ols, i_max=30000,
                                      beta=1.0, delta0=0.1 * f_star, rho=0.9,
                                      f_star=f_star)
 

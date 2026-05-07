@@ -4,7 +4,7 @@ deflected_subgradient.py
 Algorithm A2: Deflected Subgradient Method with Target Level (SGPTL).
 
 Solves:
-    min_{w in R^n}  f(w) = ||Xw - y||_2^2 + lambda * ||w||_1
+    min_{w in R^n}  f(w) = (1/2) ||Xw - y||_2^2 + lambda * ||w||_1
 
 Key ingredients:
   - Deflection: d^i = gamma^i g^i + (1-gamma^i) d^{i-1}
@@ -34,6 +34,11 @@ def _optimal_gamma(g, d_prev):
         gamma* = (||d_prev||^2 - <g, d_prev>) / ||g - d_prev||^2,
     projected onto [0, 1].
 
+    Special case: if d_prev == 0 the minimiser of ||gamma g||^2 is gamma=0,
+    which would yield d=0 and stall the algorithm. We instead return gamma=1
+    (pure subgradient step), consistent with the i=0 convention and the
+    iteration-count fallback that resets d_prev <- 0 (report §5.1).
+
     Parameters
     ----------
     g      : ndarray (n,) -- current subgradient
@@ -43,11 +48,14 @@ def _optimal_gamma(g, d_prev):
     -------
     float in [0, 1]
     """
+    d_norm_sq = np.dot(d_prev, d_prev)
+    if d_norm_sq < 1e-30:
+        return 1.0  # d_prev = 0: pure subgradient step
     diff = g - d_prev
     denom = np.dot(diff, diff)
     if denom < 1e-30:
-        return 1.0 # g == d_prev: use pure subgradient
-    gamma_star = (np.dot(d_prev, d_prev) - np.dot(g, d_prev)) / denom
+        return 1.0  # g == d_prev: use pure subgradient
+    gamma_star = (d_norm_sq - np.dot(g, d_prev)) / denom
     return float(np.clip(gamma_star, 0.0, 1.0))
 
 
@@ -112,6 +120,13 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0, delta0=None,
     w_best = w.copy() # iterate achieving f_bar
     d_prev = np.zeros(n) # d_{-1} = 0
 
+    # iteration-count fallback (report §5.1): if f_bar has not improved
+    # for R_iter consecutive iterations, contract delta and reset d_prev <- 0
+    # to force a pure subgradient step and escape the stall.
+    R_iter = max(i_max // 100, 50)
+    no_improve_count = 0
+    f_bar_at_last_reset = f_bar
+
     # ------------------------------------------------------------------
     # storage
     # ------------------------------------------------------------------
@@ -126,6 +141,19 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0, delta0=None,
     # main loop
     # ------------------------------------------------------------------
     for i in range(i_max):
+        # iteration-count fallback check (runs every iteration, report §5.1):
+        # track whether f_bar improved since the last reset.
+        if f_bar < f_bar_at_last_reset - 1e-14:
+            no_improve_count = 0
+            f_bar_at_last_reset = f_bar
+        else:
+            no_improve_count += 1
+        if no_improve_count >= R_iter:
+            delta *= rho
+            d_prev = np.zeros(n)  # forces gamma=1 next step
+            no_improve_count = 0
+            f_bar_at_last_reset = f_bar
+
         # step 1: compute a subgradient g in partial f(w_i)
         g = subgradient_f(X, y, w, lam)
 
@@ -143,10 +171,14 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0, delta0=None,
             # direction is zero — at optimum or numerical issue
             break
 
-        # step 4: Polyak stepsize with target level
-        # alpha_i = beta * (f(w_i) - (f_ref - delta)) / ||d_i||^2
+        # step 4: stepsize-restricted Polyak with target level (report §3.2)
+        # alpha_i = beta_i * (f(w_i) - (f_ref - delta)) / ||d_i||^2
+        # with beta_i = min(beta, gamma_i) so that the step shrinks when the
+        # deflection collapses (gamma -> 0). The fallback resets d_prev <- 0
+        # which forces gamma = 1 and lifts beta_i back to beta.
+        beta_i = min(beta, gamma)
         target = f_ref - delta
-        numerator = beta * (f_curr - target)
+        numerator = beta_i * (f_curr - target)
 
         if numerator <= 0.0:
             # f_curr <= target: target is too aggressive or we're below it
@@ -167,7 +199,7 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0, delta0=None,
         # step 5: update iterate
         w_new = w - alpha * d
 
-        # safety: reject step if it produces NaN/inf (can happen when delta0 is initialised larger than f(w0)-f*, pushing the target below f* and causing alpha -> inf near the optimum)
+        # safety: reject step if it produces NaN/inf
         if not np.all(np.isfinite(w_new)):
             delta *= rho
             delta_hist.append(delta)
