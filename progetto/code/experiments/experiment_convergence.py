@@ -1,17 +1,17 @@
 """
-experiment_convergence.py
--------------------------
-Convergence of IRLS and SGPTL on a representative ELM-style instance.
+Convergence experiment (report §5.2).
 
-Produces three figures used in Chapter 5 of the report:
-  - convergence_vs_iter.pdf   gap vs. iterations on semilog axes
-  - convergence_vs_time.pdf   gap vs. wall-clock time
-  - dsm_nonmonotone.pdf       DSM current-vs-record value (linear axes)
+Runs IRLS and SGPTL on the same column-normalised LASSO instance
+(H = 100, M = 300, lam = 0.1) starting from the OLS warm start, and produces
+the three figures used in chapter 5:
 
-For DSM both the current gap f(w_i) - f* (smooth, sublinear) and the
-record gap f_bar^i - f* (monotone step function) are plotted, because
-the record alone has a staircase look that makes the algorithm appear
-to "jump" — the smooth curve reveals the actual subgradient progress.
+    convergence_vs_iter.pdf   gap vs. iterations on semilog axes
+    convergence_vs_time.pdf   gap vs. wall-clock time
+    dsm_nonmonotone.pdf       SGPTL current value vs. record (semilog y)
+
+For SGPTL we plot both the current gap f(w_i) - f* and the record gap
+f_bar^i - f*: the record alone is a staircase, which understates the
+underlying sublinear trajectory.
 """
 
 import os
@@ -23,36 +23,36 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 import numpy as np
 np.seterr(all="ignore")
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from src import irls, deflected_subgradient, make_lasso_problem
-from _plot_style import apply_style, style_axes, COLOR_IRLS, COLOR_DSM, \
-    COLOR_FBAR, COLOR_FCUR, COLOR_REF
+from src.linear_solvers import solve_spd
+from _plot_style import (apply_style, style_axes,
+                         COLOR_IRLS, COLOR_DSM,
+                         COLOR_FBAR, COLOR_FCUR, COLOR_REF, COLOR_AUX,
+                         SIZE_SINGLE, SIZE_DOUBLE)
 apply_style()
 
 
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
-SEED       = 42
-H          = 100   # hidden-layer size
-M          = 300   # training samples
-SPARSITY   = 0.10
-LAMBDA     = 0.10
-NOISE      = 0.05
+SEED      = 42
+H         = 100
+M         = 300
+SPARSITY  = 0.10
+LAMBDA    = 0.10
+NOISE     = 0.05
 
-IRLS_KMAX  = 100
-DSM_IMAX   = 8000
-DSM_RHO    = 0.9   # sweet spot from the parameter sensitivity sweep
+IRLS_KMAX = 100
+DSM_IMAX  = 8000
+DSM_RHO   = 0.9
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
 os.makedirs(FIG_DIR, exist_ok=True)
 
 
 def _safe_log(arr, floor=1e-16):
-    """Clip non-positive values to a small positive floor for log-scale plots."""
     return np.maximum(np.asarray(arr, dtype=float), floor)
 
 
@@ -68,58 +68,75 @@ def run() -> None:
     print(f"Problem: H={H}, M={M}, lambda={LAMBDA}, f*={f_star:.6f}")
     print(f"True sparsity: {np.mean(np.abs(w_star) < 1e-6):.0%}")
 
-    # OLS warm start shared by both algorithms (report §5.2)
-    from src.linear_solvers import solve_spd
-    A = X.T @ X
-    b = X.T @ y
-    w_ols = solve_spd(A + 1e-12 * np.eye(H), b, method="cholesky")
+    w_ols = solve_spd(X.T @ X + 1e-12 * np.eye(H), X.T @ y, method="cholesky")
 
-    # --- IRLS ---
     res_irls = irls(X, y, LAMBDA,
                     eps_thr=1e-8, eps_stop=1e-12,
                     k_max=IRLS_KMAX, solver="cholesky",
-                    w0=w_ols, f_star=f_star, verbose=False)
+                    w0=w_ols, f_star=f_star)
     print(f"IRLS : {res_irls['n_iter']} iter, "
           f"final gap = {res_irls['gaps'][-1]:.3e}, "
           f"converged = {res_irls['converged']}")
 
-    # --- SGPTL ---
     res_dsm = deflected_subgradient(
         X, y, LAMBDA,
         w0=w_ols, i_max=DSM_IMAX, beta=1.0,
         delta0=0.1 * f_star, rho=DSM_RHO,
-        f_star=f_star, verbose=False,
+        f_star=f_star,
     )
     f_curr_gap = _safe_log([f - f_star for f in res_dsm["f_vals"]])
     print(f"SGPTL: {res_dsm['n_iter']} iter, "
           f"final record gap = {res_dsm['gaps'][-1]:.3e}, "
           f"final current gap = {f_curr_gap[-1]:.3e}")
 
-    # =====================================================================
-    # Figure 1 — convergence vs iterations (semilog)
-    # =====================================================================
-    fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.2))
+    # ---- Figure 1: gap vs iteration, IRLS (semilog) + SGPTL (loglog) ----
+    fig, axes = plt.subplots(1, 2, figsize=SIZE_DOUBLE)
 
     ax = axes[0]
     irls_gaps = _safe_log(res_irls["gaps"])
-    ax.semilogy(irls_gaps, color=COLOR_IRLS, marker="o", markersize=2.8,
-                linewidth=1.4, label=r"$f(w_k) - f^{*}$")
+    irls_iters = np.arange(len(irls_gaps))
+    ax.semilogy(irls_iters, irls_gaps, color=COLOR_IRLS, marker="o",
+                markersize=4.0, linewidth=1.8, label=r"$f(w_k) - f^{*}$")
+    # Annotate the linear-rate slope: pick two well-separated iterations and
+    # report the per-iteration multiplicative reduction (= empirical rate).
+    if len(irls_gaps) > 30 and irls_gaps[10] > 1e-12 and irls_gaps[30] > 1e-12:
+        rate = (irls_gaps[30] / irls_gaps[10]) ** (1.0 / 20.0)
+        ax.text(0.98, 0.92, rf"linear rate $\approx {rate:.3f}$ per iter",
+                transform=ax.transAxes, ha="right", va="top", fontsize=11,
+                bbox=dict(boxstyle="round,pad=0.3", facecolor="white",
+                          edgecolor="#cccccc", alpha=0.92))
     ax.set_xlabel(r"Iteration $k$")
-    ax.set_ylabel(r"$f(w_k) - f^{*}$")
-    ax.set_title(r"\textbf{IRLS}".replace("\\textbf", "") if False else "IRLS")
+    ax.set_ylabel(r"$f(w_k) - f^{*}$  (log scale)")
+    ax.set_title("IRLS: linear convergence")
     ax.legend(loc="upper right")
     style_axes(ax)
 
     ax = axes[1]
     dsm_fbar = _safe_log(res_dsm["gaps"])
-    ax.semilogy(f_curr_gap, color=COLOR_FCUR, linewidth=0.6, alpha=0.55,
-                label=r"$f(w_i) - f^{*}$  (current)")
-    ax.semilogy(dsm_fbar, color=COLOR_DSM, linewidth=1.6,
-                label=r"$\bar{f}^{i} - f^{*}$  (record)")
-    ax.set_xlabel(r"Iteration $i$")
-    ax.set_ylabel(r"gap to $f^{*}$")
-    ax.set_title("SGPTL")
-    ax.legend(loc="upper right")
+    dsm_iters = np.arange(1, len(dsm_fbar) + 1)
+    # Log-uniform subsample of the (oscillating) current-value trace: at log-x
+    # the late iterations cram exponentially many points into a fixed visual
+    # span, so the raw trace becomes a solid band hiding the oscillation
+    # pattern. We pick ~80 points per decade — enough to preserve the
+    # zig-zag envelope without crowding the panel.
+    n_curr = len(f_curr_gap)
+    if n_curr > 600:
+        log_idx = np.unique(np.round(np.logspace(
+            0, np.log10(n_curr - 1), num=600)).astype(int))
+        log_idx = log_idx[log_idx < n_curr]
+        sub_iters = dsm_iters[log_idx]
+        sub_curr  = f_curr_gap[log_idx]
+    else:
+        sub_iters, sub_curr = dsm_iters, f_curr_gap
+    ax.loglog(sub_iters, sub_curr, color=COLOR_FCUR, linewidth=0.9,
+              alpha=0.65, label=r"$f(w_i) - f^{*}$  (current, subsampled)")
+    ax.loglog(dsm_iters, dsm_fbar,
+              color=COLOR_DSM, linewidth=2.0,
+              label=r"$\bar{f}^{i} - f^{*}$  (record)")
+    ax.set_xlabel(r"Iteration $i$  (log scale)")
+    ax.set_ylabel(r"gap to $f^{*}$  (log scale)")
+    ax.set_title(r"SGPTL: sublinear $O(1/\sqrt{i})$ convergence")
+    ax.legend(loc="lower left")
     style_axes(ax)
 
     fig.tight_layout()
@@ -128,20 +145,36 @@ def run() -> None:
     print(f"Saved: {path}")
     plt.close(fig)
 
-    # =====================================================================
-    # Figure 2 — convergence vs CPU time
-    # =====================================================================
-    fig, ax = plt.subplots(figsize=(7.5, 4.2))
-    ax.semilogy(res_irls["times"], irls_gaps,
-                color=COLOR_IRLS, marker="o", markersize=2.8,
-                linewidth=1.4, label="IRLS")
-    ax.semilogy(res_dsm["times"], dsm_fbar,
-                color=COLOR_DSM, linewidth=1.4, label=r"SGPTL ($\bar{f}^{i}$)")
-    ax.semilogy(res_dsm["times"], f_curr_gap,
-                color=COLOR_FCUR, linewidth=0.5, alpha=0.45,
-                label=r"SGPTL ($f(w_i)$)")
-    ax.set_xlabel("CPU time (s)")
-    ax.set_ylabel(r"gap to $f^{*}$")
+    # ---- Figure 2: gap vs CPU time, log-log axes ----
+    # Both algorithms share the OLS warm-start point at t = 0; we cannot
+    # plot log(0), so we replace the warm-start time with a small offset
+    # equal to half the smallest non-zero measurement. This way the panel
+    # explicitly shows the common starting gap and the divergence at
+    # iteration 1 — IRLS' first weighted-normal-equation solve drops the
+    # gap by an order of magnitude, while SGPTL's first subgradient step
+    # only nudges it.
+    irls_t = np.asarray(res_irls["times"], dtype=float)
+    dsm_t  = np.asarray(res_dsm["times"],  dtype=float)
+    smallest = min(irls_t[1] if len(irls_t) > 1 else 1e-5,
+                   dsm_t[1]  if len(dsm_t)  > 1 else 1e-5)
+    t_start = smallest / 2.0
+    irls_t_plot = irls_t.copy(); irls_t_plot[0] = t_start
+    dsm_t_plot  = dsm_t.copy();  dsm_t_plot[0]  = t_start
+
+    fig, ax = plt.subplots(figsize=SIZE_SINGLE)
+    ax.loglog(irls_t_plot, irls_gaps,
+              color=COLOR_IRLS, marker="o", markersize=4.0,
+              linewidth=1.8, label=r"IRLS")
+    ax.loglog(dsm_t_plot, dsm_fbar,
+              color=COLOR_DSM, linewidth=1.8,
+              label=r"SGPTL  ($\bar{f}^{i}$)")
+    # Mark the shared warm-start point.
+    ax.scatter([t_start], [irls_gaps[0]], s=80, marker="*",
+               color="black", zorder=6, label="OLS warm start (shared)")
+    ax.set_xlabel("CPU time (s)  (log scale)")
+    ax.set_ylabel(r"gap to $f^{*}$  (log scale)")
+    ax.set_title(rf"Gap vs wall-clock time  ($H={H}$, $M={M}$, "
+                 rf"$\lambda_{{\mathrm{{LASSO}}}}={LAMBDA}$)")
     ax.legend(loc="upper right")
     style_axes(ax)
     fig.tight_layout()
@@ -150,21 +183,34 @@ def run() -> None:
     print(f"Saved: {path}")
     plt.close(fig)
 
-    # =====================================================================
-    # Figure 3 — DSM current value vs record value (linear axes)
-    # =====================================================================
-    fig, ax = plt.subplots(figsize=(11.5, 3.8))
-    iters = np.arange(len(res_dsm["f_vals"]))
-    ax.plot(iters, res_dsm["f_vals"],
-            color=COLOR_FCUR, linewidth=0.55, alpha=0.7,
-            label=r"$f(w_i)$ (oscillates)")
-    ax.plot(iters, res_dsm["f_bar"],
-            color=COLOR_FBAR, linewidth=1.6,
-            label=r"$\bar{f}^{i}$ (record, monotone)")
-    ax.axhline(f_star, color=COLOR_REF, linestyle="--", linewidth=1.0,
-               label=r"$f^{*}$")
+    # ---- Figure 3: SGPTL non-monotonicity ----
+    f_vals = np.asarray(res_dsm["f_vals"])
+    f_bar  = np.asarray(res_dsm["f_bar"])
+    # Show enough iterations to see oscillations clearly and the eventual
+    # decay; use semilog y on (f - f*) so the dynamics across decades are
+    # visible without zooming.
+    cutoff = min(2000, len(f_vals))
+    iters = np.arange(cutoff)
+    fcur_gap_lin = np.maximum(f_vals[:cutoff] - f_star, 1e-16)
+    fbar_gap_lin = np.maximum(f_bar[:cutoff]  - f_star, 1e-16)
+
+    fig, ax = plt.subplots(figsize=SIZE_SINGLE)
+    ax.semilogy(iters, fcur_gap_lin,
+                color=COLOR_FCUR, linewidth=0.9, alpha=0.65,
+                label=r"$f(w_i) - f^{*}$  (current, oscillates)")
+    ax.semilogy(iters, fbar_gap_lin,
+                color=COLOR_FBAR, linewidth=2.0,
+                label=r"$\bar{f}^{i} - f^{*}$  (record, monotone)")
+    # Mark the largest overshoot of f_curr above the record.
+    spike_idx = int(np.argmax(f_vals[:cutoff] - f_bar[:cutoff]))
+    ax.annotate(rf"largest overshoot at $i={spike_idx}$",
+                xy=(spike_idx, fcur_gap_lin[spike_idx]),
+                xytext=(spike_idx + 200, fcur_gap_lin[spike_idx] * 1.8),
+                fontsize=11,
+                arrowprops=dict(arrowstyle="->", color="#666666", lw=1.0))
     ax.set_xlabel(r"Iteration $i$")
-    ax.set_ylabel(r"objective $f$")
+    ax.set_ylabel(r"gap to $f^{*}$  (log scale)")
+    ax.set_title("SGPTL non-monotone behaviour: current vs record")
     ax.legend(loc="upper right")
     style_axes(ax)
     fig.tight_layout()

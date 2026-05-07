@@ -134,10 +134,10 @@
     \endentry
     \entry{dantonio2009deflected}{article}{}{}
       \name{author}{2}{}{%
-        {{hash=46a228f86636fa34aa865d6a7910138a}{%
+        {{hash=24ca96e035722b8315879908e854e152}{%
            family={d'Antonio},
            familyi={d\bibinitperiod},
-           given={Gianluca},
+           given={Giacomo},
            giveni={G\bibinitperiod}}}%
         {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
            family={Frangioni},
@@ -145,14 +145,14 @@
            given={Antonio},
            giveni={A\bibinitperiod}}}%
       }
-      \strng{namehash}{00ec39996d4a966175832d49d814b6d5}
-      \strng{fullhash}{00ec39996d4a966175832d49d814b6d5}
-      \strng{fullhashraw}{00ec39996d4a966175832d49d814b6d5}
-      \strng{bibnamehash}{00ec39996d4a966175832d49d814b6d5}
-      \strng{authorbibnamehash}{00ec39996d4a966175832d49d814b6d5}
-      \strng{authornamehash}{00ec39996d4a966175832d49d814b6d5}
-      \strng{authorfullhash}{00ec39996d4a966175832d49d814b6d5}
-      \strng{authorfullhashraw}{00ec39996d4a966175832d49d814b6d5}
+      \strng{namehash}{e0ec50b7a47a63deb79e0ba2f9d37548}
+      \strng{fullhash}{e0ec50b7a47a63deb79e0ba2f9d37548}
+      \strng{fullhashraw}{e0ec50b7a47a63deb79e0ba2f9d37548}
+      \strng{bibnamehash}{e0ec50b7a47a63deb79e0ba2f9d37548}
+      \strng{authorbibnamehash}{e0ec50b7a47a63deb79e0ba2f9d37548}
+      \strng{authornamehash}{e0ec50b7a47a63deb79e0ba2f9d37548}
+      \strng{authorfullhash}{e0ec50b7a47a63deb79e0ba2f9d37548}
+      \strng{authorfullhashraw}{e0ec50b7a47a63deb79e0ba2f9d37548}
       \field{sortinit}{d}
       \field{sortinithash}{6f385f66841fb5e82009dc833c761848}
       \field{labelnamesource}{author}

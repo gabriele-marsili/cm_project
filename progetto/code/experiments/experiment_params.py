@@ -1,8 +1,15 @@
 """
-experiment_params.py
---------------------
-Parameter sensitivity for IRLS (eps_thr, lambda) and SGPTL (delta_0, rho).
-Produces params_irls.pdf and params_dsm.pdf for Chapter 5.
+Parameter sensitivity sweeps (report §5.3).
+
+For IRLS we vary eps_thr and lam_LASSO; for SGPTL we vary delta_0 and rho.
+Outputs:
+
+    params_irls.pdf  IRLS: gap-vs-iter for each eps_thr and each lambda
+    params_dsm.pdf   SGPTL: gap-vs-iter for each delta_0 and each rho
+
+Both sweeps now use the OLS warm start: with the beta-fixed Polyak step
+the algorithm progresses on warm start as well (see §5.1), so we no
+longer need a cold start to expose rho's effect.
 """
 
 import os
@@ -14,13 +21,16 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 import numpy as np
 np.seterr(all="ignore")
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from src import irls, deflected_subgradient, make_lasso_problem
+from src.linear_solvers import solve_spd
 from _plot_style import (apply_style, style_axes,
-                         RAMP_BLUES, RAMP_REDS, RAMP_ORANGES, RAMP_PURPLES)
+                         RAMP_BLUES, RAMP_REDS, RAMP_ORANGES, RAMP_PURPLES,
+                         SIZE_DOUBLE)
 apply_style()
 
 
@@ -43,34 +53,35 @@ def run() -> None:
 
     LAMBDA = 0.1
     X, y, _, f_star, _ = make_lasso_problem(
-        n=H, m=M, sparsity=0.1, noise_std=NOISE, lam=LAMBDA, random_state=SEED,
+        n=H, m=M, sparsity=0.1, noise_std=NOISE,
+        lam=LAMBDA, random_state=SEED,
     )
     print(f"Problem: H={H}, M={M}, lambda={LAMBDA}, f*={f_star:.6f}\n")
 
-    # ------------------------------------------------------------------
-    # IRLS — eps_thr and lambda
-    # ------------------------------------------------------------------
-    fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.2))
+    w_ols = solve_spd(X.T @ X + 1e-12 * np.eye(H), X.T @ y, method="cholesky")
+
+    # ---- IRLS sweeps ----
+    fig, axes = plt.subplots(1, 2, figsize=SIZE_DOUBLE)
 
     print("--- IRLS: varying eps_thr ---")
-    eps_thr_vals = [1e-4, 1e-6, 1e-8, 1e-10, 1e-12]
+    eps_vals = [1e-4, 1e-6, 1e-8, 1e-10, 1e-12]
     cmap = plt.get_cmap(RAMP_BLUES)
-    colors = cmap(np.linspace(0.40, 1.0, len(eps_thr_vals)))
-    for eps_thr, color in zip(eps_thr_vals, colors):
+    colors = cmap(np.linspace(0.40, 1.0, len(eps_vals)))
+    for eps_thr, color in zip(eps_vals, colors):
         res = irls(X, y, LAMBDA, eps_thr=eps_thr, eps_stop=1e-12,
-                   k_max=100, solver="cholesky", f_star=f_star)
+                   k_max=100, solver="cholesky", w0=w_ols, f_star=f_star)
         sparsity = np.mean(np.abs(res["w"]) < 1e-6)
         gaps = _safe_log(res["gaps"])
         label = (rf"$\varepsilon_{{\mathrm{{thr}}}}=10^{{{int(np.log10(eps_thr))}}}$"
-                 f"  (sparsity {sparsity:.0%})")
-        axes[0].semilogy(gaps, color=color, linewidth=1.4, label=label)
+                 f"  (sp. {sparsity:.0%})")
+        axes[0].semilogy(gaps, color=color, linewidth=1.8, label=label)
         print(f"  eps_thr={eps_thr:.0e}: gap={gaps[-1]:.2e}, "
               f"sparsity={sparsity:.0%}")
 
     axes[0].set_xlabel(r"Iteration $k$")
-    axes[0].set_ylabel(r"$f(w_k) - f^{*}$")
+    axes[0].set_ylabel(r"$f(w_k) - f^{*}$  (log scale)")
     axes[0].set_title(r"IRLS: effect of $\varepsilon_{\mathrm{thr}}$")
-    axes[0].legend(loc="upper right", fontsize=8)
+    axes[0].legend(loc="upper right", fontsize=10)
     style_axes(axes[0])
 
     print("\n--- IRLS: varying lambda ---")
@@ -79,20 +90,23 @@ def run() -> None:
     colors = cmap(np.linspace(0.30, 1.0, len(lam_vals)))
     for lam, color in zip(lam_vals, colors):
         Xl, yl, _, fs_l, _ = make_lasso_problem(
-            n=H, m=M, sparsity=0.1, noise_std=NOISE, lam=lam, random_state=SEED,
+            n=H, m=M, sparsity=0.1, noise_std=NOISE,
+            lam=lam, random_state=SEED,
         )
+        w_ols_l = solve_spd(Xl.T @ Xl + 1e-12 * np.eye(H), Xl.T @ yl,
+                            method="cholesky")
         res = irls(Xl, yl, lam, eps_thr=1e-8, eps_stop=1e-12,
-                   k_max=100, solver="cholesky", f_star=fs_l)
+                   k_max=100, solver="cholesky", w0=w_ols_l, f_star=fs_l)
         sparsity = np.mean(np.abs(res["w"]) < 1e-6)
         gaps = _safe_log(res["gaps"])
-        label = rf"$\lambda={lam:g}$  (sparsity {sparsity:.0%})"
-        axes[1].semilogy(gaps, color=color, linewidth=1.4, label=label)
+        label = rf"$\lambda={lam:g}$  (sp. {sparsity:.0%})"
+        axes[1].semilogy(gaps, color=color, linewidth=1.8, label=label)
         print(f"  lambda={lam}: gap={gaps[-1]:.2e}, sparsity={sparsity:.0%}")
 
     axes[1].set_xlabel(r"Iteration $k$")
-    axes[1].set_ylabel(r"$f(w_k) - f^{*}$")
+    axes[1].set_ylabel(r"$f(w_k) - f^{*}$  (log scale)")
     axes[1].set_title(r"IRLS: effect of $\lambda_{\mathrm{LASSO}}$")
-    axes[1].legend(loc="upper right", fontsize=8)
+    axes[1].legend(loc="upper right", fontsize=10)
     style_axes(axes[1])
 
     fig.tight_layout()
@@ -101,10 +115,8 @@ def run() -> None:
     print(f"Saved: {path}\n")
     plt.close(fig)
 
-    # ------------------------------------------------------------------
-    # SGPTL — delta0 and rho
-    # ------------------------------------------------------------------
-    fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.2))
+    # ---- SGPTL sweeps ----
+    fig, axes = plt.subplots(1, 2, figsize=SIZE_DOUBLE)
 
     print("--- SGPTL: varying delta_0 ---")
     delta0_factors = [0.01, 0.05, 0.1, 0.5, 1.0]
@@ -112,41 +124,41 @@ def run() -> None:
     colors = cmap(np.linspace(0.30, 1.0, len(delta0_factors)))
     for factor, color in zip(delta0_factors, colors):
         res = deflected_subgradient(
-            X, y, LAMBDA, i_max=5000, beta=1.0,
+            X, y, LAMBDA, w0=w_ols, i_max=5000, beta=1.0,
             delta0=factor * f_star, rho=0.9, f_star=f_star,
         )
         gaps = _safe_log(res["gaps"])
+        iters = np.arange(1, len(gaps) + 1)
         label = rf"$\delta_{{0}}={factor:g}\,f^{{*}}$"
-        axes[0].semilogy(gaps, color=color, linewidth=1.2, label=label)
+        axes[0].loglog(iters, gaps, color=color, linewidth=1.8, label=label)
         print(f"  delta0={factor}*f*={factor*f_star:.4f}: gap={gaps[-1]:.2e}")
 
-    axes[0].set_xlabel(r"Iteration $i$")
-    axes[0].set_ylabel(r"$\bar{f}^{i} - f^{*}$")
+    axes[0].set_xlabel(r"Iteration $i$  (log scale)")
+    axes[0].set_ylabel(r"$\bar{f}^{i} - f^{*}$  (log scale)")
     axes[0].set_title(r"SGPTL: effect of $\delta_{0}$")
-    axes[0].legend(loc="upper right", fontsize=8)
+    axes[0].legend(loc="lower left", fontsize=10)
     style_axes(axes[0])
 
-    print("\n--- SGPTL: varying rho (cold start to expose effect) ---")
+    print("\n--- SGPTL: varying rho ---")
     rho_vals = [0.5, 0.7, 0.9, 0.95, 0.99]
     cmap = plt.get_cmap(RAMP_PURPLES)
     colors = cmap(np.linspace(0.30, 1.0, len(rho_vals)))
-    n_dim = X.shape[1]
     for rho, color in zip(rho_vals, colors):
         res = deflected_subgradient(
-            X, y, LAMBDA, w0=np.zeros(n_dim),
-            i_max=10000, beta=1.0,
-            delta0=0.1 * f_star, rho=rho, R=200.0, f_star=f_star,
+            X, y, LAMBDA, w0=w_ols, i_max=5000, beta=1.0,
+            delta0=0.1 * f_star, rho=rho, f_star=f_star,
         )
         gaps = _safe_log(res["gaps"])
+        iters = np.arange(1, len(gaps) + 1)
         n_contr = int(np.sum(np.diff(res["delta_hist"]) < 0))
         label = rf"$\rho={rho:g}$  ({n_contr} contr.)"
-        axes[1].semilogy(gaps, color=color, linewidth=1.2, label=label)
+        axes[1].loglog(iters, gaps, color=color, linewidth=1.8, label=label)
         print(f"  rho={rho}: gap={gaps[-1]:.2e}, contractions={n_contr}")
 
-    axes[1].set_xlabel(r"Iteration $i$")
-    axes[1].set_ylabel(r"$\bar{f}^{i} - f^{*}$")
+    axes[1].set_xlabel(r"Iteration $i$  (log scale)")
+    axes[1].set_ylabel(r"$\bar{f}^{i} - f^{*}$  (log scale)")
     axes[1].set_title(r"SGPTL: effect of $\rho$")
-    axes[1].legend(loc="upper right", fontsize=8)
+    axes[1].legend(loc="lower left", fontsize=10)
     style_axes(axes[1])
 
     fig.tight_layout()

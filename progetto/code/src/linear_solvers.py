@@ -1,69 +1,45 @@
 """
-linear_solvers.py
------------------
-Linear system solvers for SPD systems arising in IRLS:
+SPD linear solvers used by IRLS.
 
-    Q w = b,   Q = X^T X + 2 lambda W_k^T W_k   (symmetric positive definite)
+The IRLS subproblem at iteration k is
 
-Two methods are provided:
-  - Cholesky factorization  (direct, O(n^3/3) + O(n^2) per solve)
-  - Conjugate Gradient      (iterative, O(k n^2) for k steps)
+    Q_k w = b,    Q_k = X^T X + lam W_k^T W_k    (SPD; report eq. 2.10),
 
-Note: scipy.linalg.cho_factor / cho_solve are used for Cholesky
-      (basic linear algebra calls are allowed).
+so we only ever need to solve symmetric positive definite systems. We provide
+two solvers, both backing the ``solve_spd`` dispatcher:
+
+* a direct Cholesky path, which delegates the L L^T factorisation and the two
+  triangular solves to ``scipy.linalg.cho_factor`` / ``cho_solve`` --- as
+  allowed by §4.4 of the project comando, basic linear algebra calls go to
+  the library;
+
+* a Conjugate Gradient path implemented from scratch (§4.4 again: the linear
+  solver is a main task here, so it cannot be a single library call).
+
+Cholesky is the default for moderate H; CG is preferable when H is large and
+Q_k is well conditioned.
 """
 
 import numpy as np
 import scipy.linalg as la
 
 
-# ---------------------------------------------------------------------------
-# cholesky solver
-# ---------------------------------------------------------------------------
 def cholesky_solve(Q, b):
-    """
-    Solve the SPD system Q w = b via Cholesky factorization.
+    """Direct solver Q w = b via L L^T factorisation + two triangular solves.
 
-    Q = L L^T  (Cholesky factor computed once per call)
-    Then:
-      1. Forward substitution:  L v = b
-      2. Back substitution:     L^T w = v
-
-    Parameters
-    ----------
-    Q : ndarray (n, n)  -- symmetric positive definite matrix
-    b : ndarray (n,)    -- right-hand side
-
-    Returns
-    -------
-    w : ndarray (n,)    -- solution
+    ``check_finite=False`` skips the input validation pass; we already know Q
+    is finite because we just assembled it from finite operands.
     """
     c, low = la.cho_factor(Q, lower=True, check_finite=False)
     return la.cho_solve((c, low), b, check_finite=False)
 
 
-# ---------------------------------------------------------------------------
-# conjugate gradient solver
-# ---------------------------------------------------------------------------
 def conjugate_gradient(Q, b, x0=None, tol=1e-10, max_iter=None):
-    """
-    Solve the SPD system Q w = b via the Conjugate Gradient method.
+    """Standard CG for SPD systems.
 
-    Converges in at most n iterations in exact arithmetic.
-    Preferred for large n where Cholesky O(n^3) is too expensive.
-
-    Parameters
-    ----------
-    Q        : ndarray (n, n)  -- SPD matrix
-    b        : ndarray (n,)    -- right-hand side
-    x0       : ndarray (n,)    -- initial guess (default: zeros)
-    tol      : float           -- relative residual tolerance
-    max_iter : int             -- maximum iterations (default: n)
-
-    Returns
-    -------
-    x        : ndarray (n,)    -- approximate solution
-    n_iter   : int             -- iterations performed
+    Terminates when the relative residual falls below ``tol`` or after
+    ``max_iter`` iterations (default ``len(b)``). Returns the iterate and
+    the number of iterations performed.
     """
     n = len(b)
     if max_iter is None:
@@ -82,38 +58,20 @@ def conjugate_gradient(Q, b, x0=None, tol=1e-10, max_iter=None):
             return x, k
         Qp = Q @ p
         alpha = rr / np.dot(p, Qp)
-        x = x + alpha * p
-        r = r - alpha * Qp
+        x += alpha * p
+        r -= alpha * Qp
         rr_new = np.dot(r, r)
-        beta = rr_new / rr
-        p = r + beta * p
+        p = r + (rr_new / rr) * p
         rr = rr_new
 
     return x, max_iter
 
 
-# ---------------------------------------------------------------------------
-# unified interface
-# ---------------------------------------------------------------------------
 def solve_spd(Q, b, method='cholesky', **kwargs):
-    """
-    Solve SPD system Q w = b.
-
-    Parameters
-    ----------
-    Q      : ndarray (n, n)   -- SPD coefficient matrix
-    b      : ndarray (n,)     -- right-hand side
-    method : str              -- 'cholesky' or 'cg'
-    kwargs : passed to CG solver if method='cg'
-
-    Returns
-    -------
-    w : ndarray (n,)
-    """
+    """Dispatcher: pick Cholesky or CG. Extra kwargs are forwarded to CG."""
     if method == 'cholesky':
         return cholesky_solve(Q, b)
-    elif method == 'cg':
+    if method == 'cg':
         w, _ = conjugate_gradient(Q, b, **kwargs)
         return w
-    else:
-        raise ValueError(f"Unknown method: '{method}'. Use 'cholesky' or 'cg'.")
+    raise ValueError(f"Unknown method: '{method}'. Use 'cholesky' or 'cg'.")

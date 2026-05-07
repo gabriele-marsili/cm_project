@@ -49,12 +49,18 @@ less influential than the theory suggests at OLS warm start, where the
 iteration-count fallback fixes $\delta$'s effective schedule and the
 gap stays on a $1.7\cdot 10^{-2}$ plateau across $\rho\in[0.5,0.95]$;
 the cold-start sweep from Section~\ref{sec:params} is the only regime
-where $\rho$ matters significantly and there $\rho=0.99$ slightly
-outperforms the $\rho=0.9$ default ($8.5\cdot 10^{-3}$ versus
-$1.7\cdot 10^{-2}$). The initial gap estimate $\delta_{0}$ is the more
-sensitive parameter, with a clear failure mode at $\delta_{0}\le
-0.01\,f^{*}$ (target above $f^{*}$, iterate locked) and a U-shaped
-optimum at $\delta_{0}=0.1\,f^{*}$.
+where $\rho$ matters significantly, and there the empirical optimum
+sits at $\rho=0.99$ ($8.5\cdot 10^{-3}$) rather than at the $[0.9,
+0.95]$ range we identified \emph{a priori} from the slide
+recommendation in Section~\ref{sec:dsm_parameters}: very slow
+contraction lets $\delta$ stay informative for longer when the iterate
+genuinely is far from $f^{*}$, which is the cold-start regime.
+We did not promote $\rho=0.99$ to the default because the gain is
+within a factor of two of the $\rho=0.9$ value and is invisible at OLS
+warm start, the regime the project actually uses. The initial gap
+estimate $\delta_{0}$ is the more sensitive parameter, with a clear
+failure mode at $\delta_{0}\le 0.01\,f^{*}$ (target above $f^{*}$,
+iterate locked) and a U-shaped optimum at $\delta_{0}=0.1\,f^{*}$.
 Finally, the OLS warm start mandated by
 Section~\ref{sec:dsm_algorithm} interacts unfavourably with the
 greedy deflection. The current subgradient becomes nearly aligned

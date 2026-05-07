@@ -1,15 +1,20 @@
 """
-data_generation.py
-------------------
-Synthetic and real dataset utilities for Project 25 experiments.
+Synthetic and real-data builders for the experiments.
 
-Synthetic data generation:
-  - Generate sparse true weights w* in R^n
-  - Build random ELM feature matrix X in R^{m x n}
-  - Set y = X w* + noise
-  - Compute reference f* using sklearn.linear_model.Lasso
+For synthetic problems we sample a sparse ``w_true``, build a column-normalised
+design matrix X (or its ELM-transformed counterpart), and add Gaussian noise to
+form ``y = X w_true + eps``. We then call sklearn's coordinate descent on the
+same design at high tolerance to obtain the reference ``f^*``, which is what
+the gap plots in §5.2--§5.7 of the report measure against.
 
-This allows gap plots  f(w_k) - f*  for both algorithms.
+The tricky bit is the scaling. sklearn minimises ``(1/(2M)) ||Xw-y||^2 +
+alpha ||w||_1``; our objective is ``(1/2) ||Xw-y||^2 + lam ||w||_1``. Multiplying
+sklearn's loss by M pushes its quadratic term onto the same 1/2 factor we use,
+which gives ``alpha = lam / M`` (this is exactly the mapping stated in §5.1 of
+the report).
+
+Real datasets (diabetes, California housing) ship with sklearn and are loaded
+in ``load_real_dataset``.
 """
 
 import numpy as np
@@ -18,122 +23,71 @@ from sklearn.datasets import load_diabetes, fetch_california_housing
 from sklearn.preprocessing import StandardScaler
 
 
-# ---------------------------------------------------------------------------
-# Synthetic LASSO data (with known optimal f*)
-# ---------------------------------------------------------------------------
+def make_lasso_problem(n=100, m=200, sparsity=0.1, noise_std=0.1,
+                       lam=0.1, random_state=42):
+    """Synthetic LASSO instance with a known sparse ground truth.
 
-def make_lasso_problem(n=100, m=200, sparsity=0.1, noise_std=0.1, lam=0.1, random_state=42):
-    """
-    Generate a synthetic LASSO problem with known sparse ground truth.
-
-    Parameters
-    ----------
-    n          : int    -- number of features (hidden neurons p)
-    m          : int    -- number of samples
-    sparsity   : float  -- fraction of non-zero components in w*
-    noise_std  : float  -- standard deviation of additive Gaussian noise
-    lam        : float  -- regularization parameter (used to compute f*)
-    random_state : int  -- random seed
-
-    Returns
-    -------
-    X      : ndarray (m, n)   -- feature matrix
-    y      : ndarray (m,)     -- targets
-    w_true : ndarray (n,)     -- ground-truth sparse weights
-    f_star : float            -- optimal LASSO value (from sklearn)
-    w_star : ndarray (n,)     -- optimal LASSO solution (from sklearn)
+    Returns ``(X, y, w_true, f_star, w_star)``: design + target, the sparse
+    vector used to build y, and the sklearn reference optimum (both value and
+    minimiser). ``f_star`` is computed with **our** objective evaluated at
+    sklearn's ``w_star``, not with sklearn's internal value.
     """
     rng = np.random.RandomState(random_state)
 
-    # sparse ground truth
-    k = max(1, int(sparsity * n))
+    # Ground truth: a fraction `sparsity` of components drawn from N(0, 1),
+    # the rest exactly zero.
+    n_active = max(1, int(sparsity * n))
     w_true = np.zeros(n)
-    idx = rng.choice(n, size=k, replace=False)
-    w_true[idx] = rng.randn(k)
+    active = rng.choice(n, size=n_active, replace=False)
+    w_true[active] = rng.randn(n_active)
 
-    # feature matrix (normalized columns improve conditioning)
+    # Random Gaussian design with unit-norm columns. Column normalisation
+    # bounds cond(X^T X), which is the regime our convergence analysis
+    # actually covers (report §5.1, "Synthetic data").
     X_raw = rng.randn(m, n)
     X = X_raw / (np.linalg.norm(X_raw, axis=0, keepdims=True) + 1e-12)
 
-    # targets
     y = X @ w_true + noise_std * rng.randn(m)
 
-    # reference solution via sklearn (validation only, not for algorithm)
-    # sklearn Lasso minimizes (1/(2m)) ||Xw-y||^2 + alpha ||w||_1
-    # our f = (1/2) ||Xw-y||^2 + lam ||w||_1
-    # multiplying sklearn by m: (1/2)||Xw-y||^2 + (m*alpha)||w||_1
-    # so alpha = lam / m  (report §5.1: alpha_sklearn = lambda_LASSO / M)
-    alpha_sk = lam / m
-    sk = SklearnLasso(alpha=alpha_sk, fit_intercept=False, max_iter=100000, tol=1e-12)
+    # alpha = lam / M, see the module docstring for the derivation.
+    sk = SklearnLasso(alpha=lam / m, fit_intercept=False,
+                      max_iter=100000, tol=1e-12)
     sk.fit(X, y)
     w_star = sk.coef_
 
-    # compute f* with OUR objective
     from .lasso_utils import f_lasso
     f_star = f_lasso(X, y, w_star, lam)
 
     return X, y, w_true, f_star, w_star
 
 
-# ---------------------------------------------------------------------------
-# ELM-specific synthetic data
-# ---------------------------------------------------------------------------
+def make_elm_problem(d=20, p=100, m=500, sparsity=0.1, noise_std=0.1,
+                     activation='sigmoid', lam=0.1, random_state=42):
+    """Full ELM pipeline: raw inputs -> hidden activations -> LASSO.
 
-def make_elm_problem(d=20, p=100, m=500, sparsity=0.1, noise_std=0.1, activation='sigmoid', lam=0.1, random_state=42):
-    """
-    Generate synthetic data for the full ELM pipeline.
-
-    Creates:
-      1. Raw input X_raw in R^{m x d}
-      2. Random ELM weights W1 in R^{p x d}  (fixed)
-      3. Hidden features X = sigma(X_raw W1^T) in R^{m x p}
-      4. Sparse w* in R^p
-      5. Targets y = X w* + noise
-
-    Parameters
-    ----------
-    d          : int    -- raw input dimension
-    p          : int    -- number of hidden neurons
-    m          : int    -- number of training samples
-    sparsity   : float  -- fraction of non-zero components in w*
-    noise_std  : float  -- noise standard deviation
-    activation : str    -- 'sigmoid', 'relu', or 'tanh'
-    lam        : float  -- regularization parameter
-    random_state : int
-
-    Returns
-    -------
-    X_raw  : ndarray (m, d)   -- raw inputs
-    X_hid  : ndarray (m, p)   -- hidden activations
-    y      : ndarray (m,)     -- targets
-    W1     : ndarray (p, d)   -- fixed hidden weights
-    w_true : ndarray (p,)     -- ground-truth output weights
-    f_star : float            -- optimal LASSO value (from sklearn)
-    w_star : ndarray (p,)     -- optimal LASSO solution (from sklearn)
+    Builds ``X_hidden = sigma(X_raw W_1^T)`` with a fixed random ``W_1`` and
+    uses that as the design for the LASSO problem. Returns the raw inputs and
+    the hidden matrix as well, in case downstream code wants to plot or
+    diagnose the activation distribution.
     """
     from .elm import _ACTIVATIONS
     sigma = _ACTIVATIONS[activation]
 
     rng = np.random.RandomState(random_state)
 
-    # ELM architecture
     W1 = rng.randn(p, d)
     X_raw = rng.randn(m, d)
-    X_hid = sigma(X_raw @ W1.T) # (m, p)
+    X_hid = sigma(X_raw @ W1.T)
 
-    # sparse ground-truth output weights
-    k = max(1, int(sparsity * p))
+    n_active = max(1, int(sparsity * p))
     w_true = np.zeros(p)
-    idx = rng.choice(p, size=k, replace=False)
-    w_true[idx] = rng.randn(k)
+    active = rng.choice(p, size=n_active, replace=False)
+    w_true[active] = rng.randn(n_active)
 
-    # targets
     y = X_hid @ w_true + noise_std * rng.randn(m)
 
-    # reference optimal value (sklearn)
-    # same scaling as make_lasso_problem: alpha = lam / m
-    alpha_sk = lam / m
-    sk = SklearnLasso(alpha=alpha_sk, fit_intercept=False, max_iter=100000, tol=1e-12)
+    sk = SklearnLasso(alpha=lam / m, fit_intercept=False,
+                      max_iter=100000, tol=1e-12)
     sk.fit(X_hid, y)
     w_star = sk.coef_
 
@@ -143,22 +97,12 @@ def make_elm_problem(d=20, p=100, m=500, sparsity=0.1, noise_std=0.1, activation
     return X_raw, X_hid, y, W1, w_true, f_star, w_star
 
 
-# ---------------------------------------------------------------------------
-# Real datasets (from sklearn)
-# ---------------------------------------------------------------------------
 def load_real_dataset(name='diabetes', test_size=0.2, random_state=42):
-    """
-    Load and preprocess a real regression dataset.
+    """Load a real regression dataset from sklearn and split it train/test.
 
-    Parameters
-    ----------
-    name        : str   -- 'diabetes' or 'california'
-    test_size   : float -- fraction of data for test set
-    random_state : int
-
-    Returns
-    -------
-    X_train, X_test, y_train, y_test : ndarrays
+    Features are standardised on the **whole** dataset (not just the train
+    split); ``experiment_real_data.py`` does its own train-only standardisation
+    on top of this when it needs strict no-leakage guarantees.
     """
     if name == 'diabetes':
         data = load_diabetes()
@@ -168,16 +112,13 @@ def load_real_dataset(name='diabetes', test_size=0.2, random_state=42):
         raise ValueError(f"Unknown dataset '{name}'.")
 
     X, y = data.data, data.target
+    X = StandardScaler().fit_transform(X)
 
-    # standardize features
-    scaler = StandardScaler()
-    X = scaler.fit_transform(X)
-
-    # train-test split (manual, no sklearn split to avoid dependency)
+    # Manual permutation so we don't drag in sklearn.model_selection just for
+    # one shuffle.
     rng = np.random.RandomState(random_state)
-    idx = rng.permutation(len(y))
+    perm = rng.permutation(len(y))
     n_test = int(test_size * len(y))
-    test_idx  = idx[:n_test]
-    train_idx = idx[n_test:]
+    test_idx, train_idx = perm[:n_test], perm[n_test:]
 
     return X[train_idx], X[test_idx], y[train_idx], y[test_idx]

@@ -1,41 +1,38 @@
 """
-elm.py
-------
-Extreme Learning Machine (ELM) model.
+Extreme Learning Machine wrapper around the two LASSO solvers.
 
-Architecture:
-    - Input layer:  x in R^d
-    - Hidden layer: H neurons with fixed random weights W1 in R^{p x d}
-                    activations: sigma(W1 x) in R^p
-    - Output layer: y_hat = w^T sigma(W1 x),   w in R^p  (learned)
+The ELM trick is to fix the input-to-hidden weights ``W_1`` at random and
+train only the output weights ``w``. With a non-linear activation ``sigma``,
+the hidden representation ``X_hidden = sigma(X_raw W_1^T)`` is constant
+during training, so fitting reduces to the convex LASSO
 
-Learning rule:
-    Collect hidden activations for all m training samples into matrix
-        X = [sigma(W1 x^(1))^T; ...; sigma(W1 x^(m))^T]  in R^{m x p}
-    Then find w by solving:
-        min_w  ||X w - y||_2^2 + lambda ||w||_1     (LASSO)
+    min_w  (1/2) ||X_hidden w - y||^2 + lam ||w||_1.
 
-The LASSO is solved by either IRLS (A1) or the Deflected Subgradient Method (A2).
+Both IRLS (Algorithm A1) and SGPTL (A2) plug into the same fit() entry
+point — pick one with ``solver='irls'`` or ``solver='dsm'``.
 """
 
 import numpy as np
+
 from .irls import irls
 from .deflected_subgradient import deflected_subgradient
 
 
-# ---------------------------------------------------------------------------
-# activation functions
-# ---------------------------------------------------------------------------
-
 def _sigmoid(z):
+    # The clip prevents exp() overflow on rare large pre-activations; the
+    # 500 cutoff is well outside the region where sigmoid(z) differs from
+    # 0 or 1 by more than machine epsilon.
     z = np.clip(z, -500.0, 500.0)
     return 1.0 / (1.0 + np.exp(-z))
+
 
 def _relu(z):
     return np.maximum(0.0, z)
 
+
 def _tanh(z):
     return np.tanh(z)
+
 
 _ACTIVATIONS = {
     'sigmoid': _sigmoid,
@@ -44,77 +41,43 @@ _ACTIVATIONS = {
 }
 
 
-# ---------------------------------------------------------------------------
-# ELM class
-# ---------------------------------------------------------------------------
-
 class ELM:
-    """
-    Extreme Learning Machine with L1-regularized output layer.
+    """ELM with an L1-regularised output layer.
 
-    Parameters
-    ----------
-    d          : int    -- input dimension
-    p          : int    -- number of hidden neurons
-    activation : str    -- activation function: 'sigmoid', 'relu', 'tanh'
-    lam        : float  -- regularization parameter lambda (default: 0.1)
-    random_state : int  -- seed for reproducibility
+    The hidden weights ``W_1`` are sampled once in ``__init__`` and never
+    touched again, which is the whole point of the ELM construction.
     """
 
     def __init__(self, d, p, activation='sigmoid', lam=0.1, random_state=42):
         if activation not in _ACTIVATIONS:
-            raise ValueError(f"Unknown activation '{activation}'. Choose from {list(_ACTIVATIONS)}.")
+            raise ValueError(
+                f"Unknown activation '{activation}'. "
+                f"Pick one of {list(_ACTIVATIONS)}."
+            )
         self.d = d
         self.p = p
         self.activation = activation
         self.lam = lam
         self.sigma = _ACTIVATIONS[activation]
 
-        # generate fixed random hidden-layer weights W1 in R^{p x d}
         rng = np.random.RandomState(random_state)
         self.W1 = rng.randn(p, d)
 
-        # output weights (set after fitting)
+        # Filled in by fit().
         self.w = None
         self._fit_result = None
 
-    # ------------------------------------------------------------------
-    # transform: compute hidden activations
-    # ------------------------------------------------------------------
-
     def transform(self, X_raw):
-        """
-        Compute the hidden-layer feature matrix.
+        """Apply the fixed random projection: ``X_hidden = sigma(X_raw W_1^T)``."""
+        return self.sigma(X_raw @ self.W1.T)
 
-        Parameters
-        ----------
-        X_raw : ndarray (m, d)  -- raw input data
-
-        Returns
-        -------
-        X_hidden : ndarray (m, p)  -- hidden activations sigma(X_raw W1^T)
-        """
-        return self.sigma(X_raw @ self.W1.T) # (m, p)
-
-    # ------------------------------------------------------------------
-    # fit: learn output weights
-    # ------------------------------------------------------------------
     def fit(self, X_raw, y, solver='irls', **solver_kwargs):
-        """
-        Fit the ELM by solving the LASSO problem on the hidden features.
+        """Solve the LASSO on the hidden activations.
 
-        Parameters
-        ----------
-        X_raw        : ndarray (m, d)   -- raw training inputs
-        y            : ndarray (m,)     -- training targets
-        solver       : str              -- 'irls' or 'dsm'
-        solver_kwargs: dict             -- passed to the chosen solver
-
-        Returns
-        -------
-        self   (for method chaining)
+        ``solver_kwargs`` is forwarded to the chosen optimiser, so e.g. you can
+        pass ``eps_thr=1e-10`` for IRLS or ``i_max=10000`` for SGPTL.
         """
-        X_hidden = self.transform(X_raw) # (m, p)
+        X_hidden = self.transform(X_raw)
 
         if solver == 'irls':
             result = irls(X_hidden, y, self.lam, **solver_kwargs)
@@ -127,43 +90,25 @@ class ELM:
         self._fit_result = result
         return self
 
-    # ------------------------------------------------------------------
-    # predict
-    # ------------------------------------------------------------------
     def predict(self, X_raw):
-        """
-        Predict targets for new inputs.
-
-        Parameters
-        ----------
-        X_raw : ndarray (m, d)   -- raw input data
-
-        Returns
-        -------
-        y_hat : ndarray (m,)     -- predictions
-        """
         if self.w is None:
             raise RuntimeError("Model is not fitted yet. Call fit() first.")
-        X_hidden = self.transform(X_raw) # (m, p)
-        return X_hidden @ self.w
+        return self.transform(X_raw) @ self.w
 
-    # ------------------------------------------------------------------
-    # convenience properties (@property is a decorator for read-only attributes)
-    # ------------------------------------------------------------------
     @property
     def sparsity(self):
-        """Fraction of output weights that are (approximately) zero."""
+        """Fraction of output weights with |w_i| < 1e-8 (None before fit)."""
         if self.w is None:
             return None
         return float(np.mean(np.abs(self.w) < 1e-8))
 
     @property
     def n_active(self):
-        """Number of non-zero output weights."""
+        """Count of weights with |w_i| >= 1e-8 (None before fit)."""
         if self.w is None:
             return None
         return int(np.sum(np.abs(self.w) >= 1e-8))
 
     def __repr__(self):
-        return (f"ELM(d={self.d}, p={self.p}, activation='{self.activation}', "
-                f"lam={self.lam})")
+        return (f"ELM(d={self.d}, p={self.p}, "
+                f"activation='{self.activation}', lam={self.lam})")

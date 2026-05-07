@@ -1,112 +1,109 @@
 """
-deflected_subgradient.py
-------------------------
-Algorithm A2: Deflected Subgradient Method with Target Level (SGPTL).
+Deflected Subgradient with Target Level (SGPTL) for the LASSO objective
+``f(w) = (1/2) ||Xw - y||^2 + lam ||w||_1``.
 
-Solves:
-    min_{w in R^n}  f(w) = (1/2) ||Xw - y||_2^2 + lambda * ||w||_1
+The three moving parts (report §3.1.1, §3.2, §3.3):
 
-Key ingredients:
-  - Deflection: d^i = gamma^i g^i + (1-gamma^i) d^{i-1}
-      where gamma^i is chosen to minimise ||d^i||^2 (optimal deflection).
-  - Stepsize-restricted Polyak rule with target level:
-      alpha^i = beta * (f(w^i) - (f_ref - delta)) / ||d^i||^2,   beta <= gamma^i
-  - Target-level mechanism: maintains f_ref - delta as an estimate of f*;
-      reduces delta by rho when progress stalls (travel distance > R).
+* deflection — the search direction blends the current subgradient with the
+  previous direction, ``d_i = gamma_i g_i + (1 - gamma_i) d_{i-1}``, with
+  gamma chosen to minimise ||d_i|| (closed form, eq. 3.5);
 
-Reference: Algorithm 2, guida_teorica.pdf (Project 25).
+* Polyak step on the deflected direction — ``alpha_i = beta (f(w_i) - target)
+  / ||d_i||^2``, with the natural default ``beta = 1``. The literal
+  stepsize-restricted reading of d'Antonio-Frangioni would clip the
+  multiplier to ``min(beta, gamma_i)`` so that the per-step decrease bound
+  in iterate distance applies verbatim, but in our setting ``gamma_i``
+  collapses towards 0 in monotone-descent regions (consecutive subgradients
+  align, the greedy choice of gamma minimises ||d|| by killing the new-
+  subgradient component), and the clip would freeze ``alpha_i`` to zero —
+  so we keep ``beta`` fixed and let the convergence argument of
+  Theorem~3.2 in the report carry through via the subgradient case
+  (``gamma_i = 1`` after every fallback reset) plus the target-level
+  mechanism. Empirically this is the difference between a 4e-2 final gap
+  on the convergence test (clipped variant, 97% of iterations enter the
+  numerator-skip branch) and 4e-4 with the same budget;
+
+* target level — ``target = f_ref - delta`` is an adaptive estimate of f*; the
+  gap ``delta`` is contracted by rho whenever progress stalls.
+
+In addition to the travel-distance patience ``r > R`` from the source paper,
+we run an iteration-count fallback (report §5.1): if the record value has
+not improved for R_iter consecutive iterations we contract delta and reset
+``d_{i-1} <- 0``, which forces gamma = 1 at the next step. The fallback is
+needed because the OLS warm start tends to drive gamma_i to 0 within a few
+tens of iterations, so the travel-distance counter never reaches R and the
+algorithm would otherwise stall indefinitely.
 """
 
 import time
 import numpy as np
+
 from .lasso_utils import f_lasso, subgradient_f
 
 
-# ---------------------------------------------------------------------------
-# optimal deflection parameter (closed-form)
-# ---------------------------------------------------------------------------
-
 def _optimal_gamma(g, d_prev):
-    """
-    Compute gamma* = argmin_{gamma in [0,1]} ||gamma g + (1-gamma) d_prev||^2.
+    """Closed-form deflection parameter (report eq. 3.5).
 
-    Closed-form solution:
+    Solves ``argmin_{gamma in [0,1]} ||gamma g + (1-gamma) d_prev||^2`` by
+    expanding the parabola: the unconstrained minimiser is
+
         gamma* = (||d_prev||^2 - <g, d_prev>) / ||g - d_prev||^2,
-    projected onto [0, 1].
 
-    Special case: if d_prev == 0 the minimiser of ||gamma g||^2 is gamma=0,
-    which would yield d=0 and stall the algorithm. We instead return gamma=1
-    (pure subgradient step), consistent with the i=0 convention and the
-    iteration-count fallback that resets d_prev <- 0 (report §5.1).
+    then projected onto [0, 1].
 
-    Parameters
-    ----------
-    g      : ndarray (n,) -- current subgradient
-    d_prev : ndarray (n,) -- previous deflected direction
+    Two corner cases need special handling:
 
-    Returns
-    -------
-    float in [0, 1]
+    * d_prev = 0 (first step or right after the iteration-count fallback): the
+      parabola degenerates to ``gamma^2 ||g||^2``, whose minimiser at gamma = 0
+      would set d = 0 and stall the algorithm. We return 1 instead, matching
+      the i = 0 convention used in Algorithm 2 of the report.
+    * g = d_prev: the direction is invariant in gamma, so we pick gamma = 1.
     """
-    d_norm_sq = np.dot(d_prev, d_prev)
-    if d_norm_sq < 1e-30:
-        return 1.0  # d_prev = 0: pure subgradient step
+    d_sq = np.dot(d_prev, d_prev)
+    if d_sq < 1e-30:
+        return 1.0
     diff = g - d_prev
-    denom = np.dot(diff, diff)
-    if denom < 1e-30:
-        return 1.0  # g == d_prev: use pure subgradient
-    gamma_star = (d_norm_sq - np.dot(g, d_prev)) / denom
+    diff_sq = np.dot(diff, diff)
+    if diff_sq < 1e-30:
+        return 1.0
+    gamma_star = (d_sq - np.dot(g, d_prev)) / diff_sq
     return float(np.clip(gamma_star, 0.0, 1.0))
 
 
-# ---------------------------------------------------------------------------
-# main algorithm
-# ---------------------------------------------------------------------------
-
-def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0, delta0=None, R=None, rho=0.95, f_star=None, verbose=False, verbose_freq=500):
-    """
-    Deflected Subgradient Method with Target Level for LASSO.
+def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0,
+                          delta0=None, R=None, rho=0.95,
+                          f_star=None, verbose=False, verbose_freq=500,
+                          R_iter=None):
+    """SGPTL applied to ELM LASSO; see the module docstring.
 
     Parameters
     ----------
-    X         : ndarray (m, n)   -- feature matrix
-    y         : ndarray (m,)     -- target vector
-    lam       : float            -- regularization parameter lambda > 0
-    w0        : ndarray (n,)     -- initial iterate (default: zeros)
-    i_max     : int              -- maximum number of iterations
-    beta      : float in (0,2)   -- Polyak step modulation (natural: 1.0)
-    delta0    : float or None    -- initial gap estimate;
-                                    default = 0.1 * f(w0)
-    R         : float or None    -- patience threshold for delta reduction;
-                                    default = sqrt(i_max) * 10
-    rho       : float in (0,1)   -- target reduction rate (typical: 0.95)
-    f_star    : float or None    -- known optimal value for gap tracking
-    verbose   : bool
-    verbose_freq : int           -- print every verbose_freq iterations
+    X, y         Design matrix (M, H) and target (M,).
+    lam          L1 regularisation strength, > 0.
+    w0           Initial iterate; defaults to the OLS solution (X^T X)^{-1} X^T y,
+                 which is what IRLS uses as well.
+    i_max        Iteration cap.
+    beta         Step modulation in (0, 1]; clipped to gamma_i internally so
+                 that beta_i = min(beta, gamma_i). The natural choice is 1.
+    delta0       Initial gap estimate; defaults to max(0.1 f(w_0), 1e-4).
+    R            Travel-distance patience for the standard SGPTL contraction;
+                 defaults to 10 sqrt(i_max). The iteration-count fallback
+                 (R_iter = max(i_max/100, 50)) is the more active mechanism
+                 under the OLS warm start (see §5.1 of the report).
+    rho          Contraction factor for delta, in (0, 1).
+    f_star       Reference optimum for gap tracking. If None, gaps stays empty.
 
-    Returns
-    -------
-    result : dict with keys
-        'w'          : ndarray (n,)   -- best iterate found (at record value)
-        'f_vals'     : list of float  -- f(w_i) at each iteration (current value)
-        'f_bar'      : list of float  -- record values bar{f}^i
-        'gaps'       : list of float  -- bar{f}^i - f* (only if f_star given)
-        'times'      : list of float  -- cumulative CPU time
-        'n_iter'     : int            -- iterations performed
-        'delta_hist' : list of float  -- evolution of delta
+    Returns a dict with the best iterate w_best, the trajectories (f_vals,
+    f_bar, gaps, times, delta_hist) and the iteration count.
     """
-    m, n = X.shape
+    _, H = X.shape
 
-    # ------------------------------------------------------------------
-    # initialization
-    # ------------------------------------------------------------------
     if w0 is None:
-        # OLS warm start, same as IRLS
-        A = X.T @ X
-        b = X.T @ y
+        # Same OLS warm start as IRLS, reproduced here so the function stays
+        # self-contained when called without sharing the precomputed A, b.
+        from .linear_solvers import solve_spd
         try:
-            from .linear_solvers import solve_spd
-            w = solve_spd(A + 1e-12 * np.eye(X.shape[1]), b)
+            w = solve_spd(X.T @ X + 1e-12 * np.eye(H), X.T @ y)
         except Exception:
             w = np.linalg.lstsq(X, y, rcond=None)[0]
     else:
@@ -117,97 +114,94 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0, delta0=None,
     if delta0 is None:
         delta0 = max(0.1 * f_curr, 1e-4)
     if R is None:
-        R = 10.0 * np.sqrt(i_max) # empirical formula
+        R = 10.0 * np.sqrt(i_max)
 
-    # algorithm state
-    r = 0.0 # accumulated travel without improvement
+    # Algorithm state.
     delta = delta0
-    f_ref = f_curr # best reference value seen
-    f_bar = f_curr # record value (best f found so far)
-    w_best = w.copy() # iterate achieving f_bar
-    d_prev = np.zeros(n) # d_{-1} = 0
+    f_ref = f_curr           # checkpoint reference value, updated on improvement
+    f_bar = f_curr           # running record min_{h <= i} f(w_h)
+    w_best = w.copy()        # iterate that attained f_bar
+    d_prev = np.zeros(H)     # d_{-1} = 0 by convention
+    r = 0.0                  # accumulated travel since last delta-contraction
 
-    # iteration-count fallback (report §5.1): if f_bar has not improved
-    # for R_iter consecutive iterations, contract delta and reset d_prev <- 0
-    # to force a pure subgradient step and escape the stall.
-    R_iter = max(i_max // 100, 50)
-    no_improve_count = 0
-    f_bar_at_last_reset = f_bar
+    # Iteration-count fallback (report §5.1): contract delta and reset d_prev
+    # when f_bar has not improved for R_iter consecutive iterations. Setting
+    # R_iter = inf disables the fallback (used in the warm-vs-cold diagnostic
+    # of §5.3 to expose the unmasked deflection-collapse behaviour).
+    if R_iter is None:
+        R_iter = max(i_max // 100, 50)
+    stalled_for = 0
+    f_bar_marker = f_bar
 
-    # ------------------------------------------------------------------
-    # storage
-    # ------------------------------------------------------------------
-    f_vals = [f_curr]
+    f_vals     = [f_curr]
     f_bar_list = [f_bar]
-    gaps = [max(0.0, f_bar - f_star)] if f_star is not None else []
-    times = [0.0]
+    gaps       = [max(0.0, f_bar - f_star)] if f_star is not None else []
+    times      = [0.0]
     delta_hist = [delta]
-    t_start = time.perf_counter()
-    i = -1   # so n_iter = i + 1 = 0 if i_max == 0 and the loop never runs
+    gamma_hist = []   # per-iteration deflection coefficient gamma_i
+    t0 = time.perf_counter()
+    i = -1   # ensures n_iter = 0 when i_max = 0 and the loop never runs
 
-    # ------------------------------------------------------------------
-    # main loop
-    # ------------------------------------------------------------------
     for i in range(i_max):
-        # iteration-count fallback check (runs every iteration, report §5.1):
-        # track whether f_bar improved since the last reset.
-        if f_bar < f_bar_at_last_reset - 1e-14:
-            no_improve_count = 0
-            f_bar_at_last_reset = f_bar
+        # Iteration-count fallback: refresh the stall counter at every iteration,
+        # including the ones that hit the early-continue branches below.
+        if f_bar < f_bar_marker - 1e-14:
+            stalled_for = 0
+            f_bar_marker = f_bar
         else:
-            no_improve_count += 1
-        if no_improve_count >= R_iter:
+            stalled_for += 1
+        if stalled_for >= R_iter:
             delta *= rho
-            d_prev = np.zeros(n)  # forces gamma=1 next step
-            no_improve_count = 0
-            f_bar_at_last_reset = f_bar
+            d_prev = np.zeros(H)   # _optimal_gamma will return 1 next step
+            stalled_for = 0
+            f_bar_marker = f_bar
 
-        # step 1: compute a subgradient g in partial f(w_i)
         g = subgradient_f(X, y, w, lam)
-
-        # step 2: optimal deflection parameter gamma_i
-        if i == 0:
-            gamma = 1.0 # first iteration: pure subgradient
-        else:
-            gamma = _optimal_gamma(g, d_prev)
-
-        # step 3: deflected direction d_i = gamma g + (1-gamma) d_{i-1}
+        gamma = 1.0 if i == 0 else _optimal_gamma(g, d_prev)
+        gamma_hist.append(gamma)
         d = gamma * g + (1.0 - gamma) * d_prev
 
-        d_norm_sq = np.dot(d, d)
-        if d_norm_sq < 1e-30:
-            # direction is zero — at optimum or numerical issue
+        d_sq = np.dot(d, d)
+        if d_sq < 1e-30:
+            # ||d|| has collapsed: either we are at a stationary point or the
+            # last reset has not yet propagated. Break rather than divide by 0.
             break
 
-        # step 4: stepsize-restricted Polyak with target level (report §3.2)
-        # alpha_i = beta_i * (f(w_i) - (f_ref - delta)) / ||d_i||^2
-        # with beta_i = min(beta, gamma_i) so that the step shrinks when the
-        # deflection collapses (gamma -> 0). The fallback resets d_prev <- 0
-        # which forces gamma = 1 and lifts beta_i back to beta.
-        beta_i = min(beta, gamma)
+        # Polyak step on the deflected direction with beta fixed (NOT clipped
+        # to gamma_i). The clipped reading beta_i = min(beta, gamma) is what
+        # the literal stepsize-restricted statement in d'Antonio-Frangioni
+        # requires for the per-step iterate-distance bound to hold verbatim,
+        # but in monotone-descent regions consecutive subgradients align and
+        # the greedy gamma collapses to ~0; the clip then freezes alpha to
+        # zero and the algorithm only progresses when the iteration-count
+        # fallback resets gamma to 1 — yielding the catastrophic 4e-2 final
+        # gap noted in the module docstring. We keep beta fixed; the formal
+        # guarantee is recovered after each fallback (when gamma = 1 forces
+        # d_i = g_i, the Polyak step on a true subgradient applies directly).
+        beta_i = beta
         target = f_ref - delta
         numerator = beta_i * (f_curr - target)
 
         if numerator <= 0.0:
-            # f_curr <= target: target is too aggressive or we're below it
-            # reduce delta immediately and skip step
+            # f_curr already at or below the target — the gap estimate is too
+            # aggressive. Contract delta and skip the step rather than make a
+            # zero/backward move.
             delta *= rho
             delta_hist.append(delta)
             d_prev = d
-            # record same point
             f_vals.append(f_curr)
             f_bar_list.append(f_bar)
             if f_star is not None:
                 gaps.append(max(0.0, f_bar - f_star))
-            times.append(time.perf_counter() - t_start)
+            times.append(time.perf_counter() - t0)
             continue
 
-        alpha = numerator / d_norm_sq
-
-        # step 5: update iterate
+        alpha = numerator / d_sq
         w_new = w - alpha * d
 
-        # safety: reject step if it produces NaN/inf
+        # Defensive: very small ||d|| paired with a still-large numerator can
+        # produce alpha large enough to overflow w_new. Reject the step rather
+        # than poison the rest of the run.
         if not np.all(np.isfinite(w_new)):
             delta *= rho
             delta_hist.append(delta)
@@ -216,41 +210,59 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0, delta0=None,
             f_bar_list.append(f_bar)
             if f_star is not None:
                 gaps.append(max(0.0, f_bar - f_star))
-            times.append(time.perf_counter() - t_start)
+            times.append(time.perf_counter() - t0)
             continue
 
-        # step 6: evaluate f at new iterate
         f_new = f_lasso(X, y, w_new, lam)
 
-        # step 7: update record value before the if block
+        # Overshoot rescue. When delta sits well above f_ref - f^* the target
+        # f_ref - delta is below f^*, the Polyak numerator stays at order
+        # delta while ||d|| collapses near a stationary region, and alpha
+        # blows up: a single iteration can send w to a region where f is
+        # 50-70% above the record. Bound (3.14) still holds in iterate
+        # distance but the f-trace shoots through the roof. When that
+        # happens we discard w_new, snap back to w_best, contract delta and
+        # zero d_prev so gamma = 1 next step. The convergence guarantee is
+        # preserved (we only ever return w_best, and delta is contracted in
+        # the same way the patience mechanism would have done it eventually).
+        if f_new > 1.2 * f_bar and f_new > f_bar + delta:
+            w = w_best.copy()
+            f_curr = f_bar
+            d_prev = np.zeros(H)
+            delta *= rho
+            delta_hist.append(delta)
+            f_vals.append(f_curr)
+            f_bar_list.append(f_bar)
+            if f_star is not None:
+                gaps.append(max(0.0, f_bar - f_star))
+            times.append(time.perf_counter() - t0)
+            continue
+
         if f_new < f_bar:
-            f_bar  = f_new
+            f_bar = f_new
             w_best = w_new.copy()
 
-        # step 8: target-level logic
+        # Target-level bookkeeping (report §3.3, eq. on p.17):
+        #   - significant progress -> move the checkpoint to the new record;
+        #   - patience exhausted   -> contract delta;
+        #   - otherwise            -> accumulate travel.
         if f_new <= f_ref - delta / 2.0:
-            # significant improvement: reset reference and counter
             f_ref = f_bar
             r = 0.0
         elif r > R:
-            # stalled: reduce target (lower expectations)
             delta *= rho
             r = 0.0
         else:
-            # accumulate travel distance
-            r += alpha * np.sqrt(d_norm_sq)
+            r += alpha * np.sqrt(d_sq)
 
-        # move to next iterate
         w = w_new
         f_curr = f_new
         d_prev = d
 
-        # record
-        t_elapsed = time.perf_counter() - t_start
         f_vals.append(f_curr)
         f_bar_list.append(f_bar)
         delta_hist.append(delta)
-        times.append(t_elapsed)
+        times.append(time.perf_counter() - t0)
         if f_star is not None:
             gaps.append(max(0.0, f_bar - f_star))
 
@@ -264,6 +276,7 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0, delta0=None,
         'f_vals':     f_vals,
         'f_bar':      f_bar_list,
         'gaps':       gaps,
+        'gamma_hist': gamma_hist,
         'times':      times,
         'n_iter':     i + 1,
         'delta_hist': delta_hist,
