@@ -25,17 +25,17 @@ import csv
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from src import irls, deflected_subgradient, make_lasso_problem
+from src import irls, deflected_subgradient, make_lasso_problem, make_elm_problem
 from src.lasso_utils import f_lasso
 
-SEED    = 42
-LAM     = 0.1
-NOISE   = 0.05
-M_RATIO = 5          # m = M_RATIO * n
+SEED = 42
+LAM = 0.1
+NOISE = 0.05
+M_RATIO = 5 # m = M_RATIO * n
 
-IRLS_KMAX    = 100
+IRLS_KMAX = 100
 IRLS_EPSSTOP = 1e-6
-DSM_IMAX     = 3000
+DSM_IMAX = 3000
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), '..', 'results', 'figures')
 TAB_DIR = os.path.join(os.path.dirname(__file__), '..', 'results', 'tables')
@@ -55,30 +55,24 @@ def run():
         m = M_RATIO * n
         print(f"\nn={n:5d}, m={m:6d} ...", end=' ', flush=True)
 
-        X, y, _, f_star, _ = make_lasso_problem(
-            n=n, m=m, sparsity=0.1, noise_std=NOISE, lam=LAM,
-            random_state=SEED)
+        X, y, _, f_star, _ = make_lasso_problem(n=n, m=m, sparsity=0.1, noise_std=NOISE, lam=LAM, random_state=SEED)
 
         # IRLS
         t0 = time.perf_counter()
-        res_i = irls(X, y, LAM, eps_thr=1e-8, eps_stop=IRLS_EPSSTOP,
-                     k_max=IRLS_KMAX, solver='cholesky', f_star=f_star)
+        res_i = irls(X, y, LAM, eps_thr=1e-8, eps_stop=IRLS_EPSSTOP, k_max=IRLS_KMAX, solver='cholesky', f_star=f_star)
         t_irls = time.perf_counter() - t0
 
         # DSM
         t0 = time.perf_counter()
-        res_d = deflected_subgradient(X, y, LAM, i_max=DSM_IMAX, beta=1.0,
-                                      delta0=0.1*f_star, rho=0.95,
-                                      f_star=f_star)
+        res_d = deflected_subgradient(X, y, LAM, i_max=DSM_IMAX, beta=1.0, delta0=0.1*f_star, rho=0.95, f_star=f_star)
         t_dsm = time.perf_counter() - t0
 
         gap_irls = res_i['gaps'][-1] if res_i['gaps'] else float('nan')
-        gap_dsm  = res_d['gaps'][-1] if res_d['gaps'] else float('nan')
+        gap_dsm = res_d['gaps'][-1] if res_d['gaps'] else float('nan')
         iter_irls = res_i['n_iter']
-        iter_dsm  = res_d['n_iter']
+        iter_dsm = res_d['n_iter']
 
-        print(f"IRLS {t_irls:.3f}s ({iter_irls} iter, gap={gap_irls:.1e})  |  "
-              f"DSM {t_dsm:.3f}s ({iter_dsm} iter, gap={gap_dsm:.1e})")
+        print(f"IRLS {t_irls:.3f}s ({iter_irls} iter, gap={gap_irls:.1e})  |  DSM {t_dsm:.3f}s ({iter_dsm} iter, gap={gap_dsm:.1e})")
 
         results.append({
             'n': n, 'm': m,
@@ -86,9 +80,7 @@ def run():
             't_dsm':  t_dsm,  'iter_dsm':  iter_dsm,  'gap_dsm':  gap_dsm,
         })
 
-    # ------------------------------------------------------------------
-    # Table
-    # ------------------------------------------------------------------
+
     tab_path = os.path.join(TAB_DIR, 'scalability.csv')
     with open(tab_path, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=results[0].keys())
@@ -96,9 +88,6 @@ def run():
         writer.writerows(results)
     print(f"\nSaved: {tab_path}")
 
-    # ------------------------------------------------------------------
-    # Plots
-    # ------------------------------------------------------------------
     ns      = [r['n'] for r in results]
     t_irls  = [r['t_irls'] for r in results]
     t_dsm   = [r['t_dsm']  for r in results]
@@ -108,7 +97,7 @@ def run():
     ax = axes[0]
     ax.loglog(ns, t_irls, 'b-o', label='IRLS')
     ax.loglog(ns, t_dsm,  'r-s', label='DSM')
-    # Reference O(n^3) line
+    # reference O(n^3) line (cost of most linear equation solvers)
     ref = [t_irls[0] * (n / ns[0])**3 for n in ns]
     ax.loglog(ns, ref, 'b--', alpha=0.4, label='$O(n^3)$')
     ax.set_xlabel('$n$ (features / hidden neurons)')
@@ -119,7 +108,7 @@ def run():
 
     ax = axes[1]
     t_irls_per = [r['t_irls'] / max(r['iter_irls'], 1) for r in results]
-    t_dsm_per  = [r['t_dsm']  / max(r['iter_dsm'],  1) for r in results]
+    t_dsm_per = [r['t_dsm']  / max(r['iter_dsm'],  1) for r in results]
     ax.loglog(ns, t_irls_per, 'b-o', label='IRLS (per iter)')
     ax.loglog(ns, t_dsm_per,  'r-s', label='DSM (per iter)')
     ax.set_xlabel('$n$')

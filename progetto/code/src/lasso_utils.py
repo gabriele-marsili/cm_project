@@ -35,8 +35,8 @@ def f_lasso(X, y, w, lam):
 
 def grad_smooth(X, y, w):
     """
-    Gradient of the smooth part g(w) = ||Xw - y||^2:
-        nabla g(w) = 2 X^T (Xw - y).
+    Gradient of the smooth part g(w) = (1/2)||Xw - y||^2:
+    nabla g(w) = X^T (Xw - y).
 
     Parameters
     ----------

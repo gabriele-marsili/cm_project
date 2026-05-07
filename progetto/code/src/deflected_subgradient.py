@@ -93,7 +93,14 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0, delta0=None,
     # initialization
     # ------------------------------------------------------------------
     if w0 is None:
-        w = np.zeros(n)
+        # OLS warm start, same as IRLS
+        A = X.T @ X
+        b = X.T @ y
+        try:
+            from .linear_solvers import solve_spd
+            w = solve_spd(A + 1e-12 * np.eye(X.shape[1]), b)
+        except Exception:
+            w = np.linalg.lstsq(X, y, rcond=None)[0]
     else:
         w = w0.copy()
 
@@ -102,7 +109,7 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0, delta0=None,
     if delta0 is None:
         delta0 = max(0.1 * f_curr, 1e-4)
     if R is None:
-        R = 10.0 * np.sqrt(i_max)
+        R = 10.0 * np.sqrt(i_max) # empirical formula
 
     # algorithm state
     r = 0.0 # accumulated travel without improvement
@@ -145,8 +152,9 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0, delta0=None,
 
         # step 4: Polyak stepsize with target level
         # alpha_i = beta * (f(w_i) - (f_ref - delta)) / ||d_i||^2
+        beta_i = min(beta, gamma) # clipping of \beta_i (ref to 3.2 of the report)
         target = f_ref - delta
-        numerator = beta * (f_curr - target)
+        numerator = beta_i * (f_curr - target)
 
         if numerator <= 0.0:
             # f_curr <= target: target is too aggressive or we're below it

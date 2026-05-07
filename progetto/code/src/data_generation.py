@@ -58,12 +58,10 @@ def make_lasso_problem(n=100, m=200, sparsity=0.1, noise_std=0.1, lam=0.1, rando
     # targets
     y = X @ w_true + noise_std * rng.randn(m)
 
-    # reference solution via sklearn (validation only, not for algorithm)
-    # sklearn Lasso minimizes (1/(2m)) ||Xw-y||^2 + alpha ||w||_1
-    # our f = ||Xw-y||^2 + lam ||w||_1
-    # dividing ours by 2m: (1/(2m))||Xw-y||^2 + (lam/(2m))||w||_1
-    # so alpha = lam / (2m)
-    alpha_sk = lam / (2.0 * m)
+    # reference solution via sklearn
+    # since SklearnLasso uses 1/(2M)*||Xw - y||^2_2 + \alpha*||w||
+    # but our function is 1/2||Xw - y||^2_2 + \lambda*||w||, so we can divide by M, and \alpha = \lambda/M
+    alpha_sk = lam / float(m)
     sk = SklearnLasso(alpha=alpha_sk, fit_intercept=False, max_iter=100000, tol=1e-12)
     sk.fit(X, y)
     w_star = sk.coef_
@@ -117,9 +115,9 @@ def make_elm_problem(d=20, p=100, m=500, sparsity=0.1, noise_std=0.1, activation
     rng = np.random.RandomState(random_state)
 
     # ELM architecture
-    W1    = rng.randn(p, d)
+    W1 = rng.randn(p, d)
     X_raw = rng.randn(m, d)
-    X_hid = sigma(X_raw @ W1.T)   # (m, p)
+    X_hid = sigma(X_raw @ W1.T) # (m, p)
 
     # sparse ground-truth output weights
     k = max(1, int(sparsity * p))
@@ -131,7 +129,9 @@ def make_elm_problem(d=20, p=100, m=500, sparsity=0.1, noise_std=0.1, activation
     y = X_hid @ w_true + noise_std * rng.randn(m)
 
     # reference optimal value (sklearn)
-    alpha_sk = lam * m / 2.0 # ??????????
+    # since SklearnLasso uses 1/(2M)*||Xw - y||^2_2 + \alpha*||w||
+    # but our function is 1/2||Xw - y||^2_2 + \lambda*||w||, so we can divide by M, and \alpha = \lambda/M
+    alpha_sk = lam / float(m)
     sk = SklearnLasso(alpha=alpha_sk, fit_intercept=False, max_iter=100000, tol=1e-12)
     sk.fit(X_hid, y)
     w_star = sk.coef_
@@ -145,7 +145,6 @@ def make_elm_problem(d=20, p=100, m=500, sparsity=0.1, noise_std=0.1, activation
 # ---------------------------------------------------------------------------
 # Real datasets (from sklearn)
 # ---------------------------------------------------------------------------
-
 def load_real_dataset(name='diabetes', test_size=0.2, random_state=42):
     """
     Load and preprocess a real regression dataset.

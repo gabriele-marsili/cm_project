@@ -22,9 +22,9 @@ import csv
 from src import irls, deflected_subgradient, make_lasso_problem
 from src.lasso_utils import f_lasso
 
-SEED    = 42
-LAM     = 0.1
-NOISE   = 0.05
+SEED = 42
+LAM = 0.1
+NOISE = 0.05
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), '..', 'results', 'figures')
 TAB_DIR = os.path.join(os.path.dirname(__file__), '..', 'results', 'tables')
@@ -53,34 +53,24 @@ def run():
     print("Experiment: IRLS vs DSM Comparison")
     print("=" * 60)
 
-    # ------------------------------------------------------------------
-    # Single problem: detailed comparison
-    # ------------------------------------------------------------------
     n, m = 100, 400
-    X, y, _, f_star, w_star = make_lasso_problem(
-        n=n, m=m, sparsity=0.1, noise_std=NOISE, lam=LAM, random_state=SEED)
+    X, y, _, f_star, w_star = make_lasso_problem(n=n, m=m, sparsity=0.1, noise_std=NOISE, lam=LAM, random_state=SEED)
     print(f"\nDetailed comparison: n={n}, m={m}, f*={f_star:.6f}")
 
-    res_irls = irls(X, y, LAM, eps_thr=1e-8, eps_stop=1e-10,
-                    k_max=200, solver='cholesky', f_star=f_star)
-    res_dsm  = deflected_subgradient(X, y, LAM, i_max=10000, beta=1.0,
-                                     delta0=0.1*f_star, rho=0.95,
-                                     f_star=f_star)
+    res_irls = irls(X, y, LAM, eps_thr=1e-8, eps_stop=1e-10, k_max=200, solver='cholesky', f_star=f_star)
+    res_dsm = deflected_subgradient(X, y, LAM, i_max=10000, beta=1.0, delta0=0.1*f_star, rho=0.95, f_star=f_star)
 
     epsilons = [1e-2, 1e-3, 1e-4, 1e-6]
-    print(f"\n{'epsilon':>10}  {'IRLS iters':>12}  {'IRLS time':>12}  "
-          f"{'DSM iters':>12}  {'DSM time':>12}")
+    print(f"\n{'epsilon':>10}  {'IRLS iters':>12}  {'IRLS time':>12}  {'DSM iters':>12}  {'DSM time':>12}")
     rows = []
     for eps in epsilons:
         i_irls = iters_to_reach(res_irls['gaps'], eps)
         t_irls = time_to_reach(res_irls['gaps'], res_irls['times'], eps)
         i_dsm  = iters_to_reach(res_dsm['gaps'],  eps)
         t_dsm  = time_to_reach(res_dsm['gaps'],  res_dsm['times'],  eps)
-        print(f"{eps:>10.0e}  {str(i_irls):>12}  {str(round(t_irls,4)) if t_irls else 'N/A':>12}  "
-              f"{str(i_dsm):>12}  {str(round(t_dsm,4)) if t_dsm else 'N/A':>12}")
+        print(f"{eps:>10.0e}  {str(i_irls):>12}  {str(round(t_irls,4)) if t_irls else 'N/A':>12}  {str(i_dsm):>12}  {str(round(t_dsm,4)) if t_dsm else 'N/A':>12}")
         rows.append([eps, i_irls, t_irls, i_dsm, t_dsm])
 
-    # Save table
     tab_path = os.path.join(TAB_DIR, 'comparison_table.csv')
     with open(tab_path, 'w', newline='') as f:
         writer = csv.writer(f)
@@ -88,17 +78,16 @@ def run():
         writer.writerows(rows)
     print(f"\nSaved: {tab_path}")
 
-    # ------------------------------------------------------------------
-    # Plot: gap vs iterations for both (same axes, log scale)
-    # ------------------------------------------------------------------
+
+    # plot: gap vs iterations for both
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
 
     # vs iterations
     ax = axes[0]
     irls_gaps = np.maximum(res_irls['gaps'], 1e-16)
-    dsm_gaps  = np.maximum(res_dsm['gaps'],  1e-16)
+    dsm_gaps = np.maximum(res_dsm['gaps'],  1e-16)
     ax.semilogy(irls_gaps, 'b-o', ms=4, lw=1.5, label='IRLS (A1)')
-    ax.semilogy(dsm_gaps,  'r-',  lw=1,  label='DSM (A2)')
+    ax.semilogy(dsm_gaps, 'r-', lw=1, label='DSM (A2)')
     ax.set_xlabel('Iteration')
     ax.set_ylabel('$f - f^*$')
     ax.set_title('Convergence vs iterations')
@@ -108,7 +97,7 @@ def run():
     # vs CPU time
     ax = axes[1]
     ax.semilogy(res_irls['times'], irls_gaps, 'b-o', ms=4, lw=1.5, label='IRLS (A1)')
-    ax.semilogy(res_dsm['times'],  dsm_gaps,  'r-',  lw=1,  label='DSM (A2)')
+    ax.semilogy(res_dsm['times'],  dsm_gaps, 'r-', lw=1, label='DSM (A2)')
     ax.set_xlabel('CPU time (s)')
     ax.set_ylabel('$f - f^*$')
     ax.set_title('Convergence vs CPU time')
@@ -122,11 +111,10 @@ def run():
     print(f"Saved: {path}")
     plt.close()
 
-    # ------------------------------------------------------------------
-    # Solution quality
-    # ------------------------------------------------------------------
+
+    # solution quality (sparsity)
     w_irls = res_irls['w']
-    w_dsm  = res_dsm['w']
+    w_dsm = res_dsm['w']
     print(f"\nSolution quality:")
     print(f"  ||w_irls - w*|| = {np.linalg.norm(w_irls - w_star):.4e}")
     print(f"  ||w_dsm  - w*|| = {np.linalg.norm(w_dsm  - w_star):.4e}")

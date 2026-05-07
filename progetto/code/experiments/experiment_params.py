@@ -27,8 +27,8 @@ import matplotlib.pyplot as plt
 from src import irls, deflected_subgradient, make_lasso_problem
 from src.lasso_utils import f_lasso
 
-SEED  = 42
-N, M  = 100, 400
+SEED = 42
+N, M = 100, 400
 NOISE = 0.05
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), '..', 'results', 'figures')
@@ -41,13 +41,10 @@ def run():
     print("=" * 60)
 
     LAM = 0.1
-    X, y, _, f_star, w_star = make_lasso_problem(
-        n=N, m=M, sparsity=0.1, noise_std=NOISE, lam=LAM, random_state=SEED)
+    X, y, _, f_star, w_star = make_lasso_problem(n=N, m=M, sparsity=0.1, noise_std=NOISE, lam=LAM, random_state=SEED)
     print(f"Problem: n={N}, m={M}, lambda={LAM}, f*={f_star:.6f}")
 
-    # ==================================================================
     # 1. IRLS: effect of eps_thr
-    # ==================================================================
     print("\n--- IRLS: varying eps_thr ---")
     eps_thr_vals = [1e-4, 1e-6, 1e-8, 1e-10, 1e-12]
     colors = plt.cm.Blues(np.linspace(0.4, 1.0, len(eps_thr_vals)))
@@ -55,14 +52,12 @@ def run():
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
 
     for eps_thr, color in zip(eps_thr_vals, colors):
-        res = irls(X, y, LAM, eps_thr=eps_thr, eps_stop=1e-12,
-                   k_max=100, solver='cholesky', f_star=f_star)
+        res = irls(X, y, LAM, eps_thr=eps_thr, eps_stop=1e-12, k_max=100, solver='cholesky', f_star=f_star)
         gaps = np.maximum(res['gaps'], 1e-16)
         sparsity = np.mean(np.abs(res['w']) < 1e-6)
         label = f'$\\varepsilon_{{thr}}={eps_thr:.0e}$  (spar={sparsity:.0%})'
         axes[0].semilogy(gaps, color=color, lw=1.5, label=label)
-        print(f"  eps_thr={eps_thr:.0e}: iters={res['n_iter']}, "
-              f"gap={gaps[-1]:.2e}, sparsity={sparsity:.1%}")
+        print(f"  eps_thr={eps_thr:.0e}: iters={res['n_iter']}, gap={gaps[-1]:.2e}, sparsity={sparsity:.1%}")
 
     axes[0].set_xlabel('Iteration $k$')
     axes[0].set_ylabel('$f(w_k) - f^*$')
@@ -70,24 +65,19 @@ def run():
     axes[0].legend(fontsize=8)
     axes[0].grid(True, which='both', alpha=0.3)
 
-    # ==================================================================
-    # 2. Effect of lambda (shared plot)
-    # ==================================================================
+    # 2. effect of lambda (shared plot)
     print("\n--- Effect of lambda ---")
     lam_vals = [0.01, 0.05, 0.1, 0.5, 1.0]
     colors2 = plt.cm.Reds(np.linspace(0.3, 1.0, len(lam_vals)))
 
     for lam, color in zip(lam_vals, colors2):
-        X_l, y_l, _, f_star_l, _ = make_lasso_problem(
-            n=N, m=M, sparsity=0.1, noise_std=NOISE, lam=lam, random_state=SEED)
-        res = irls(X_l, y_l, lam, eps_thr=1e-8, eps_stop=1e-10,
-                   k_max=100, f_star=f_star_l)
+        X_l, y_l, _, f_star_l, _ = make_lasso_problem(n=N, m=M, sparsity=0.1, noise_std=NOISE, lam=lam, random_state=SEED)
+        res = irls(X_l, y_l, lam, eps_thr=1e-8, eps_stop=1e-10, k_max=100, f_star=f_star_l)
         gaps = np.maximum(res['gaps'], 1e-16)
         sparsity = np.mean(np.abs(res['w']) < 1e-6)
         label = f'$\\lambda={lam}$ (spar={sparsity:.0%})'
         axes[1].semilogy(gaps, color=color, lw=1.5, label=label)
-        print(f"  lambda={lam}: iters={res['n_iter']}, "
-              f"gap={gaps[-1]:.2e}, sparsity={sparsity:.1%}")
+        print(f"  lambda={lam}: iters={res['n_iter']}, gap={gaps[-1]:.2e}, sparsity={sparsity:.1%}")
 
     axes[1].set_xlabel('Iteration $k$')
     axes[1].set_ylabel('$f(w_k) - f^*$')
@@ -101,9 +91,7 @@ def run():
     print(f"\nSaved: {path}")
     plt.close()
 
-    # ==================================================================
     # 3. DSM: effect of delta0
-    # ==================================================================
     print("\n--- DSM: varying delta0 ---")
     delta0_factors = [0.01, 0.05, 0.1, 0.5, 1.0]
     colors3 = plt.cm.Oranges(np.linspace(0.3, 1.0, len(delta0_factors)))
@@ -112,8 +100,7 @@ def run():
 
     for factor, color in zip(delta0_factors, colors3):
         delta0 = factor * f_star
-        res = deflected_subgradient(X, y, LAM, i_max=5000, beta=1.0,
-                                    delta0=delta0, rho=0.95, f_star=f_star)
+        res = deflected_subgradient(X, y, LAM, i_max=5000, beta=1.0, delta0=delta0, rho=0.95, f_star=f_star)
         gaps = np.maximum(res['gaps'], 1e-16)
         label = f'$\\delta_0 = {factor}\\,f^*$'
         axes[0].semilogy(gaps, color=color, lw=1.0, label=label)
@@ -125,16 +112,14 @@ def run():
     axes[0].legend(fontsize=8)
     axes[0].grid(True, which='both', alpha=0.3)
 
-    # ==================================================================
+
     # 4. DSM: effect of rho
-    # ==================================================================
     print("\n--- DSM: varying rho ---")
     rho_vals = [0.7, 0.8, 0.9, 0.95, 0.99]
     colors4  = plt.cm.Purples(np.linspace(0.3, 1.0, len(rho_vals)))
 
     for rho, color in zip(rho_vals, colors4):
-        res = deflected_subgradient(X, y, LAM, i_max=5000, beta=1.0,
-                                    delta0=0.1*f_star, rho=rho, f_star=f_star)
+        res = deflected_subgradient(X, y, LAM, i_max=5000, beta=1.0, delta0=0.1*f_star, rho=rho, f_star=f_star)
         gaps = np.maximum(res['gaps'], 1e-16)
         label = f'$\\rho = {rho}$'
         axes[1].semilogy(gaps, color=color, lw=1.0, label=label)

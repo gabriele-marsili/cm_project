@@ -90,11 +90,11 @@ def irls(X, y, lam, eps_thr=1e-8, eps_stop=1e-8, k_max=200, solver='cholesky', w
         # step 1: compute diagonal weights  D_k = diag(max(|w_i|, eps_thr)^{-1})
         diag_D = 1.0 / np.maximum(np.abs(w), eps_thr) # shape (n,)
 
-        # step 2: assemble Q_k = A + (lambda/2) D_k
-        #   correct coefficient: for f = ||Xw-y||^2 + lambda||w||_1, the IRLS
-        #   fixed-point condition requires (X^TX + (lam/2)*D_k)*w = X^Ty.
+        # step 2: assemble Q_k = A + lambda * D_k  (= A + 2*lambda_IRLS * Wk^T Wk)
+        #   For f = 0.5*||Xw-y||^2 + lambda*||w||_1, the surrogate gradient gives:
+        #   (X^TX + lambda * Wk^TWk) * w = X^Ty,  where (Wk^TWk)_ii = 1/|w_i|.
         Q = A.copy()
-        Q[np.arange(n), np.arange(n)] += 2*lam * diag_D
+        Q[np.arange(n), np.arange(n)] += lam * diag_D # lam is exactly \lambda_{LASSO}
 
         # step 3: solve Q_k w_{k+1} = b
         w = solve_spd(Q, b, method=solver)

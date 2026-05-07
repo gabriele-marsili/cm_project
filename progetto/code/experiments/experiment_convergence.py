@@ -4,13 +4,12 @@ experiment_convergence.py
 Experiment 4a: Convergence analysis of IRLS and DSM.
 
 For both algorithms:
-  - Plot f(w_k) - f*  vs.  iterations  (semilog scale)
-  - Plot f(w_k) - f*  vs.  CPU time    (semilog scale)
+  - Plot f(w_k) - f* vs. iterations
+  - Plot f(w_k) - f* vs. CPU time
   - Verify: IRLS shows linear convergence (straight line in log scale)
   - Verify: DSM shows sublinear convergence (curve flattens)
 
-Also verifies that IRLS is monotone and DSM is non-monotone
-(but record value f_bar is monotone for DSM).
+Also verifies that IRLS is monotone and DSM is non-monotone (but record value f_bar is monotone for DSM).
 """
 
 import sys
@@ -27,15 +26,15 @@ from src.lasso_utils import f_lasso
 # ------------------------------------------------------------------
 # Configuration
 # ------------------------------------------------------------------
-SEED    = 42
-N       = 100          # number of features
-M       = 300          # number of samples
+SEED = 42
+N = 100 # number of features
+M = 300 # number of samples
 SPARSITY = 0.1
-LAM     = 0.1
-NOISE   = 0.05
+LAM = 0.1
+NOISE = 0.05
 
-IRLS_KMAX  = 100
-DSM_IMAX   = 8000
+IRLS_KMAX = 100
+DSM_IMAX = 500
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), '..', 'results', 'figures')
 os.makedirs(FIG_DIR, exist_ok=True)
@@ -46,51 +45,27 @@ def run():
     print("Experiment: Convergence Analysis")
     print("=" * 60)
 
-    # ------------------------------------------------------------------
-    # Generate data
-    # ------------------------------------------------------------------
-    X, y, w_true, f_star, w_star = make_lasso_problem(
-        n=N, m=M, sparsity=SPARSITY, noise_std=NOISE, lam=LAM,
-        random_state=SEED)
+
+    X, y, w_true, f_star, w_star = make_lasso_problem(n=N, m=M, sparsity=SPARSITY, noise_std=NOISE, lam=LAM, random_state=SEED)
 
     print(f"Problem: n={N}, m={M}, lambda={LAM}")
     print(f"f*  (sklearn reference) = {f_star:.8f}")
     print(f"w*  sparsity = {np.mean(np.abs(w_star) < 1e-6):.2%}")
 
-    # ------------------------------------------------------------------
-    # Run IRLS
-    # ------------------------------------------------------------------
+    # run IRLS algorithm
     print("\n--- Running IRLS ---")
-    res_irls = irls(X, y, LAM,
-                    eps_thr=1e-8, eps_stop=1e-10,
-                    k_max=IRLS_KMAX,
-                    solver='cholesky',
-                    f_star=f_star,
-                    verbose=True)
-    print(f"IRLS: {res_irls['n_iter']} iters, "
-          f"final f-f* = {res_irls['gaps'][-1]:.3e}, "
-          f"converged={res_irls['converged']}")
+    res_irls = irls(X, y, LAM, eps_thr=1e-8, eps_stop=1e-10, k_max=IRLS_KMAX, solver='cholesky', f_star=f_star, verbose=True)
+    print(f"IRLS: {res_irls['n_iter']} iters, final f-f* = {res_irls['gaps'][-1]:.3e}, converged={res_irls['converged']}")
 
-    # ------------------------------------------------------------------
-    # Run DSM
-    # ------------------------------------------------------------------
+    # run DSM algorithm
     print("\n--- Running DSM ---")
-    w0_dsm = np.zeros(N)
-    res_dsm = deflected_subgradient(
-        X, y, LAM,
-        w0=w0_dsm,
-        i_max=DSM_IMAX,
-        beta=1.0,
-        delta0=0.1 * f_star,
-        rho=0.95,
-        f_star=f_star,
-        verbose=True, verbose_freq=1000)
-    print(f"DSM:  {res_dsm['n_iter']} iters, "
-          f"final f_bar-f* = {res_dsm['gaps'][-1]:.3e}")
+    # make the dsm start from the same initial w0 as IRLS
+    res_dsm = deflected_subgradient(X, y, LAM, i_max=DSM_IMAX, beta=1.0, delta0=0.1 * f_star, rho=0.95, f_star=f_star, verbose=True, verbose_freq=1000)
+    print(f"DSM:  {res_dsm['n_iter']} iters, final f_bar-f* = {res_dsm['gaps'][-1]:.3e}")
 
-    # ------------------------------------------------------------------
-    # Plot 1: gap vs iterations  (log scale)
-    # ------------------------------------------------------------------
+    
+    
+    # plot 1: gap vs iterations (log scale)
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
     # IRLS
@@ -121,9 +96,8 @@ def run():
     print(f"\nSaved: {path}")
     plt.close()
 
-    # ------------------------------------------------------------------
-    # Plot 2: gap vs CPU time  (log scale)
-    # ------------------------------------------------------------------
+
+    # plot 2: gap vs CPU time  (log scale)
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.semilogy(res_irls['times'], irls_gaps, 'b-o', ms=4, label='IRLS')
     ax.semilogy(res_dsm['times'], dsm_fbar, 'r-', lw=1, label='DSM')
@@ -138,9 +112,8 @@ def run():
     print(f"Saved: {path}")
     plt.close()
 
-    # ------------------------------------------------------------------
-    # Plot 3: DSM — f(w_i) vs f_bar (monotonicity check)
-    # ------------------------------------------------------------------
+
+    # plot 3: DSM — f(w_i) vs f_bar (monotonicity check)
     fig, ax = plt.subplots(figsize=(10, 4))
     iters_dsm = range(len(res_dsm['f_vals']))
     ax.plot(iters_dsm, res_dsm['f_vals'], 'r-', lw=0.5, alpha=0.5, label='$f(w_i)$ (oscillates)')
