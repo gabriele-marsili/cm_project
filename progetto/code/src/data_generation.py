@@ -117,9 +117,9 @@ def make_elm_problem(d=20, p=100, m=500, sparsity=0.1, noise_std=0.1, activation
     rng = np.random.RandomState(random_state)
 
     # ELM architecture
-    W1    = rng.randn(p, d)
+    W1 = rng.randn(p, d)
     X_raw = rng.randn(m, d)
-    X_hid = sigma(X_raw @ W1.T)   # (m, p)
+    X_hid = sigma(X_raw @ W1.T) # (m, p)
 
     # sparse ground-truth output weights
     k = max(1, int(sparsity * p))
@@ -146,7 +146,6 @@ def make_elm_problem(d=20, p=100, m=500, sparsity=0.1, noise_std=0.1, activation
 # ---------------------------------------------------------------------------
 # Real datasets (from sklearn)
 # ---------------------------------------------------------------------------
-
 def load_real_dataset(name='diabetes', test_size=0.2, random_state=42):
     """
     Load and preprocess a real regression dataset.
