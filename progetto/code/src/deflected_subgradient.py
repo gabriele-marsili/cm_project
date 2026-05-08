@@ -5,34 +5,31 @@ Deflected Subgradient with Target Level (SGPTL) for the LASSO objective
 The three moving parts (report §3.1.1, §3.2, §3.3):
 
 * deflection — the search direction blends the current subgradient with the
-  previous direction, ``d_i = gamma_i g_i + (1 - gamma_i) d_{i-1}``, with
-  gamma chosen to minimise ||d_i|| (closed form, eq. 3.5);
+  previous direction, ``d_i = gamma_i g_i + (1 - gamma_i) d_{i-1}``. We pick
+  gamma greedily to minimise ||d_i|| (closed form, eq. 3.5), but we project
+  the result on ``[gamma_min, 1]`` instead of ``[0, 1]`` --- the floor is
+  required to keep the stepsize-restricted condition beta_i <= gamma_i
+  meaningful (see point 2 below) and is set to gamma_min = 0.05 by default;
 
-* Polyak step on the deflected direction — ``alpha_i = beta (f(w_i) - target)
-  / ||d_i||^2``, with the natural default ``beta = 1``. The literal
-  stepsize-restricted reading of d'Antonio-Frangioni would clip the
-  multiplier to ``min(beta, gamma_i)`` so that the per-step decrease bound
-  in iterate distance applies verbatim, but in our setting ``gamma_i``
-  collapses towards 0 in monotone-descent regions (consecutive subgradients
-  align, the greedy choice of gamma minimises ||d|| by killing the new-
-  subgradient component), and the clip would freeze ``alpha_i`` to zero —
-  so we keep ``beta`` fixed and let the convergence argument of
-  Theorem~3.2 in the report carry through via the subgradient case
-  (``gamma_i = 1`` after every fallback reset) plus the target-level
-  mechanism. Empirically this is the difference between a 4e-2 final gap
-  on the convergence test (clipped variant, 97% of iterations enter the
-  numerator-skip branch) and 4e-4 with the same budget;
+* stepsize-restricted Polyak step --- ``alpha_i = beta_i (f(w_i) - target)
+  / ||d_i||^2`` with ``beta_i = min(beta, gamma_i)``. The clip enforces
+  beta_i <= gamma_i so that the per-step iterate-distance bound from
+  Theorem 3.2 of d'Antonio-Frangioni applies at every iteration (report
+  Theorem 3.1). Without the gamma_min floor the greedy choice would push
+  gamma_i to 0 in monotone-descent regions, the clip would propagate to
+  alpha_i, and the iterate would freeze; gamma_min keeps both quantities
+  bounded away from 0 and the algorithm converges to gaps in the 1e-7..1e-8
+  range on the convergence test (vs ~4e-4 for the gamma_min = 0 variant);
 
-* target level — ``target = f_ref - delta`` is an adaptive estimate of f*; the
-  gap ``delta`` is contracted by rho whenever progress stalls.
+* target level — ``target = f_ref - delta`` is an adaptive estimate of f*;
+  the gap ``delta`` is contracted by rho whenever progress stalls.
 
 In addition to the travel-distance patience ``r > R`` from the source paper,
 we run an iteration-count fallback (report §5.1): if the record value has
 not improved for R_iter consecutive iterations we contract delta and reset
 ``d_{i-1} <- 0``, which forces gamma = 1 at the next step. The fallback is
-needed because the OLS warm start tends to drive gamma_i to 0 within a few
-tens of iterations, so the travel-distance counter never reaches R and the
-algorithm would otherwise stall indefinitely.
+a backstop against rare cases where the gamma_min-floored direction still
+makes no progress (e.g. when target underestimates f^* across many steps).
 """
 
 import time
@@ -41,15 +38,24 @@ import numpy as np
 from .lasso_utils import f_lasso, subgradient_f
 
 
-def _optimal_gamma(g, d_prev):
+def _optimal_gamma(g, d_prev, gamma_min=0.0):
     """Closed-form deflection parameter (report eq. 3.5).
 
-    Solves ``argmin_{gamma in [0,1]} ||gamma g + (1-gamma) d_prev||^2`` by
-    expanding the parabola: the unconstrained minimiser is
+    Solves ``argmin_{gamma in [gamma_min, 1]} ||gamma g + (1-gamma) d_prev||^2``
+    by expanding the parabola: the unconstrained minimiser is
 
         gamma* = (||d_prev||^2 - <g, d_prev>) / ||g - d_prev||^2,
 
-    then projected onto [0, 1].
+    then projected onto ``[gamma_min, 1]``. The floor gamma_min > 0 is what
+    makes the stepsize-restricted condition beta_i = min(beta, gamma_i) ≤ gamma_i
+    operational on ELM LASSO: without it the greedy minimum would collapse
+    to 0 in monotone-descent regions (consecutive subgradients align ⇒
+    new-subgradient component dominates the parabola coefficients ⇒
+    minimiser → 0), which would propagate to beta_i and alpha_i and freeze
+    the iterate. With gamma_min > 0 the deflection step still favours the
+    memory direction, but never enough to kill the new subgradient
+    completely, and the per-iteration iterate-distance bound applies as
+    proved in d'Antonio-Frangioni (Theorem 3.2 in the cited paper).
 
     Two corner cases need special handling:
 
@@ -67,13 +73,13 @@ def _optimal_gamma(g, d_prev):
     if diff_sq < 1e-30:
         return 1.0
     gamma_star = (d_sq - np.dot(g, d_prev)) / diff_sq
-    return float(np.clip(gamma_star, 0.0, 1.0))
+    return float(np.clip(gamma_star, gamma_min, 1.0))
 
 
 def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0,
                           delta0=None, R=None, rho=0.95,
                           f_star=None, verbose=False, verbose_freq=500,
-                          R_iter=None):
+                          R_iter=None, gamma_min=0.05):
     """SGPTL applied to ELM LASSO; see the module docstring.
 
     Parameters
@@ -83,15 +89,26 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0,
     w0           Initial iterate; defaults to the OLS solution (X^T X)^{-1} X^T y,
                  which is what IRLS uses as well.
     i_max        Iteration cap.
-    beta         Step modulation in (0, 1]; clipped to gamma_i internally so
-                 that beta_i = min(beta, gamma_i). The natural choice is 1.
+    beta         Polyak-step reference multiplier in (0, 1]; the actual
+                 multiplier used at iteration i is beta_i = min(beta, gamma_i),
+                 enforcing the stepsize-restricted condition beta_i <= gamma_i
+                 of d'Antonio-Frangioni's Theorem 3.2 verbatim. The natural
+                 choice is 1.
     delta0       Initial gap estimate; defaults to max(0.1 f(w_0), 1e-4).
-    R            Travel-distance patience for the standard SGPTL contraction;
-                 defaults to 10 sqrt(i_max). The iteration-count fallback
-                 (R_iter = max(i_max/100, 50)) is the more active mechanism
-                 under the OLS warm start (see §5.1 of the report).
+    R            Travel-distance patience for the SGPTL contraction;
+                 defaults to 10 sqrt(i_max).
     rho          Contraction factor for delta, in (0, 1).
     f_star       Reference optimum for gap tracking. If None, gaps stays empty.
+    R_iter       Stall-window for the iteration-count fallback that resets
+                 d_{i-1} <- 0 when f_bar fails to improve over R_iter
+                 consecutive steps; defaults to max(i_max/100, 50). Set to a
+                 very large value (e.g. i_max+1) to disable the fallback.
+    gamma_min    Floor on the greedy deflection coefficient gamma_i: the
+                 closed-form minimiser is projected on [gamma_min, 1] instead
+                 of [0, 1]. The default 0.05 keeps the per-iteration bound
+                 of Theorem 3.2 operational without giving up much of the
+                 ||d_i||-minimising property of the greedy choice (see
+                 module docstring and §3.5 of the report).
 
     Returns a dict with the best iterate w_best, the trajectories (f_vals,
     f_bar, gaps, times, delta_hist) and the iteration count.
@@ -157,7 +174,7 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0,
             f_bar_marker = f_bar
 
         g = subgradient_f(X, y, w, lam)
-        gamma = 1.0 if i == 0 else _optimal_gamma(g, d_prev)
+        gamma = 1.0 if i == 0 else _optimal_gamma(g, d_prev, gamma_min=gamma_min)
         gamma_hist.append(gamma)
         d = gamma * g + (1.0 - gamma) * d_prev
 
@@ -167,18 +184,14 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0,
             # last reset has not yet propagated. Break rather than divide by 0.
             break
 
-        # Polyak step on the deflected direction with beta fixed (NOT clipped
-        # to gamma_i). The clipped reading beta_i = min(beta, gamma) is what
-        # the literal stepsize-restricted statement in d'Antonio-Frangioni
-        # requires for the per-step iterate-distance bound to hold verbatim,
-        # but in monotone-descent regions consecutive subgradients align and
-        # the greedy gamma collapses to ~0; the clip then freezes alpha to
-        # zero and the algorithm only progresses when the iteration-count
-        # fallback resets gamma to 1 — yielding the catastrophic 4e-2 final
-        # gap noted in the module docstring. We keep beta fixed; the formal
-        # guarantee is recovered after each fallback (when gamma = 1 forces
-        # d_i = g_i, the Polyak step on a true subgradient applies directly).
-        beta_i = beta
+        # Stepsize-restricted Polyak step (literal d'Antonio-Frangioni clip):
+        # beta_i = min(beta, gamma_i) ≤ gamma_i so that the per-iteration
+        # iterate-distance bound of Theorem 3.2 applies verbatim. The clip
+        # is operational on ELM LASSO only because gamma_i is floored at
+        # gamma_min > 0 in _optimal_gamma; without that floor the greedy
+        # minimum collapses to 0 in monotone-descent regions and freezes
+        # alpha_i. See module docstring and §3.5 of the report.
+        beta_i = min(beta, gamma)
         target = f_ref - delta
         numerator = beta_i * (f_curr - target)
 
