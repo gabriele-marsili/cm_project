@@ -82,7 +82,7 @@ def irls(X, y, lam, eps_thr=1e-8, eps_stop=1e-8, k_max=200,
         Q = A.copy()
         Q[np.arange(H), np.arange(H)] += lam * D_diag
 
-        w = solve_spd(Q, b, method=solver, tol=1e-12, max_iter=10 * H)
+        w = solve_spd(Q, b, method=solver, tol=1e-12, max_iter=10 * H) # in case of CG, tolerance is 10^-12 and max_iter is 10 times H dimension
 
         f_curr = f_lasso(X, y, w, lam)
         f_vals.append(f_curr)

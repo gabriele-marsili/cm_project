@@ -385,8 +385,8 @@ $\mathbf{Q}_{k}$: Cholesky is exact and predictable, while CG can be
 cheaper when $H$ is large and $\mathbf{Q}_{k}$ is well-conditioned.
 We fix the ELM problem instance from Section~\ref{sec:params}
 ($H=100$, $M=400$, $\lambda_\text{LASSO}=0.1$, OLS warm start,
-$\varepsilon_\text{thr}=10^{-8}$) and run both solvers for
-$200$~IRLS iterations, measuring wall-clock time,
+$\varepsilon_\text{thr}=10^{-8}$) and run both solvers setting a budget of 
+$k_{\max}=300$ IRLS iterations, measuring wall-clock time,
 optimality gap, and the resulting sparsity.
 
 \paragraph{Results.}
@@ -400,21 +400,21 @@ Table~\ref{tab:solver_comparison} summarises the key metrics.
         \toprule
         Solver & Total time (ms) & Iterations & Sparsity at $10^{-6}$ & Converged \\
         \midrule
-        Cholesky & $\phantom{0}10.2$ & $200$ & $86\%$ & No \\
-        CG       & $88.0$ & $200$ & $27\%$ & No \\
+        Cholesky & $12.5$ & $265$ & $86\%$ & Yes \\
+        CG       & $21.2$ & $265$ & $86\%$ & Yes \\
         \bottomrule
     \end{tabular}
     \caption{IRLS solver comparison on $H=100$, $M=400$,
     $\lambda_\text{LASSO}=0.1$, $\varepsilon_\text{thr}=10^{-8}$,
-    $200$~iterations, OLS warm start. Neither run reached the
+    $k_{\max}=300$, OLS warm start. Both runs successfully reached the
     relative-change stopping criterion $\varepsilon_\text{stop}=10^{-10}$
-    within the budget; the sparsity is evaluated at the final iterate
+    at iteration $265$. The sparsity is evaluated at the final iterate
     using the threshold $|w_{i}|<10^{-6}$.}
     \label{tab:solver_comparison}
 \end{table}
 
 Figure~\ref{fig:solver-comparison} plots the optimality gap as a
-function of wall-clock time for the two solvers on the same
+function of iterations and wall-clock time for the two solvers on the same
 log-scale axes used throughout the chapter.
 
 \begin{figure}[H]
@@ -422,21 +422,17 @@ log-scale axes used throughout the chapter.
     \includegraphics[width=\textwidth]{images/solver_comparison.pdf}
     \caption{IRLS inner-solver comparison on $H=100$, $M=400$,
     $\lambda_\text{LASSO}=0.1$, $\varepsilon_\text{thr}=10^{-8}$,
-    $k_{\max}=200$. Left: gap $f(\mathbf{w}_{k})-f^{*}$ versus
+    $k_{\max}=300$. Left: gap $f(\mathbf{w}_{k})-f^{*}$ versus
     iteration on a semilog $y$ axis. Right: gap versus wall-clock time
     on log--log axes, with the shared OLS warm start marked by the
     star. Cholesky descends smoothly to $\sim\!10^{-8}$
-    ($\sim\!\varepsilon_\text{thr}$) within $\sim\!10$~ms; CG
-    oscillates around $10^{-1}$ for the entire $\sim\!88$~ms budget,
-    never recovering sparsity or a low optimality gap.}
+    ($\sim\!\varepsilon_\text{thr}$) within $\sim\!12.5$~ms; CG
+    achieves the exact same iterations trajectory but requires $\sim\!21.2$~ms.}
     \label{fig:solver-comparison}
 \end{figure}
 
 \paragraph{Analysis.}
-The two solvers produce strikingly different outcomes, and the cause
-is parametric --- the default CG inner budget is too small for the
-conditioning that IRLS produces --- rather than a structural defect of
-CG.
+The two solvers produce perfectly identical convergence trajectories with respect to the outer iteration count, both satisfying the stopping criterion at iteration $265$.
 
 \emph{Cholesky.}
 The direct solver computes the exact solution of
@@ -445,66 +441,29 @@ guarantees that the MM descent property $f(\mathbf{w}_{k+1})\le
 Q(\mathbf{w}_{k+1},\mathbf{w}_{k}) \le Q(\mathbf{w}_{k},\mathbf{w}_{k})=
 f(\mathbf{w}_{k})$ holds up to floating-point precision. The gap trace
 in Figure~\ref{fig:solver-comparison} descends monotonically to
-$\sim\!10^{-8}$ in under $10$~ms and the final iterate carries $86\%$
-sparsity, consistent with the true $88\%$ support.
+$\sim\!10^{-8}$ in roughly $12.5$~ms and the final iterate carries $86\%$
+sparsity.
 
 \emph{CG.}
 We run CG with our default settings (\texttt{tol}$=10^{-10}$,
-\texttt{max\_iter} $= H = 100$). Two facts combine to produce the
-observed failure:
-
-\emph{(i)~$\kappa(\mathbf{Q}_{k})$ explodes within a few outer
-iterations.}~The diagonal of $\mathbf{Q}_{k}$ contains entries
-$\lambda_\text{LASSO}/\max(|w_{k,i}|, \varepsilon_\text{thr})$, which is
-bounded by $\lambda_\text{LASSO}/\varepsilon_\text{thr} = 10^{7}$ at
-$\varepsilon_\text{thr}=10^{-8}$. As IRLS pushes inactive components
-towards zero, those diagonal entries reach the cap and
-$\kappa(\mathbf{Q}_{k})$ grows from $\sim\!10^{2}$ at $k=0$ to
-$\sim\!10^{7}$ by $k=3$ on this instance.
-
-\emph{(ii)~CG with $\texttt{max\_iter}=H$ does not converge at this
-$\kappa$.}~The classical CG-on-SPD bound is
-$\norm{\mathbf{x}_{p}-\mathbf{x}^{*}}_{\mathbf{Q}}/\norm{\mathbf{x}_{0}-\mathbf{x}^{*}}_{\mathbf{Q}}
-\le 2\bigl((\sqrt{\kappa}-1)/(\sqrt{\kappa}+1)\bigr)^{p}$
-\cite{trefethen1997numerical}, which gives a residual reduction per CG
-step of $\sim\!1-2/\sqrt{\kappa}$. At $\kappa=10^{7}$, $H=100$ inner
-steps reduce the residual by a factor of only $\sim\!(1-6\cdot
-10^{-4})^{100}\approx 0.94$ --- effectively unchanged. Empirically the
-relative residual on $\mathbf{Q}_{k}$ at outer iteration $k=3$ is
-$\sim\!1$ (\emph{i.e.}~CG returns essentially $\mathbf{w}=\mathbf{0}$).
-
-\emph{(iii)~The inexact $\mathbf{w}_{k+1}$ poisons the next IRLS
-weight update.}~The MM bound
-$f(\mathbf{w}_{k+1}) \le Q(\mathbf{w}_{k+1},\mathbf{w}_{k}) \le f(\mathbf{w}_{k})$
-relies on $\mathbf{w}_{k+1}$ being an exact minimiser of
-$Q(\cdot,\mathbf{w}_{k})$. With the residual at order $1$, the bound
-fails by orders of magnitude, $f$ \emph{increases} between outer
-iterations, the diagonal weights cycle pseudo-randomly, and neither
-the gap nor the sparsity converge.
-
-The failure is therefore parametric, not structural. Setting
-$\texttt{max\_iter}_\text{CG} = 2000$ at the same outer budget restores
-the picture entirely: the final gap matches Cholesky to floating-point
-precision ($1.43\cdot 10^{-8}$ in both runs), the sparsity is exactly
-$86\%$ in both, and the only cost is $\sim\!13\times$ the wall-clock
-time ($115$~ms vs Cholesky's $9$~ms).
+\texttt{max\_iter} $= 10 \times H = 1000$). However, as IRLS pushes inactive components
+towards zero, the diagonal entries of the weight matrix $\mathbf{W}_{k}^T\mathbf{W}_{k}$ reach their cap of $1/\varepsilon_\text{thr} = 10^8$. Consequently, the condition number $\kappa(\mathbf{Q}_{k})$ grows drastically, making standard CG extremely slow or prone to numerical instability. 
+To make the CG algorithm converge efficiently despite this severe ill-conditioning, we apply a Jacobi (diagonal) preconditioner. Since the ill-conditioning stems entirely from the diagonal $L_{1}$ penalty terms, preconditioning with the diagonal of $\mathbf{Q}_{k}$ perfectly neutralises the scale discrepancies. Thanks to this, the preconditioned CG matches the Cholesky descent iteration by iteration. Nevertheless, the computational overhead of the iterative process and the preconditioning steps causes the total CPU time to be higher ($21.2$~ms vs $12.5$~ms).
 
 \paragraph{When CG is the right choice.}
 The $O(p H^{2})$ per-CG-step cost beats the $O(H^{3})$ Cholesky
-factorisation when $p\ll H$. Combined with the
-$\kappa$-driven CG-step lower bound from \emph{(ii)}, CG is preferable
-to Cholesky when $H$ is large \emph{and} $\mathbf{Q}_{k}$ is
-well-conditioned --- typically when $\lambda_\text{LASSO}$ is large
-enough to keep $D_{k}$ bounded above (because few components reach
+factorisation mainly when $p\ll H$. CG is preferable
+to Cholesky when $H$ is extremely large \emph{and} $\mathbf{Q}_{k}$ is
+well-conditioned (or trivially preconditionable) --- typically when $\lambda_\text{LASSO}$ is small
+enough to keep $\mathbf{W}_{k}$ bounded above (few components reach
 $\varepsilon_\text{thr}$), or when the eigenvalue spectrum of
-$\mathbf{X}^{T}\mathbf{X}$ is concentrated. A production version of
+$\mathbf{X}^{T}\mathbf{X}$ is highly concentrated. A production version of
 the algorithm would tie the CG inner tolerance to the outer convergence
 test (e.g.\ $\norm{\mathbf{Q}_{k}\mathbf{x}-\mathbf{b}}\le \varepsilon_\text{stop}\,
 \norm{\mathbf{b}}/10$) and let \texttt{max\_iter} grow with $\sqrt{\kappa}$.
-On the moderate instance we test ($H=100$, $M=400$) the $O(H^{3})$
-Cholesky cost is negligible at $\sim\!10$~ms, so Cholesky is the
-unambiguous choice and we use it as the default elsewhere in this
-chapter.
+On the moderate instance we tested ($H=100$, $M=400$), the $O(H^{3})$
+Cholesky cost is negligible, making the direct method the
+unambiguous choice in terms of pure execution time. For this reason, we use Cholesky as the default solver elsewhere in this chapter.
 
 \paragraph{Recommendation.}
 For all problem sizes in the ELM regime the report targets ($M\gg H$,

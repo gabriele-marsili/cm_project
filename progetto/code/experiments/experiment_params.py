@@ -176,9 +176,10 @@ def run() -> None:
     plot_colors = {"cholesky": COLOR_IRLS, "cg": COLOR_FCUR}
     runs = {}
 
+    k_irls_solvers = 300 # both methods converge at 265 iterations
     for sol in solvers:
         res = irls(X, y, LAMBDA, eps_thr=1e-8, eps_stop=1e-12,
-                   k_max=2000, solver=sol, w0=w_ols, f_star=f_star)
+                   k_max=k_irls_solvers, solver=sol, w0=w_ols, f_star=f_star)
         exec_time = res["times"][-1]
         n_iters = res["n_iter"]
         sparsity = np.mean(np.abs(res["w"]) < 1e-6)
@@ -187,9 +188,7 @@ def run() -> None:
         print(f"    Execution Time: {exec_time:.4f} s")
         print(f"    Iterations:     {n_iters} (Converged: {converged})")
         print(f"    Sparsity:       {sparsity:.2%}")
-        runs[sol] = {"gaps": _safe_log(res["gaps"]),
-                     "times": np.asarray(res["times"], dtype=float),
-                     "exec_time": exec_time, "sparsity": sparsity}
+        runs[sol] = {"gaps": _safe_log(res["gaps"]), "times": np.asarray(res["times"], dtype=float), "exec_time": exec_time, "sparsity": sparsity}
 
     # Left panel: gap vs iteration (semilog y).
     ax = axes[0]
@@ -228,7 +227,7 @@ def run() -> None:
 
     fig.suptitle(rf"IRLS inner solver: Cholesky vs CG  ($H={H}$, $M={M}$, "
                  rf"$\lambda_{{\mathrm{{LASSO}}}}={LAMBDA}$, "
-                 rf"$\varepsilon_{{\mathrm{{thr}}}}=10^{{-8}}$, $k_{{\max}}=200$)",
+                 rf"$\varepsilon_{{\mathrm{{thr}}}}=10^{{-8}}$, $k_{{\max}}={k_irls_solvers}$)",
                  y=1.00, fontsize=14)
     fig.tight_layout()
     path = os.path.join(FIG_DIR, "solver_comparison.pdf")
