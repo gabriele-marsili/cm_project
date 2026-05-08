@@ -307,6 +307,147 @@ condition~(\ref{eq:optimality}).
     \label{fig:params-irls}
 \end{figure}
 
+% -----------------------------------------------------------------------
+% New subsection to be inserted in \section{Parameter sensitivity}
+% (after \subsection{IRLS: eps_thr and lambda_LASSO}, before
+%  \subsection{SGPTL: delta_0 and rho})
+% -----------------------------------------------------------------------
+
+\subsection{IRLS: linear solver choice (Cholesky vs.\ Conjugate Gradient)}
+\label{sec:solver_comparison}
+
+Chapter~\ref{chap:irls} identifies two candidate solvers for the
+$H\times H$ symmetric positive definite system
+$\mathbf{Q}_{k}\mathbf{w}_{k+1}=\mathbf{b}$ that arises at each IRLS
+iteration: direct Cholesky factorisation
+($O(H^{3}/3)$ per iteration) and the iterative Conjugate Gradient (CG)
+method ($O(pH^{2})$ per iteration for $p$ CG steps). The theoretical
+preference between them depends on $H$ and on the condition number of
+$\mathbf{Q}_{k}$: Cholesky is exact and predictable, while CG can be
+cheaper when $H$ is large and $\mathbf{Q}_{k}$ is well-conditioned.
+We fix the ELM problem instance from Section~\ref{sec:params}
+($H=100$, $M=400$, $\lambda_\text{LASSO}=0.1$, OLS warm start,
+$\varepsilon_\text{thr}=10^{-8}$) and run both solvers for
+$200$~IRLS iterations, measuring wall-clock time,
+optimality gap, and the resulting sparsity.
+
+\paragraph{Results.}
+Table~\ref{tab:solver_comparison} summarises the key metrics.
+
+\begin{table}[H]
+    \centering
+    \small
+    \setlength{\tabcolsep}{8pt}
+    \begin{tabular}{lrrrc}
+        \toprule
+        Solver & Total time (s) & Iterations & Sparsity at $10^{-6}$ & Converged \\
+        \midrule
+        Cholesky & $0.013$ & $200$ & $86\%$ & No \\
+        CG       & $0.095$ & $200$ & $32\%$ & No \\
+        \bottomrule
+    \end{tabular}
+    \caption{IRLS solver comparison on $H=100$, $M=400$,
+    $\lambda_\text{LASSO}=0.1$, $\varepsilon_\text{thr}=10^{-8}$,
+    $200$~iterations, OLS warm start. Neither run reached the
+    relative-change stopping criterion $\varepsilon_\text{stop}=10^{-10}$
+    within the budget; the sparsity is evaluated at the final iterate
+    using the threshold $|w_{i}|<10^{-6}$.}
+    \label{tab:solver_comparison}
+\end{table}
+
+Figure~\ref{fig:solver-comparison} plots the optimality gap as a
+function of wall-clock time for the two solvers on the same
+log-scale axes used throughout the chapter.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{images/solver_comparison.pdf}
+    \caption{IRLS convergence gap $f(\mathbf{w}_{k})-f^{*}$ vs.\ wall-clock
+    time for Cholesky and CG solvers on the instance $H=100$, $M=400$,
+    $\lambda_\text{LASSO}=0.1$, $200$~iterations. Cholesky descends
+    smoothly to the $\varepsilon_\text{thr}$ floor in $\sim\!0.01$~s;
+    CG oscillates around $10^{-1}$ for the entire $\sim\!0.10$~s budget,
+    never recovering sparsity or a low optimality gap.}
+    \label{fig:solver-comparison}
+\end{figure}
+
+\paragraph{Analysis.}
+The two solvers produce strikingly different outcomes, and the reason
+is structural rather than merely a matter of speed.
+
+\emph{Cholesky.}
+The direct solver computes the exact solution of
+$\mathbf{Q}_{k}\mathbf{w}_{k+1}=\mathbf{b}$ at every iteration.
+This guarantees that the MM descent property
+$f(\mathbf{w}_{k+1})\le Q(\mathbf{w}_{k+1},\mathbf{w}_{k})\le
+Q(\mathbf{w}_{k},\mathbf{w}_{k})=f(\mathbf{w}_{k})$ holds in exact
+arithmetic and, on this problem size ($H=100$), is satisfied up to
+floating-point precision. The gap trace in
+Figure~\ref{fig:solver-comparison} descends monotonically to
+$\sim\!10^{-8}$ in under $0.01$~s and the final iterate carries $86\%$
+sparsity, consistent with the true $88\%$ support.
+
+\emph{CG.}
+The picture for CG is qualitatively different.
+The gap trace oscillates between $10^{-1}$ and $10^{-2}$ for the
+entire $200$-iteration budget without any sustained descent, and the
+final sparsity collapses to $32\%$ --- less than four tenths of what
+Cholesky achieves.
+The root cause is the interplay between CG accuracy and the IRLS
+weight update. IRLS is a majorization-minimization algorithm
+(Section~\ref{sec:irls_mm}): its monotone decrease guarantee requires
+that each subproblem be solved to sufficient accuracy, because the
+next weight matrix $\mathbf{W}_{k+1}$ is computed from the inexact
+iterate $\mathbf{w}_{k+1}$. When CG terminates early --- either due
+to a loose inner tolerance or to the finite iteration budget ---
+$\mathbf{w}_{k+1}$ is only an approximate minimizer of $Q(\cdot,\mathbf{w}_{k})$,
+so the touching property $Q(\mathbf{w}_{k},\mathbf{w}_{k})=f(\mathbf{w}_{k})$
+no longer bounds $f(\mathbf{w}_{k+1})$ from above, and the monotone
+descent guarantee breaks.
+The consequences are visible in Figure~\ref{fig:solver-comparison}: the
+CG trace is non-monotone in exactly the way the SGPTL trace is
+non-monotone, but for an entirely different reason --- not by design,
+but because the inner solver is not solving the subproblem to sufficient
+accuracy.
+
+The sparsity collapse is a direct corollary. IRLS drives components
+towards zero by amplifying their diagonal weight $|(w_{k})_{i}|^{-1}$
+over successive iterations: a component can only be pinned near zero if
+the solve is accurate enough that $(w_{k+1})_{i}$ is genuinely small.
+Inexact CG solves return residual components that are numerically
+indistinguishable from active ones, so the weight update cannot
+distinguish the two, the large weights needed to push near-zero
+components to zero are never triggered consistently, and the sparsity
+pattern fails to crystallise.
+
+\paragraph{Why CG is still useful.}
+The failure mode documented above is not a fundamental property of CG
+but a consequence of using CG with a fixed iteration budget that is
+insufficient to solve the inner system to the accuracy the outer IRLS
+loop requires. Chapter~\ref{chap:irls} identifies the correct regime for
+CG: large $H$ (so that $H^{3}$ Cholesky cost dominates) combined with
+a well-conditioned $\mathbf{Q}_{k}$ (so that CG converges in few steps).
+In that regime a CG stopping criterion tied to the outer IRLS convergence
+tolerance --- e.g., inner residual below $\varepsilon_\text{stop}/10$ ---
+would restore the monotone descent guarantee and the sparsity behaviour.
+On the moderate instance we test ($H=100$, $M=400$), the $O(H^{3})$
+Cholesky cost is negligible and Cholesky is the unambiguous choice;
+the crossover in favour of CG is expected only at the large-$H$ end of
+the scalability sweep (Section~\ref{sec:scalability}, $H\ge 1000$), where
+a properly-tuned CG with inner-tolerance control would deserve a
+dedicated experiment.
+
+\paragraph{Recommendation.}
+For all problem sizes in the ELM regime the report targets ($M\gg H$,
+$H\le 1000$ on a standard machine), Cholesky is the recommended solver.
+It is faster on this instance ($0.013$~s vs $0.095$~s), produces the
+correct sparsity pattern ($86\%$ vs $32\%$), and preserves the
+theoretical MM descent guarantee that the convergence analysis
+of Section~\ref{sec:irls_convergence} relies on. CG with a sufficiently
+tight inner-tolerance criterion remains a viable alternative for
+memory-constrained or very large-scale settings, but its tuning falls
+outside the scope of this report.
+
 \subsection{SGPTL: \texorpdfstring{$\delta_{0}$}{delta\_0} and
 \texorpdfstring{$\rho$}{rho}}
 

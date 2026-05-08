@@ -1,15 +1,13 @@
 """
-Parameter sensitivity sweeps (report §5.3).
+Parameter sensitivity sweeps (report §5.3) and Solver Comparison.
 
-For IRLS we vary eps_thr and lam_LASSO; for SGPTL we vary delta_0 and rho.
+For IRLS we vary eps_thr, lam_LASSO, and compare solvers (Cholesky vs CG).
+For SGPTL we vary delta_0 and rho.
+
 Outputs:
-
-    params_irls.pdf  IRLS: gap-vs-iter for each eps_thr and each lambda
-    params_dsm.pdf   SGPTL: gap-vs-iter for each delta_0 and each rho
-
-Both sweeps now use the OLS warm start: with the beta-fixed Polyak step
-the algorithm progresses on warm start as well (see §5.1), so we no
-longer need a cold start to expose rho's effect.
+    params_irls.pdf         IRLS: gap-vs-iter for each eps_thr and each lambda
+    params_dsm.pdf          SGPTL: gap-vs-iter for each delta_0 and each rho
+    solver_comparison.pdf   IRLS: gap-vs-time comparing Cholesky and CG
 """
 
 import os
@@ -30,7 +28,7 @@ from src import irls, deflected_subgradient, make_lasso_problem
 from src.linear_solvers import solve_spd
 from _plot_style import (apply_style, style_axes,
                          RAMP_BLUES, RAMP_REDS, RAMP_ORANGES, RAMP_PURPLES,
-                         SIZE_DOUBLE)
+                         SIZE_DOUBLE, SIZE_SINGLE, COLOR_IRLS, COLOR_FCUR)
 apply_style()
 
 
@@ -48,7 +46,7 @@ def _safe_log(arr, floor=1e-16):
 
 def run() -> None:
     print("=" * 60)
-    print("Parameter sensitivity")
+    print("Parameter sensitivity & Solver Analysis")
     print("=" * 60)
 
     LAMBDA = 0.1
@@ -164,7 +162,46 @@ def run() -> None:
     fig.tight_layout()
     path = os.path.join(FIG_DIR, "params_dsm.pdf")
     fig.savefig(path)
-    print(f"Saved: {path}")
+    print(f"Saved: {path}\n")
+    plt.close(fig)
+
+    # ---- IRLS Solver Comparison (Cholesky vs CG) ----
+    print("\n--- IRLS: Solver Comparison (Cholesky vs CG) ---")
+    fig, ax = plt.subplots(figsize=SIZE_SINGLE)
+    
+    solvers = ["cholesky", "cg"]
+    plot_colors = {"cholesky": COLOR_IRLS, "cg": COLOR_FCUR}
+    
+    for sol in solvers:
+        # run IRLS with the specified solver
+        res = irls(X, y, LAMBDA, eps_thr=1e-8, eps_stop=1e-12, k_max=200, solver=sol, w0=w_ols, f_star=f_star)
+        
+        # calculate requested metrics
+        exec_time = res["times"][-1]
+        n_iters = res["n_iter"]
+        sparsity = np.mean(np.abs(res["w"]) < 1e-6)
+        converged = res["converged"]
+        
+        # print metrics to the console
+        print(f"  Solver: {sol.upper()}")
+        print(f"    Execution Time: {exec_time:.4f} s")
+        print(f"    Iterations:     {n_iters} (Converged: {converged})")
+        print(f"    Sparsity:       {sparsity:.2%}")
+        
+        # plot convergence over time
+        gaps = _safe_log(res["gaps"])
+        ax.semilogy(res["times"], gaps, linewidth=2.0, color=plot_colors[sol], label=f"{sol.upper()} (Time: {exec_time:.2f}s)")
+
+    ax.set_xlabel(r"Execution Time (seconds)")
+    ax.set_ylabel(r"$f(w_k) - f^{*}$  (log scale)")
+    ax.set_title(r"IRLS Convergence: Cholesky vs Conjugate Gradient")
+    ax.legend(loc="upper right", fontsize=11)
+    style_axes(ax)
+
+    fig.tight_layout()
+    path = os.path.join(FIG_DIR, "solver_comparison.pdf")
+    fig.savefig(path)
+    print(f"Saved: {path}\n")
     plt.close(fig)
 
 
