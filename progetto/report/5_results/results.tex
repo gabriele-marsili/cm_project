@@ -340,10 +340,10 @@ Table~\ref{tab:solver_comparison} summarises the key metrics.
     \setlength{\tabcolsep}{8pt}
     \begin{tabular}{lrrrc}
         \toprule
-        Solver & Total time (s) & Iterations & Sparsity at $10^{-6}$ & Converged \\
+        Solver & Total time (ms) & Iterations & Sparsity at $10^{-6}$ & Converged \\
         \midrule
-        Cholesky & $0.013$ & $200$ & $86\%$ & No \\
-        CG       & $0.095$ & $200$ & $32\%$ & No \\
+        Cholesky & $\phantom{0}10.2$ & $200$ & $86\%$ & No \\
+        CG       & $88.0$ & $200$ & $27\%$ & No \\
         \bottomrule
     \end{tabular}
     \caption{IRLS solver comparison on $H=100$, $M=400$,
@@ -361,12 +361,15 @@ log-scale axes used throughout the chapter.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.85\textwidth]{images/solver_comparison.pdf}
-    \caption{IRLS convergence gap $f(\mathbf{w}_{k})-f^{*}$ vs.\ wall-clock
-    time for Cholesky and CG solvers on the instance $H=100$, $M=400$,
-    $\lambda_\text{LASSO}=0.1$, $200$~iterations. Cholesky descends
-    smoothly to the $\varepsilon_\text{thr}$ floor in $\sim\!0.01$~s;
-    CG oscillates around $10^{-1}$ for the entire $\sim\!0.10$~s budget,
+    \includegraphics[width=\textwidth]{images/solver_comparison.pdf}
+    \caption{IRLS inner-solver comparison on $H=100$, $M=400$,
+    $\lambda_\text{LASSO}=0.1$, $\varepsilon_\text{thr}=10^{-8}$,
+    $k_{\max}=200$. Left: gap $f(\mathbf{w}_{k})-f^{*}$ versus
+    iteration on a semilog $y$ axis. Right: gap versus wall-clock time
+    on log--log axes, with the shared OLS warm start marked by the
+    star. Cholesky descends smoothly to $\sim\!10^{-8}$
+    ($\sim\!\varepsilon_\text{thr}$) within $\sim\!10$~ms; CG
+    oscillates around $10^{-1}$ for the entire $\sim\!88$~ms budget,
     never recovering sparsity or a low optimality gap.}
     \label{fig:solver-comparison}
 \end{figure}
@@ -440,8 +443,8 @@ dedicated experiment.
 \paragraph{Recommendation.}
 For all problem sizes in the ELM regime the report targets ($M\gg H$,
 $H\le 1000$ on a standard machine), Cholesky is the recommended solver.
-It is faster on this instance ($0.013$~s vs $0.095$~s), produces the
-correct sparsity pattern ($86\%$ vs $32\%$), and preserves the
+It is faster on this instance ($10.2$~ms vs $88.0$~ms), produces the
+correct sparsity pattern ($86\%$ vs $27\%$), and preserves the
 theoretical MM descent guarantee that the convergence analysis
 of Section~\ref{sec:irls_convergence} relies on. CG with a sufficiently
 tight inner-tolerance criterion remains a viable alternative for

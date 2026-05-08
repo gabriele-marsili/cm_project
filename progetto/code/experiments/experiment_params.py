@@ -166,38 +166,70 @@ def run() -> None:
     plt.close(fig)
 
     # ---- IRLS Solver Comparison (Cholesky vs CG) ----
+    # Two panels: gap vs iteration (left, shows the algorithmic difference)
+    # and gap vs wall-clock time (right, log-log axes so Cholesky's ~10 ms
+    # run is not crushed against the y-axis next to CG's ~100 ms one).
     print("\n--- IRLS: Solver Comparison (Cholesky vs CG) ---")
-    fig, ax = plt.subplots(figsize=SIZE_SINGLE)
-    
+    fig, axes = plt.subplots(1, 2, figsize=SIZE_DOUBLE)
+
     solvers = ["cholesky", "cg"]
     plot_colors = {"cholesky": COLOR_IRLS, "cg": COLOR_FCUR}
-    
+    runs = {}
+
     for sol in solvers:
-        # run IRLS with the specified solver
-        res = irls(X, y, LAMBDA, eps_thr=1e-8, eps_stop=1e-12, k_max=200, solver=sol, w0=w_ols, f_star=f_star)
-        
-        # calculate requested metrics
+        res = irls(X, y, LAMBDA, eps_thr=1e-8, eps_stop=1e-12,
+                   k_max=200, solver=sol, w0=w_ols, f_star=f_star)
         exec_time = res["times"][-1]
         n_iters = res["n_iter"]
         sparsity = np.mean(np.abs(res["w"]) < 1e-6)
         converged = res["converged"]
-        
-        # print metrics to the console
         print(f"  Solver: {sol.upper()}")
         print(f"    Execution Time: {exec_time:.4f} s")
         print(f"    Iterations:     {n_iters} (Converged: {converged})")
         print(f"    Sparsity:       {sparsity:.2%}")
-        
-        # plot convergence over time
-        gaps = _safe_log(res["gaps"])
-        ax.semilogy(res["times"], gaps, linewidth=2.0, color=plot_colors[sol], label=f"{sol.upper()} (Time: {exec_time:.2f}s)")
+        runs[sol] = {"gaps": _safe_log(res["gaps"]),
+                     "times": np.asarray(res["times"], dtype=float),
+                     "exec_time": exec_time, "sparsity": sparsity}
 
-    ax.set_xlabel(r"Execution Time (seconds)")
+    # Left panel: gap vs iteration (semilog y).
+    ax = axes[0]
+    for sol in solvers:
+        gaps = runs[sol]["gaps"]
+        iters = np.arange(len(gaps))
+        ax.semilogy(iters, gaps, linewidth=2.0, color=plot_colors[sol],
+                    label=f"{sol.upper()}  (sparsity {runs[sol]['sparsity']:.0%})")
+    ax.set_xlabel(r"Iteration $k$")
     ax.set_ylabel(r"$f(w_k) - f^{*}$  (log scale)")
-    ax.set_title(r"IRLS Convergence: Cholesky vs Conjugate Gradient")
-    ax.legend(loc="upper right", fontsize=11)
+    ax.set_title("IRLS solver: convergence vs iterations")
+    ax.legend(loc="upper right", fontsize=10)
     style_axes(ax)
 
+    # Right panel: gap vs CPU time, log-log with shared warm-start marker so
+    # Cholesky's 10 ms run is visible alongside CG's 100 ms run. We replace
+    # the t=0 warm-start point with a small offset (half the smallest non-
+    # zero measurement across both solvers) so the shared starting gap shows
+    # on the log axis.
+    ax = axes[1]
+    min_pos = min(runs[s]["times"][1] for s in solvers
+                  if len(runs[s]["times"]) > 1)
+    t_start = min_pos / 2.0
+    for sol in solvers:
+        t = runs[sol]["times"].copy(); t[0] = t_start
+        ax.loglog(t, runs[sol]["gaps"], linewidth=2.0,
+                  color=plot_colors[sol],
+                  label=f"{sol.upper()}  (total {runs[sol]['exec_time']*1000:.1f} ms)")
+    ax.scatter([t_start], [runs["cholesky"]["gaps"][0]], s=80, marker="*",
+               color="black", zorder=6, label="OLS warm start (shared)")
+    ax.set_xlabel(r"CPU time (s)  (log scale)")
+    ax.set_ylabel(r"$f(w_k) - f^{*}$  (log scale)")
+    ax.set_title("IRLS solver: convergence vs CPU time")
+    ax.legend(loc="lower left", fontsize=10)
+    style_axes(ax)
+
+    fig.suptitle(rf"IRLS inner solver: Cholesky vs CG  ($H={H}$, $M={M}$, "
+                 rf"$\lambda_{{\mathrm{{LASSO}}}}={LAMBDA}$, "
+                 rf"$\varepsilon_{{\mathrm{{thr}}}}=10^{{-8}}$, $k_{{\max}}=200$)",
+                 y=1.00, fontsize=14)
     fig.tight_layout()
     path = os.path.join(FIG_DIR, "solver_comparison.pdf")
     fig.savefig(path)
