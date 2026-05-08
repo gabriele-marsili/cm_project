@@ -20,6 +20,12 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 import numpy as np
 np.seterr(all="ignore")
 
+try:
+    import pandas as pd
+    _HAS_PANDAS = True
+except ImportError:
+    _HAS_PANDAS = False
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -37,7 +43,9 @@ H, M  = 100, 400
 NOISE = 0.05
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
+TAB_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "tables")
 os.makedirs(FIG_DIR, exist_ok=True)
+os.makedirs(TAB_DIR, exist_ok=True)
 
 
 def _safe_log(arr, floor=1e-16):
@@ -141,6 +149,7 @@ def run() -> None:
     rho_vals = [0.5, 0.7, 0.9, 0.95, 0.99]
     cmap = plt.get_cmap(RAMP_PURPLES)
     colors = cmap(np.linspace(0.30, 1.0, len(rho_vals)))
+    rho_records = []
     for rho, color in zip(rho_vals, colors):
         res = deflected_subgradient(
             X, y, LAMBDA, w0=w_ols, i_max=5000, beta=1.0,
@@ -152,6 +161,27 @@ def run() -> None:
         label = rf"$\rho={rho:g}$  ({n_contr} contr.)"
         axes[1].loglog(iters, gaps, color=color, linewidth=1.8, label=label)
         print(f"  rho={rho}: gap={gaps[-1]:.2e}, contractions={n_contr}")
+        # record raw (unclipped) final gap for CSV
+        raw_gaps = np.asarray(res["gaps"], dtype=float)
+        rho_records.append({
+            "rho": rho,
+            "final_record_gap": float(raw_gaps[-1]),
+            "n_iter": int(res["n_iter"]),
+            "final_f": float(np.asarray(res.get("f_bar", res["gaps"]))[-1] + f_star),
+        })
+
+    # --- Save rho sweep results to CSV ---
+    csv_path = os.path.join(TAB_DIR, "rho_sweep.csv")
+    if _HAS_PANDAS:
+        import pandas as pd
+        pd.DataFrame(rho_records).to_csv(csv_path, index=False)
+    else:
+        header = "rho,final_record_gap,n_iter,final_f"
+        rows = [f"{r['rho']},{r['final_record_gap']:.6e},{r['n_iter']},{r['final_f']:.6e}"
+                for r in rho_records]
+        with open(csv_path, "w") as fh:
+            fh.write(header + "\n" + "\n".join(rows) + "\n")
+    print(f"Saved rho sweep CSV: {csv_path}")
 
     axes[1].set_xlabel(r"Iteration $i$  (log scale)")
     axes[1].set_ylabel(r"$\bar{f}^{i} - f^{*}$  (log scale)")

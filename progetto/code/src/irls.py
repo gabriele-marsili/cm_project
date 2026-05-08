@@ -92,7 +92,8 @@ def irls(X, y, lam, eps_thr=1e-8, eps_stop=1e-8, k_max=200,
 
         # Scale-invariant stopping rule from §2.4. The max(1, ||w_old||) avoids
         # spurious early termination when w drifts close to the origin.
-        rel_change = np.linalg.norm(w - w_old) / max(1.0, np.linalg.norm(w_old))
+        norm_old = np.linalg.norm(w_old)
+        rel_change = np.linalg.norm(w - w_old) / norm_old if norm_old > 1e-12 else np.linalg.norm(w - w_old)
 
         if verbose:
             gap_str = f"  gap={gaps[-1]:.3e}" if f_star is not None else ""

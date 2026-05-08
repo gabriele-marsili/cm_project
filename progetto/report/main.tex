@@ -86,6 +86,26 @@
 \vspace{25mm}
 
 \centering{\large{\textsc{Academic Year: 2025/2026}}}
+
+\vspace{2cm}
+\begin{minipage}{0.85\textwidth}
+\small
+\textbf{Project statement (verbatim).}\\
+\textbf{25. (P)} is so-called \textit{extreme learning}, i.e., a neural network
+with one hidden layer, $y = w \sigma(W_1 x)$, where the weight matrix for the hidden layer $W_1$
+is a fixed random matrix, $\sigma(\cdot)$ is an elementwise activation function of your choice,
+and the output weight vector $w$ is chosen by solving a least-squares
+problem with $L_1$ regularization $\arg\min_w f(w)$, with $f(w) = \frac{1}{2}\|X w - y \|_2^2 + \lambda \|w\|_1$.
+
+\vspace{0.2cm}
+\noindent \textbf{(A1)} is \textit{iteratively reweighted least squares}: i.e., an
+iteration where you solve at each step the least-squares problem
+$w_{k+1} = \arg \min_w f_k(w)$, $f_k(w) = \frac{1}{2} \|X w - y \|_2^2 + \lambda \|W_k w\|_2^2$
+where $W_k$ is the diagonal matrix with entries $(W_k)_{ii} = |(w_k)_i|^{-1/2}$.
+
+\vspace{0.2cm}
+\noindent \textbf{(A2)} is an algorithm of the class of the \textit{deflected subgradient methods}.
+\end{minipage}
 \end{titlepage}
 
 \tableofcontents

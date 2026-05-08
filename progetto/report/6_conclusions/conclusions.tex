@@ -27,15 +27,17 @@ $\bar{f}^{i}$, a sublinear gap curve that flattens as the iterations
 accumulate, and an iterate with zero exact zeros, in line with the
 absence of any explicit thresholding mechanism. The $O(MH^{2})$
 pre-computation cost of IRLS was visible on the scalability plot as a
-clean cubic slope at $M=5H$, and the gap between the two methods at
-the same iteration budget ($1.5\cdot 10^{-6}$ for IRLS at iteration
-$100$ versus $1.7\cdot 10^{-2}$ for SGPTL at iteration $8000$ on the
-convergence instance, four orders of magnitude apart) lines up with
+clean cubic slope at $M=5H$, and the work required by each method to reach the same gap on the
+convergence instance ($1.5\cdot 10^{-6}$ for IRLS at iteration $100$
+versus $\approx 3\cdot 10^{-6}$ for SGPTL at iteration $8000$, an
+$80\times$ iteration multiplier for the same accuracy) lines up with
 the $O(\log\varepsilon^{-1})$ versus $O(\varepsilon^{-2})$ comparison.
 On the moderate problem of Section~\ref{sec:iters-to-eps} IRLS reached
-$\varepsilon=10^{-2}$ in $3$~iterations against SGPTL's failure to
-reach the same threshold within $30000$~iterations, illustrating how
-quickly the rate gap dominates as the accuracy target tightens.
+$\varepsilon=10^{-2}$ in $3$~iterations against SGPTL's $664$, and
+$10^{-3}$ in $7$ against $8678$; SGPTL reached $10^{-6}$ only near the
+end of its $30000$-iteration budget (iteration $29184$), while IRLS
+reached it in $101$ iterations. This illustrates how quickly the rate
+gap dominates as the accuracy target tightens.
 
 \paragraph{Where the theoretical bounds proved conservative.}
 A few observations did not have a clean theoretical counterpart in the
@@ -45,22 +47,20 @@ $\varepsilon_\text{thr}$ further did not improve the gap further: the
 linear solver hits floating-point limits before the safety mechanism
 does, so the ``smaller $\varepsilon_\text{thr}$ is always sharper''
 intuition has a hard floor. The SGPTL contraction factor $\rho$ proved
-less influential than the theory suggests at OLS warm start, where the
-iteration-count fallback fixes $\delta$'s effective schedule and the
-gap stays on a $1.7\cdot 10^{-2}$ plateau across $\rho\in[0.5,0.95]$;
-the cold-start sweep from Section~\ref{sec:params} is the only regime
-where $\rho$ matters significantly, and there the empirical optimum
-sits at $\rho=0.99$ ($8.5\cdot 10^{-3}$) rather than at the $[0.9,
-0.95]$ range we identified \emph{a priori} from the slide
-recommendation in Section~\ref{sec:dsm_parameters}: very slow
-contraction lets $\delta$ stay informative for longer when the iterate
-genuinely is far from $f^{*}$, which is the cold-start regime.
-We did not promote $\rho=0.99$ to the default because the gain is
-within a factor of two of the $\rho=0.9$ value and is invisible at OLS
-warm start, the regime the project actually uses. The initial gap
-estimate $\delta_{0}$ is the more sensitive parameter, with a clear
-failure mode at $\delta_{0}\le 0.01\,f^{*}$ (target above $f^{*}$,
-iterate locked) and a U-shaped optimum at $\delta_{0}=0.1\,f^{*}$.
+highly influential at OLS warm start: the final record gap spreads over
+several orders of magnitude across $\rho\in[0.5,0.99]$
+(from $2.3\cdot 10^{-8}$ at $\rho=0.7$ to
+$1.2\cdot 10^{-2}$ at $\rho=0.99$, see Section~\ref{sec:params}).
+Aggressive contraction wins at OLS warm start, with $\rho=0.7$ the
+empirical optimum ($2.3\cdot 10^{-8}$), against the $[0.9, 0.95]$ range
+the slide recommendation of Section~\ref{sec:dsm_parameters} would
+suggest as a generic default. We keep $\rho=0.9$ as the default in the
+comparison and scalability runs for consistency with
+Section~\ref{sec:convergence}; the qualitative conclusions are
+unaffected by the $\rho$ choice. The initial gap estimate $\delta_{0}$
+was much less sensitive on the tested OLS-warm-start instance: all
+values in $\{0.01,0.05,0.1,0.5,1.0\}f^{*}$ ended in the
+$10^{-6}$ range.
 Finally, the OLS warm start mandated by
 Section~\ref{sec:dsm_algorithm} interacts unfavourably with the
 greedy deflection. The current subgradient becomes nearly aligned
@@ -74,23 +74,23 @@ the patience mechanism — contract $\delta$ and reset
 $\mathbf{d}_{i-1}=\mathbf{0}$ when $\bar{f}^{i}$ has not improved for
 $R_\text{iter}=\max(i_\text{max}/100,\,50)$ iterations — to recover
 the sublinear progress the theory predicts. The reset is consistent
-with the per-step bound~(3.14), which holds iterate-by-iterate
+with the per-step bound~\eqref{eq:proof_perstep}, which holds iterate-by-iterate
 without requiring persistent memory.
 
 \paragraph{Recommendation for the ELM LASSO problem.}
 On the project's intended regime, $M\gg H$ with $\mathbf{W}_{1}$ fixed
-random and the output layer trained offline once, IRLS is the natural
+random and the output layer trained offline once, IRLS is the recommended
 choice. It has a single numerical knob ($\varepsilon_\text{thr}$),
-delivers genuinely sparse iterates without post-processing, and reaches
+delivers sparse iterates without post-processing, and reaches
 machine-precision accuracy in tens to a few hundred iterations on every
 problem size we tested. SGPTL becomes competitive only when $H^{2}\gg
 M$, i.e. when the hidden layer is wide and the training set is small
 enough that the $O(MH^{2})$ pre-computation cost of IRLS no longer
 amortises, or when the dense $H\times H$ matrix
 $\mathbf{X}^{\top}\mathbf{X}$ does not fit in memory. Neither regime
-applies to the project's setting; the moderate hidden-layer sizes
-accessible on a laptop ($H\le 2000$) all fall on the IRLS side of the
-crossover. SGPTL retains value as a sanity check (a different algorithm
+appeared in the tested project setting; the moderate hidden-layer sizes
+accessible on a laptop ($H\le 2000$) all remained on the IRLS side in
+both wall-clock time and final gap. SGPTL retains value as a sanity check (a different algorithm
 converging to the same $f^{*}$ within the achievable accuracy is a
 useful indication that the implementation is correct) and as a
 baseline to quantify what we gain from exploiting the structure of the
@@ -99,14 +99,16 @@ generic non-smooth convex programme.
 
 \paragraph{Limitations and possible extensions.}
 The synthetic study is the primary evidence base because it is the
-only setting where the support-recovery question has a ground truth;
-Section~\ref{sec:real_data} validates the optimisation behaviour on
-two real regression datasets (\textit{diabetes} and \textit{California
-housing}) by using sklearn's high-tolerance coordinate descent as the
-$f^{*}$ reference, and finds that IRLS matches or slightly improves on
-the sklearn reference on both, while SGPTL converges on the larger
-$M\gg H$ instance and stalls on the smaller $M\sim H$ one --- exactly
-the rate-driven regime split the synthetic experiments predict. We did
+only setting where the support-recovery question has a ground truth and
+where sklearn provides a reliable high-accuracy optimisation reference.
+Section~\ref{sec:real_data} validates the qualitative optimisation
+behaviour on two real regression datasets (\textit{diabetes} and
+\textit{California housing}) using the empirical baseline $f_{\min}$
+instead: sklearn's coordinate descent stops early on diabetes and is
+skipped on California. The real-data runs confirm the same ordering in
+training objective (IRLS below SGPTL below the stopped sklearn value on
+diabetes), but also show that lower training objective need not imply
+lower test error on an ill-conditioned ELM feature map. We did
 not implement an accelerated subgradient variant (for example Nesterov
 smoothing of the $\ell_{1}$ term) that would close some of the rate
 gap with IRLS, since the project specification fixes SGPTL as

@@ -24,6 +24,12 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 import numpy as np
 np.seterr(all="ignore")
 
+try:
+    import pandas as pd
+    _HAS_PANDAS = True
+except ImportError:
+    _HAS_PANDAS = False
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -49,7 +55,9 @@ DSM_IMAX  = 8000
 DSM_RHO   = 0.9
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
+TAB_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "tables")
 os.makedirs(FIG_DIR, exist_ok=True)
+os.makedirs(TAB_DIR, exist_ok=True)
 
 
 def _safe_log(arr, floor=1e-16):
@@ -88,6 +96,50 @@ def run() -> None:
     print(f"SGPTL: {res_dsm['n_iter']} iter, "
           f"final record gap = {res_dsm['gaps'][-1]:.3e}, "
           f"final current gap = {f_curr_gap[-1]:.3e}")
+
+    # ---- Save full convergence trajectories to CSV ----
+    irls_gaps_raw = np.asarray(res_irls["gaps"], dtype=float)
+    irls_times_raw = np.asarray(res_irls["times"], dtype=float)
+    dsm_gaps_raw = np.asarray(res_dsm["gaps"], dtype=float)
+    dsm_times_raw = np.asarray(res_dsm["times"], dtype=float)
+    dsm_fcur_raw = np.asarray([f - f_star for f in res_dsm["f_vals"]], dtype=float)
+
+    irls_n = len(irls_gaps_raw)
+    dsm_n = len(dsm_gaps_raw)
+
+    irls_rows = [
+        {
+            "algorithm": "IRLS",
+            "iteration": int(k),
+            "gap": float(irls_gaps_raw[k]),
+            "record_gap": float(irls_gaps_raw[k]),  # IRLS is monotone
+            "time_s": float(irls_times_raw[k]) if k < len(irls_times_raw) else float("nan"),
+        }
+        for k in range(irls_n)
+    ]
+    dsm_record = np.minimum.accumulate(np.maximum(dsm_gaps_raw, 0.0))
+    dsm_rows = [
+        {
+            "algorithm": "SGPTL",
+            "iteration": int(i + 1),
+            "gap": float(dsm_fcur_raw[i]),
+            "record_gap": float(dsm_record[i]),
+            "time_s": float(dsm_times_raw[i]) if i < len(dsm_times_raw) else float("nan"),
+        }
+        for i in range(dsm_n)
+    ]
+
+    csv_path = os.path.join(TAB_DIR, "convergence_instance.csv")
+    all_rows = irls_rows + dsm_rows
+    if _HAS_PANDAS:
+        pd.DataFrame(all_rows).to_csv(csv_path, index=False)
+    else:
+        header = "algorithm,iteration,gap,record_gap,time_s"
+        lines = [f"{r['algorithm']},{r['iteration']},{r['gap']:.6e},"
+                 f"{r['record_gap']:.6e},{r['time_s']:.6e}" for r in all_rows]
+        with open(csv_path, "w") as fh:
+            fh.write(header + "\n" + "\n".join(lines) + "\n")
+    print(f"Saved convergence CSV: {csv_path}")
 
     # ---- Figure 1: gap vs iteration, IRLS (semilog) + SGPTL (loglog) ----
     fig, axes = plt.subplots(1, 2, figsize=SIZE_DOUBLE)

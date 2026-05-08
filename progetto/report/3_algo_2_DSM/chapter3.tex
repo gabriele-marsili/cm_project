@@ -292,6 +292,7 @@ Substituting into \eqref{eq:proof_fundamental}:
 \]
 
 \emph{Step~2 — Polyak step.}
+(Note: this derivation is for the plain subgradient case $\gamma_i = 1$, where $\mathbf{d}_i = \mathbf{g}_i$ and $\norm{\mathbf{d}_i}^2 = \norm{\mathbf{g}_i}^2$; the deflected case is treated below.)
 Choose the Polyak stepsize \cite{polyak-stepsize}
 $\alpha_i = (f(\mathbf{w}_i) - f^*)/\norm{\mathbf{g}_i}_2^2$,
 which is the value $\alpha$ that minimises the right-hand side above (setting its derivative in $\alpha$ to zero).

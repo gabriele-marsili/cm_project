@@ -29,7 +29,7 @@ Extreme Learning Machine (ELM) \cite{HUANG2006489} is a machine learning model i
     \item $\hat{y} = \mathbf{w}^T\sigma(\mathbf{W_1x}) \in \mathbb{R}$ is the prediction of the model.
 \end{itemize}
 
-The key insight behind this architecture is that randomly fixing $\mathbf{W_1}$ transforms an extremely hard non-linear optimization problem (training a full neural network) into a simpler \textbf{linear system} resolution. Classical neural networks must learn \textit{all} weights jointly, which requires non-convex optimization with no guarantee of finding the global minimum \cite{goodfellow2016deep}. In an ELM, the only free parameters are the output weights $\mathbf{w}$, and once $\mathbf{W_1}$ is fixed, the hidden-layer activations $\mathbf{X} = \sigma(\mathbf{X}_\text{origin} \mathbf{W}_1^T)$ are constant. Finding $\mathbf{w}$ then reduces to solving the Least-Squares problem, which is convex with a closed-form solution. This choice works very well in practice: random projections through a non-linear activation function are sufficient to produce rich, expressive features \cite{rahimi2007random} from which a linear model can learn effectively, exploiting the same properties of expressiveness as the \textbf{linear basis expansions} \cite{hastie2009elements} in classical Machine Learning models (e.g. linear models).
+Once $\mathbf{W_1}$ is fixed, the hidden-layer activations $\mathbf{X} = \sigma(\mathbf{X}_\text{origin} \mathbf{W}_1^T)$ are constant, and finding $\mathbf{w}$ reduces to solving the Least-Squares problem described in the following section.
 
 
 \begin{figure}[h!]
@@ -49,7 +49,7 @@ Considering $\mathbf{X} = \sigma(\mathbf{X}_\text{origin} \mathbf{W}_1^T) \in \m
 \min_{\mathbf{w}} || \mathbf{Xw} - \mathbf{y} ||^2_2
 \end{equation}
 
-The Least-Squares problem is proven to have a unique solution if and only if the matrix $A$ has full column rank. In that case, we can write the optimization problem as follows:
+The Least-Squares problem always admits at least one solution, and the solution is unique if and only if the matrix $\mathbf{A}$ has full column rank. In that case, we can write the optimization problem as follows:
 \begin{equation}
 \min_\mathbf{w} \frac{1}{2}\mathbf{w}^T\mathbf{X}^T\mathbf{X}\mathbf{w} - \mathbf{y}^T\mathbf{X}\mathbf{w} + \frac{1}{2}\mathbf{y}^T\mathbf{y}
 \end{equation}
@@ -70,8 +70,6 @@ However, adding the $L_1$ regularization term (Section~\ref{sec:regularization})
 
 
 \subsection{$L_1$ regularization}
-The $L_1$ regularization \cite{l1-regularization-frangioni} is the best convex approximation for the $L_0$ norm, which penalizes the number of non-zero weights. Because of this sparsity, we are going to use the $L_1$ instead of $L_2$, which shrinks the weights but rarely zeroes them out.
-
 When adding the $L_1$ regularization term to the Least-Squares problem in the case of ELM, the equation is the following:
 \begin{equation}
 \label{eq:original_problem}
@@ -95,7 +93,7 @@ It is useful to analyse the mathematical properties of $f(\mathbf{w})$, as they
 determine which algorithms can be applied.
 
 \subsection{Convexity}
-$f(\mathbf{w})$ is the sum of two convex functions \cite{Boyd_Vandenberghe_2004}. The quadratic term
+$f(\mathbf{w})$ is the sum of two convex functions \cite[p.~67]{Boyd_Vandenberghe_2004}. The quadratic term
 $g(\mathbf{w}) = \frac{1}{2}\|\mathbf{Xw} - \mathbf{y}\|_2^2$ has Hessian
 $\nabla^2 g(\mathbf{w}) = \mathbf{X}^T\mathbf{X} \succeq 0$, making it convex.
 If $\mathbf{X}$ has full column rank, then $\mathbf{X}^T\mathbf{X} \succ 0$ and
@@ -108,7 +106,7 @@ $f$ is \textbf{strictly convex} and admits a \textbf{unique global minimum}.
     \label{prop:irls_prop}
     If $\mathbf{X} \in \mathbb{R}^{M \times H}$ has full column rank, then
     $f(\mathbf{w}) = \frac{1}{2}\|\mathbf{Xw} - \mathbf{y}\|_2^2 + \lambda_{\text{LASSO}}\|\mathbf{w}\|_1$
-    is strictly convex and admits a unique global minimizer $\mathbf{w}^*$ \cite{Boyd_Vandenberghe_2004}.
+    is strictly convex and admits a unique global minimizer $\mathbf{w}^*$ \cite[p.~73]{Boyd_Vandenberghe_2004}.
 \end{proposition}
 \begin{proof}
 We write $f = g + h$ where $g(\mathbf{w}) = \frac{1}{2}\|\mathbf{Xw} - \mathbf{y}\|_2^2$
