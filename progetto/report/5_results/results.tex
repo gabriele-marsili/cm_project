@@ -20,7 +20,7 @@ shared LASSO objective $f(\mathbf{w})=\tfrac{1}{2}\|\mathbf{X}\mathbf{w}-\mathbf
 its smooth-part gradient $\mathbf{X}^{\top}(\mathbf{X}\mathbf{w}-\mathbf{y})$,
 and the soft-threshold subgradient selection used by SGPTL.
 \texttt{linear\_solvers.py} provides the SPD inner-solver layer used by
-IRLS (Cholesky via \texttt{scipy.linalg.cho\_factor}/\texttt{cho\_solve}
+IRLS (Cholesky via \texttt{scipy.linalg.}\allowbreak\texttt{cho\_factor}/\allowbreak\texttt{cho\_solve}
 and a hand-rolled preconditioned Conjugate Gradient with Jacobi
 preconditioner for the iterative branch). \texttt{irls.py} is the
 Algorithm~A1 driver: it assembles the weighted normal-equations matrix
@@ -30,15 +30,13 @@ test of Chapter~\ref{chap:irls}.
 \texttt{deflected\_subgradient.py} implements Algorithm~A2 with the
 deflection floor $\gamma_{\min}$, the literal stepsize clip
 $\beta_{i}=\min(\beta,\gamma_{i})$, the Polyak target-level mechanism,
-and the iteration-count fallback to $\delta$-contraction discussed
-above. \texttt{elm.py} packages the random hidden layer, the
+and the iteration-count fallback to $\delta$-contraction. \texttt{elm.py} packages the random hidden layer, the
 sigmoid/ReLU/tanh activations, and the train/test split used in the
 synthetic and real-data experiments. The core algorithms are
 implemented from scratch; only numerical primitives (matrix
 multiplication, dense Cholesky, BLAS-backed dot products) are taken
-from NumPy/SciPy, in line with the project's specification on which
-operations may be delegated. A pytest suite under
-\texttt{progetto/code/tests/} cross-checks the IRLS and SGPTL
+from NumPy/SciPy.
+\\ A pytest suite under \texttt{progetto/code/tests/} cross-checks the IRLS and SGPTL
 solutions against \texttt{sklearn.linear\_model.Lasso} on small
 instances and verifies the surrogate-descent and record-monotonicity
 invariants of the two algorithms iterate by iterate.
@@ -317,13 +315,7 @@ $\sim\!3\cdot 10^{-6}$.
 \end{figure}
 
 The non-monotonicity discussed in Section~\ref{sec:dsm_target_level}
-is also visible empirically. Figure~\ref{fig:dsm-nonmonotone} shows
-the SGPTL run with $f(\mathbf{w}_{i})$ in red and the record value
-$\bar{f}^{i}=\min_{h\le i}f(\mathbf{w}_{h})$ in black. The current
-function value oscillates throughout the run, while the record stays
-monotone non-increasing by construction. This is the practical reason
-why the algorithm returns~$\mathbf{w}_\text{best}$ rather than the
-last iterate.
+is also visible empirically. 
 
 \begin{figure}[H]
     \centering
@@ -596,11 +588,11 @@ collects the numbers from
         \midrule
         $10^{-6}$ & IRLS  & $86\%$ & $0.857$ & $1.000$ & $0.923$ \\
         $10^{-6}$ & SGPTL & $82\%$ & $0.667$ & $1.000$ & $0.800$ \\
-        $10^{-6}$ & true  & $88\%$ & $1.000$ & $1.000$ & $1.000$ \\
+        $10^{-6}$ & ground truth  & $88\%$ & $1.000$ & $1.000$ & $1.000$ \\
         \midrule
         $10^{-3}$ & IRLS  & $88\%$ & $1.000$ & $1.000$ & $1.000$ \\
         $10^{-3}$ & SGPTL & $88\%$ & $1.000$ & $1.000$ & $1.000$ \\
-        $10^{-3}$ & true  & $88\%$ & $1.000$ & $1.000$ & $1.000$ \\
+        $10^{-3}$ & ground truth  & $88\%$ & $1.000$ & $1.000$ & $1.000$ \\
         \bottomrule
     \end{tabular}
     \caption{Support recovery on the moderate problem
@@ -771,8 +763,8 @@ $f_{\min}$, the lowest objective value attained by the methods that
 finished on each dataset.
 
 We test two regression datasets included with scikit-learn:
-\textit{diabetes} ($n=442$, $d=10$) and \textit{California housing}
-($n=20640$, $d=8$). Each set is split $80/20$ into train/test, both
+\textit{diabetes} ($n=442$, $d=10$) \cite{efron2004least} and \textit{California housing}
+($n=20640$, $d=8$) \cite{pace1997sparse}. Each set is split $80/20$ into train/test, both
 features and target are standardised on the training split, and the
 ELM transformation $\mathbf{X}_\text{hidden}=\sigma(\mathbf{X}\,\mathbf{W}_{1}^{\top})$
 with $H=200$ sigmoid units and a fixed random $\mathbf{W}_{1}$ produces
@@ -787,6 +779,7 @@ Table~\ref{tab:real_data} collects the numbers.
     \centering
     \small
     \setlength{\tabcolsep}{5pt}
+    \resizebox{\textwidth}{!}{%
     \begin{tabular}{lrrrrrr}
         \toprule
         & \multicolumn{3}{c}{Diabetes ($M=354$)} & \multicolumn{3}{c}{California ($M=16512$)} \\
@@ -798,7 +791,8 @@ Table~\ref{tab:real_data} collects the numbers.
         SGPTL               & $54.17$ & $\phantom{0}6\%$ & $1.112$ & $\!\phantom{1}2358.12\!\!$ & $\phantom{0}2\%$ & $0.307$ \\
         Ridge               & ---     & ---              & $0.942$ & ---                       & ---              & $0.307$ \\
         \bottomrule
-    \end{tabular}
+    \end{tabular}%
+    } %
     \caption{IRLS and SGPTL on real datasets passed through an
     $H=200$ sigmoid ELM transformation,
     $\lambda_\text{LASSO}=0.1$. Sparsity counts components with

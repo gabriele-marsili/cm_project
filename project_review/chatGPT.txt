@@ -1,0 +1,93 @@
+Ho rifatto la review. Le correzioni di Claude hanno sistemato diversi problemi grossi, ma restano ancora alcuni punti da correggere prima dell’invio.
+
+Findings
+
+HIGH: real-data ancora contraddittorio su sklearn come f*
+File: results.tex (line 780)
+
+Alle righe 780-789 dici ancora che sklearn fornisce una reference high-tolerance tol=1e-12 e quindi un f* su ogni istanza reale. Ma nella stessa sezione, righe 830-836, dici correttamente che sklearn non converge, su diabetes è stopped-early con tol=1e-3, e su California è saltato.
+
+Da sistemare:
+
+
+riscrivere l’apertura di Validation on real datasets;
+
+dire che sui real-data non si usa un vero f*, ma una baseline empirica f_min;
+
+cambiare in tabella sklearn ($f^{*}$) in sklearn CD (stopped);
+
+nella caption figura, sostituire sklearn's f^{*} - f_min con sklearn stopped value - f_min.
+
+
+HIGH: conclusioni real-data ancora vecchie e false
+File: conclusions.tex (line 101)
+
+Le righe 101-110 dicono ancora che la sezione real-data usa sklearn high-tolerance come f*, che IRLS migliora sklearn su entrambi i dataset, e che SGPTL “stalls” sul dataset piccolo. Ora il Capitolo 5 dice l’opposto/qualcosa di più sfumato: sklearn diabetes generalizza meglio, California non ha run sklearn reale, SGPTL converge ma più lentamente.
+
+Da riscrivere completamente il paragrafo “Limitations and possible extensions” in coerenza con la nuova sezione 5.7.
+
+MEDIUM: figura solver non rigenerata o titolo interno stale
+File: results.tex (line 442)
+
+Figura: progetto/report/images/solver_comparison.pdf
+
+Il testo ora dice k_max=300, tabella 12.5ms vs 21.2ms e 265 iterazioni. Però il PDF della figura contiene ancora titolo interno kmax = 200. Va rigenerata la figura o corretto lo script/titolo che la produce.
+
+MEDIUM: CSV real-data contiene colonne gap_irls=0, gap_dsm=0 fuorvianti
+File: experiment_real_data.py (line 220)
+
+In real_data.csv, gap_irls e gap_dsm sono zero perché il codice usa un f_star sklearn/placeholder più alto del valore IRLS e poi clippa i gap con max(0, f-f_star). Ora che il report usa f_min, queste colonne sono concettualmente sbagliate.
+
+Da sistemare:
+
+
+rinominare o rimuovere gap_irls/gap_dsm dal CSV real-data;
+
+oppure calcolare gap rispetto a f_min dopo aver ottenuto tutti i metodi;
+
+evitare di chiamare f_star il placeholder California.
+
+
+MEDIUM: conclusione “tutti H<=2000 lato IRLS” è troppo forte
+File: conclusions.tex (line 81)
+
+Le righe 91-94 dicono che tutti gli H<=2000 cadono dal lato IRLS. Ma la tabella scalability mostra SGPTL più veloce per H=1000 e H=2000, anche se con gap peggiore. Meglio dire: IRLS resta preferibile per accuratezza alta; SGPTL diventa più rapido a H grande se si accetta gap ~10^-3.
+
+LOW: nuova descrizione implementazione introduce piccole imprecisioni
+File: results.tex (line 16)
+
+
+“five Python modules” non è esatto: in src/ ci sono anche data_generation.py e __init__.py.
+
+“soft-threshold subgradient selection” è tecnicamente improprio: il codice usa np.sign(w) con scelta 0 al kink, non soft-thresholding.
+
+“elm.py packages ... train/test split” sembra non corrispondere al codice principale.
+
+
+Da correggere con formulazioni più sobrie.
+
+LOW: file ausiliari LaTeX sporchi
+git status mostra modificati/non tracciati:
+
+
+progetto/report/main.fdb_latexmk
+
+progetto/report/main.fls
+
+progetto/report/main.bcf
+
+progetto/report/main.blg
+
+progetto/report/main.run.xml
+
+
+Da non includere nella consegna/commit, salvo scelta esplicita. Il PDF può restare, ma gli aux no.
+
+Verifica
+
+
+latexmk -pdf -bibtex main.tex: up-to-date, nessun errore bloccante.
+
+pytest -q: 53 passed.
+
+Restano overfull hbox nel log, incluso uno nuovo grosso nella descrizione implementativa; non bloccante, ma da pulire se vuoi un PDF più rifinito.

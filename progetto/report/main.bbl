@@ -214,6 +214,55 @@
       \verb https://arxiv.org/abs/0807.0575
       \endverb
     \endentry
+    \entry{efron2004least}{article}{}{}
+      \name{author}{4}{}{%
+        {{hash=5470455fc7dceb3ccf6db38cb22a113d}{%
+           family={Efron},
+           familyi={E\bibinitperiod},
+           given={Bradley},
+           giveni={B\bibinitperiod}}}%
+        {{hash=0cb8fe4210baa81c4b0e67913b4d2768}{%
+           family={Hastie},
+           familyi={H\bibinitperiod},
+           given={Trevor},
+           giveni={T\bibinitperiod}}}%
+        {{hash=269caf16d4edd41e34b3e9a22e1d2dc3}{%
+           family={Johnstone},
+           familyi={J\bibinitperiod},
+           given={Iain},
+           giveni={I\bibinitperiod}}}%
+        {{hash=88eea600247d798f8b2ce0b2dc614492}{%
+           family={Tibshirani},
+           familyi={T\bibinitperiod},
+           given={Robert},
+           giveni={R\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Institute of Mathematical Statistics}%
+      }
+      \strng{namehash}{a5fa507ba7d213808e02fe1b5aa1a830}
+      \strng{fullhash}{fbd07af61c83d5c16d5d4308c1ae67e5}
+      \strng{fullhashraw}{fbd07af61c83d5c16d5d4308c1ae67e5}
+      \strng{bibnamehash}{a5fa507ba7d213808e02fe1b5aa1a830}
+      \strng{authorbibnamehash}{a5fa507ba7d213808e02fe1b5aa1a830}
+      \strng{authornamehash}{a5fa507ba7d213808e02fe1b5aa1a830}
+      \strng{authorfullhash}{fbd07af61c83d5c16d5d4308c1ae67e5}
+      \strng{authorfullhashraw}{fbd07af61c83d5c16d5d4308c1ae67e5}
+      \field{sortinit}{E}
+      \field{sortinithash}{8da8a182d344d5b9047633dfc0cc9131}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{The Annals of Statistics}
+      \field{number}{2}
+      \field{title}{Least angle regression}
+      \field{volume}{32}
+      \field{year}{2004}
+      \field{pages}{407\bibrangedash 499}
+      \range{pages}{93}
+      \verb{doi}
+      \verb 10.1214/009053604000000067
+      \endverb
+    \endentry
     \entry{dss-convergence-frangioni}{misc}{}{}
       \name{author}{1}{}{%
         {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
@@ -370,32 +419,6 @@
       \field{title}{Lipschitz continuity, L-smoothness}
       \field{year}{2025}
     \endentry
-    \entry{l1-regularization-frangioni}{misc}{}{}
-      \name{author}{1}{}{%
-        {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
-           family={Frangioni},
-           familyi={F\bibinitperiod},
-           given={Antonio},
-           giveni={A\bibinitperiod}}}%
-      }
-      \strng{namehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{bibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorbibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{7}
-      \field{sortinit}{F}
-      \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{howpublished}{Lecture notes: Nonsmooth Unconstrained Optimization, CM 646AA, Università di Pisa}
-      \field{note}{Slide 3}
-      \field{title}{Nondifferentiable regularization: L1 as best convex approximation of L0}
-      \field{year}{2025}
-    \endentry
     \entry{polyak-stepsize}{misc}{}{}
       \name{author}{1}{}{%
         {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
@@ -412,7 +435,7 @@
       \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{8}
+      \field{extraname}{7}
       \field{sortinit}{F}
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
@@ -438,7 +461,7 @@
       \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{9}
+      \field{extraname}{8}
       \field{sortinit}{F}
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
@@ -464,7 +487,7 @@
       \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{10}
+      \field{extraname}{9}
       \field{sortinit}{F}
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
@@ -490,7 +513,7 @@
       \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{11}
+      \field{extraname}{10}
       \field{sortinit}{F}
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
@@ -516,7 +539,7 @@
       \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{12}
+      \field{extraname}{11}
       \field{sortinit}{F}
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
@@ -542,7 +565,7 @@
       \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{13}
+      \field{extraname}{12}
       \field{sortinit}{F}
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
@@ -551,48 +574,6 @@
       \field{note}{University of Pisa, Slide 14}
       \field{title}{Target level stepsize (vanishing)}
       \field{year}{2026}
-    \endentry
-    \entry{goodfellow2016deep}{book}{}{}
-      \name{author}{3}{}{%
-        {{hash=5d2585c11210cf1d4512e6e0a03ec315}{%
-           family={Goodfellow},
-           familyi={G\bibinitperiod},
-           given={Ian},
-           giveni={I\bibinitperiod}}}%
-        {{hash=40a8e4774982146adc2688546f54efb2}{%
-           family={Bengio},
-           familyi={B\bibinitperiod},
-           given={Yoshua},
-           giveni={Y\bibinitperiod}}}%
-        {{hash=ccec1ccd2e1aa86960eb2e872c6b7020}{%
-           family={Courville},
-           familyi={C\bibinitperiod},
-           given={Aaron},
-           giveni={A\bibinitperiod}}}%
-      }
-      \list{publisher}{1}{%
-        {MIT Press}%
-      }
-      \strng{namehash}{3ae53fe582e8a815b118d26947eaa326}
-      \strng{fullhash}{3ae53fe582e8a815b118d26947eaa326}
-      \strng{fullhashraw}{3ae53fe582e8a815b118d26947eaa326}
-      \strng{bibnamehash}{3ae53fe582e8a815b118d26947eaa326}
-      \strng{authorbibnamehash}{3ae53fe582e8a815b118d26947eaa326}
-      \strng{authornamehash}{3ae53fe582e8a815b118d26947eaa326}
-      \strng{authorfullhash}{3ae53fe582e8a815b118d26947eaa326}
-      \strng{authorfullhashraw}{3ae53fe582e8a815b118d26947eaa326}
-      \field{sortinit}{G}
-      \field{sortinithash}{32d67eca0634bf53703493fb1090a2e8}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{title}{Deep Learning}
-      \field{year}{2016}
-      \verb{urlraw}
-      \verb https://www.deeplearningbook.org
-      \endverb
-      \verb{url}
-      \verb https://www.deeplearningbook.org
-      \endverb
     \endentry
     \entry{hastie2009elements}{book}{}{}
       \name{author}{3}{}{%
@@ -628,8 +609,14 @@
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{edition}{2nd}
-      \field{title}{The Elements of Statistical Learning}
+      \field{title}{The Elements of Statistical Learning: Data Mining, Inference, and Prediction}
       \field{year}{2009}
+      \verb{urlraw}
+      \verb https://hastie.su.domains/ElemStatLearn/
+      \endverb
+      \verb{url}
+      \verb https://hastie.su.domains/ElemStatLearn/
+      \endverb
     \endentry
     \entry{HUANG2006489}{article}{}{}
       \name{author}{3}{}{%
@@ -706,35 +693,44 @@
       \verb https://arxiv.org/abs/1611.03969
       \endverb
     \endentry
-    \entry{rahimi2007random}{inproceedings}{}{}
+    \entry{pace1997sparse}{article}{}{}
       \name{author}{2}{}{%
-        {{hash=b2a647ccd84fe455f793167cbe4e9c81}{%
-           family={Rahimi},
-           familyi={R\bibinitperiod},
-           given={Ali},
-           giveni={A\bibinitperiod}}}%
-        {{hash=3503059e1c0c778913607c87d8c5173a}{%
-           family={Recht},
-           familyi={R\bibinitperiod},
-           given={Benjamin},
-           giveni={B\bibinitperiod}}}%
+        {{hash=9a8832836eb21e4894c81e8f83f075f7}{%
+           family={Pace},
+           familyi={P\bibinitperiod},
+           given={R.\bibnamedelimi Kelley},
+           giveni={R\bibinitperiod\bibinitdelim K\bibinitperiod}}}%
+        {{hash=b5b85590544fa5dfd43cdc4ba1633b95}{%
+           family={Barry},
+           familyi={B\bibinitperiod},
+           given={Ronald},
+           giveni={R\bibinitperiod}}}%
       }
-      \strng{namehash}{3901ba1a79fcedc2c5a8b2b74bd94b9a}
-      \strng{fullhash}{3901ba1a79fcedc2c5a8b2b74bd94b9a}
-      \strng{fullhashraw}{3901ba1a79fcedc2c5a8b2b74bd94b9a}
-      \strng{bibnamehash}{3901ba1a79fcedc2c5a8b2b74bd94b9a}
-      \strng{authorbibnamehash}{3901ba1a79fcedc2c5a8b2b74bd94b9a}
-      \strng{authornamehash}{3901ba1a79fcedc2c5a8b2b74bd94b9a}
-      \strng{authorfullhash}{3901ba1a79fcedc2c5a8b2b74bd94b9a}
-      \strng{authorfullhashraw}{3901ba1a79fcedc2c5a8b2b74bd94b9a}
-      \field{sortinit}{R}
-      \field{sortinithash}{5e1c39a9d46ffb6bebd8f801023a9486}
+      \list{publisher}{1}{%
+        {Elsevier}%
+      }
+      \strng{namehash}{9243eaff5e2ddf7750fb870450ae5a3d}
+      \strng{fullhash}{9243eaff5e2ddf7750fb870450ae5a3d}
+      \strng{fullhashraw}{9243eaff5e2ddf7750fb870450ae5a3d}
+      \strng{bibnamehash}{9243eaff5e2ddf7750fb870450ae5a3d}
+      \strng{authorbibnamehash}{9243eaff5e2ddf7750fb870450ae5a3d}
+      \strng{authornamehash}{9243eaff5e2ddf7750fb870450ae5a3d}
+      \strng{authorfullhash}{9243eaff5e2ddf7750fb870450ae5a3d}
+      \strng{authorfullhashraw}{9243eaff5e2ddf7750fb870450ae5a3d}
+      \field{sortinit}{P}
+      \field{sortinithash}{ff3bcf24f47321b42cb156c2cc8a8422}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{booktitle}{Advances in Neural Information Processing Systems}
-      \field{title}{Random Features for Large-Scale Kernel Machines}
-      \field{volume}{20}
-      \field{year}{2007}
+      \field{journaltitle}{Statistics \& Probability Letters}
+      \field{number}{3}
+      \field{title}{Sparse spatial autoregressions}
+      \field{volume}{33}
+      \field{year}{1997}
+      \field{pages}{291\bibrangedash 297}
+      \range{pages}{7}
+      \verb{doi}
+      \verb 10.1016/S0167-7152(96)00140-X
+      \endverb
     \endentry
     \entry{trefethen1997numerical}{book}{}{}
       \name{author}{2}{}{%

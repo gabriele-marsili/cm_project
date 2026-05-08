@@ -1,0 +1,19 @@
+### 4. REVISIONE CODICE (Aderenza al Comando)
+- File: code/src/linear_solvers.py
+- Se richiesto dal rigore del comando "no off-the-shelf": Implementa una funzione solve_cholesky_manual(A, b) che utilizzi scipy.linalg.cholesky per ottenere L e poi esegua forward/backward substitution manualmente, invece di affidarsi a np.linalg.solve. Se decidi di mantenere np.linalg.solve, aggiungi un commento nel report che giustifichi questa scelta come standard di efficienza numerica per sistemi SPD.
+
+### 5. STILE E PRESENTAZIONE
+- Controlla la coerenza dei riferimenti incrociati. Assicurati che Theorem 2.2 e Proposition 1.1 siano citati correttamente nel testo dei risultati per giustificare il comportamento osservato.
+
+`
+
+---
+
+### Comprensione Visiva della Convergenza
+
+Per aiutarti a capire se i risultati ottenuti (Capitolo 6) sono davvero quelli ottimali, ecco un simulatore interattivo che confronta la natura dei due algoritmi. Questo ti permette di vedere come lo "spigolo" della norma $L_1$ influenzi la traiettoria di DSM rispetto alla "parabola approssimante" di IRLS.
+
+### Ultimi consigli prima della consegna:
+
+* Controlla i tempi: Nella tabella del report spesso si arrotondano i tempi. Assicurati che se scrivi "12.5 ms", il grafico corrispondente non mostri un punto a "25 ms".
+* Formula Lambda: Verifica che nel codice irls.py e nel report la relazione tra $\lambda_{LASSO}$ e il parametro usato nel codice sia coerente (alcuni usano $2\lambda$, altri $\lambda/2$). La tua derivazione $\lambda_{IRLS} = \frac{1}{2}\lambda_{LASSO}$ deve riflettersi nel codice.
