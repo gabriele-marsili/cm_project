@@ -178,7 +178,7 @@ def run() -> None:
 
     for sol in solvers:
         res = irls(X, y, LAMBDA, eps_thr=1e-8, eps_stop=1e-12,
-                   k_max=200, solver=sol, w0=w_ols, f_star=f_star)
+                   k_max=2000, solver=sol, w0=w_ols, f_star=f_star)
         exec_time = res["times"][-1]
         n_iters = res["n_iter"]
         sparsity = np.mean(np.abs(res["w"]) < 1e-6)
