@@ -1,13 +1,4 @@
-"""
-Tests for src/deflected_subgradient.py — Algorithm A2 (DSM with target level).
-
-Properties checked (each backed by report Chapter 3):
-  - record value f_bar is non-increasing                 (Sec 3.4)
-  - default warm start equals the OLS solution           (Sec 3.4)
-  - optimal deflection gamma_i in [0,1]                  (Eq 3.5)
-  - record value converges to f*                         (Theorem 3.1)
-  - first iteration uses gamma_0 = 1 (pure subgradient)
-"""
+"""Tests for deflected_subgradient.py: gamma, monotonicity of f_bar, convergence."""
 import numpy as np
 import pytest
 
@@ -51,7 +42,7 @@ def test_optimal_gamma_is_argmin_of_norm(rng):
 
 
 def test_dsm_default_warmstart_is_ols(small_problem):
-    """Per report Sec 3.4, default w0 = (X^T X)^-1 X^T y."""
+    """default w0 = (X^T X)^-1 X^T y."""
     p = small_problem
     res = deflected_subgradient(p.X, p.y, p.lam, i_max=0)
     # i_max=0 means no iterations; w_best is the warm start
@@ -107,7 +98,7 @@ def test_dsm_record_converges_to_fstar(small_problem):
 
 def test_dsm_subgradient_is_in_subdifferential(small_problem, rng):
     """At any w, subgradient_f returns g such that f(w') >= f(w) + <g, w'-w>
-    for w' in a small neighbourhood (sub-gradient inequality, report Eq 1.4
+    for w' in a small neighbourhood (sub-gradient inequality
     interpretation). Test on a random direction."""
     p = small_problem
     w = rng.standard_normal(p.X.shape[1])

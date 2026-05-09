@@ -1,12 +1,4 @@
-"""
-Tests for src/irls.py — Algorithm A1 (Iteratively Reweighted Least Squares).
-
-Properties checked (each backed by report Chapter 2):
-  - monotone non-increase of f(w_k)            (Sec 2.5, MM descent)
-  - convergence to f* of sklearn               (Theorem 2.2, uniqueness via Prop 1.1)
-  - KKT residual at convergence                (Eq 1.4)
-  - solver choice (cholesky / CG) yields same w
-"""
+"""Tests for irls.py: monotonicity, convergence, KKT, solver equivalence."""
 import numpy as np
 import pytest
 
@@ -102,9 +94,8 @@ def test_irls_solver_choice_cholesky_vs_cg(small_problem):
     f_cg = res_cg["f_vals"][-1]
     # Cholesky is direct: must reach machine-precision optimum
     assert f_cho - p.f_star < 1e-6
-    # CG with relative tolerance 1e-10 is expected to lag by O(eps_thr)
-    # on the late ill-conditioned iterations (cf. report Sec 2.6 cost note);
-    # we require it to be in the same ballpark, not bit-equal.
+    # CG (rel tol 1e-10) is expected to lag by O(eps_thr) on the late
+    # ill-conditioned iterations; just check we end up in the same ballpark.
     assert f_cg - p.f_star < 1e-2
 
 

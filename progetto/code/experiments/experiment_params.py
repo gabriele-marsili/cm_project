@@ -1,14 +1,4 @@
-"""
-Parameter sensitivity sweeps (report §5.3) and Solver Comparison.
-
-For IRLS we vary eps_thr, lam_LASSO, and compare solvers (Cholesky vs CG).
-For SGPTL we vary delta_0 and rho.
-
-Outputs:
-    params_irls.pdf         IRLS: gap-vs-iter for each eps_thr and each lambda
-    params_dsm.pdf          SGPTL: gap-vs-iter for each delta_0 and each rho
-    solver_comparison.pdf   IRLS: gap-vs-time comparing Cholesky and CG
-"""
+"""Parameter sweeps: IRLS (eps_thr, lambda, Cholesky vs CG) and SGPTL (delta_0, rho)."""
 
 import os
 import sys

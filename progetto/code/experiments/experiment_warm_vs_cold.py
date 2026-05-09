@@ -1,28 +1,4 @@
-"""
-Diagnostic experiment for SGPTL: the role of the deflection floor
-gamma_min on ELM~LASSO (report §5.1).
-
-The greedy projection of eq:gamma_star onto [0, 1] inside the
-stepsize-restricted clip beta_i = min(beta, gamma_i) collapses to
-gamma_i = 0 in monotone-descent regions: consecutive subgradients align
-and the parabola of eq:gamma_parabola pushes the unconstrained
-minimiser below 0. With gamma_i = 0 the clip propagates to beta_i and
-to alpha_i, the iterate freezes, and the algorithm stalls at a record
-gap of ~4e-2.
-
-The fix --- a strictly positive lower bound gamma_i >= gamma_min --- is
-the structural ingredient that keeps the clip operational. We
-demonstrate this here by running the same SGPTL on the same instance
-under two settings:
-
-  - gamma_min = 0    (literal projection on [0, 1], the unfloored
-                      configuration);
-  - gamma_min = 0.05 (the production default).
-
-Each setting is run on warm (OLS) and cold (w_0 = 0) starts. The
-floored configuration descends three to four orders of magnitude
-further inside the same iteration budget on both starts.
-"""
+"""SGPTL: gamma_min = 0 vs 0.05, on warm (OLS) and cold (w_0=0) starts."""
 
 import os
 import sys

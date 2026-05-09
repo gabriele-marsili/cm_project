@@ -1,18 +1,4 @@
-"""
-Convergence experiment (report §5.2).
-
-Runs IRLS and SGPTL on the same column-normalised LASSO instance
-(H = 100, M = 300, lam = 0.1) starting from the OLS warm start, and produces
-the three figures used in chapter 5:
-
-    convergence_vs_iter.pdf   gap vs. iterations on semilog axes
-    convergence_vs_time.pdf   gap vs. wall-clock time
-    dsm_nonmonotone.pdf       SGPTL current value vs. record (semilog y)
-
-For SGPTL we plot both the current gap f(w_i) - f* and the record gap
-f_bar^i - f*: the record alone is a staircase, which understates the
-underlying sublinear trajectory.
-"""
+"""IRLS vs SGPTL convergence on a fixed instance (H=100, M=300, lam=0.1)."""
 
 import os
 import sys
@@ -149,8 +135,7 @@ def run() -> None:
     irls_iters = np.arange(len(irls_gaps))
     ax.semilogy(irls_iters, irls_gaps, color=COLOR_IRLS, marker="o",
                 markersize=4.0, linewidth=1.8, label=r"$f(w_k) - f^{*}$")
-    # Annotate the linear-rate slope: pick two well-separated iterations and
-    # report the per-iteration multiplicative reduction (= empirical rate).
+    # empirical per-iteration reduction
     if len(irls_gaps) > 30 and irls_gaps[10] > 1e-12 and irls_gaps[30] > 1e-12:
         rate = (irls_gaps[30] / irls_gaps[10]) ** (1.0 / 20.0)
         ax.text(0.98, 0.92, rf"linear rate $\approx {rate:.3f}$ per iter",
@@ -166,11 +151,7 @@ def run() -> None:
     ax = axes[1]
     dsm_fbar = _safe_log(res_dsm["gaps"])
     dsm_iters = np.arange(1, len(dsm_fbar) + 1)
-    # Log-uniform subsample of the (oscillating) current-value trace: at log-x
-    # the late iterations cram exponentially many points into a fixed visual
-    # span, so the raw trace becomes a solid band hiding the oscillation
-    # pattern. We pick ~80 points per decade — enough to preserve the
-    # zig-zag envelope without crowding the panel.
+    # log-uniform subsample so the late-iteration density does not crush the trace
     n_curr = len(f_curr_gap)
     if n_curr > 600:
         log_idx = np.unique(np.round(np.logspace(
@@ -198,13 +179,7 @@ def run() -> None:
     plt.close(fig)
 
     # ---- Figure 2: gap vs CPU time, log-log axes ----
-    # Both algorithms share the OLS warm-start point at t = 0; we cannot
-    # plot log(0), so we replace the warm-start time with a small offset
-    # equal to half the smallest non-zero measurement. This way the panel
-    # explicitly shows the common starting gap and the divergence at
-    # iteration 1 — IRLS' first weighted-normal-equation solve drops the
-    # gap by an order of magnitude, while SGPTL's first subgradient step
-    # only nudges it.
+    # OLS warm-start time is 0; substitute a small offset to plot in log scale.
     irls_t = np.asarray(res_irls["times"], dtype=float)
     dsm_t  = np.asarray(res_dsm["times"],  dtype=float)
     smallest = min(irls_t[1] if len(irls_t) > 1 else 1e-5,
@@ -220,7 +195,6 @@ def run() -> None:
     ax.loglog(dsm_t_plot, dsm_fbar,
               color=COLOR_DSM, linewidth=1.8,
               label=r"SGPTL  ($\bar{f}^{i}$)")
-    # Mark the shared warm-start point.
     ax.scatter([t_start], [irls_gaps[0]], s=80, marker="*",
                color="black", zorder=6, label="OLS warm start (shared)")
     ax.set_xlabel("CPU time (s)  (log scale)")
@@ -238,9 +212,6 @@ def run() -> None:
     # ---- Figure 3: SGPTL non-monotonicity ----
     f_vals = np.asarray(res_dsm["f_vals"])
     f_bar  = np.asarray(res_dsm["f_bar"])
-    # Show enough iterations to see oscillations clearly and the eventual
-    # decay; use semilog y on (f - f*) so the dynamics across decades are
-    # visible without zooming.
     cutoff = min(2000, len(f_vals))
     iters = np.arange(cutoff)
     fcur_gap_lin = np.maximum(f_vals[:cutoff] - f_star, 1e-16)
@@ -253,7 +224,6 @@ def run() -> None:
     ax.semilogy(iters, fbar_gap_lin,
                 color=COLOR_FBAR, linewidth=2.0,
                 label=r"$\bar{f}^{i} - f^{*}$  (record, monotone)")
-    # Mark the largest overshoot of f_curr above the record.
     spike_idx = int(np.argmax(f_vals[:cutoff] - f_bar[:cutoff]))
     ax.annotate(rf"largest overshoot at $i={spike_idx}$",
                 xy=(spike_idx, fcur_gap_lin[spike_idx]),

@@ -1,12 +1,5 @@
-"""
-Head-to-head IRLS vs SGPTL on a moderate problem (H = 50, M = 200, lam = 0.1).
-
-Both algorithms start from the same OLS warm start. We record iteration count
-and CPU time required to reach a grid of accuracy targets, save the table to
-``results/tables/comparison_table.csv``, and produce a side-by-side semilog
-figure (gap vs iteration on the left, gap vs CPU time on the right). Used in
-§5.4 and §5.6 of the report.
-"""
+"""IRLS vs SGPTL on a moderate problem (H=50, M=200, lam=0.1):
+iterations and CPU time to reach a grid of accuracy targets, plus support-recovery."""
 
 import csv
 import os
@@ -102,9 +95,6 @@ def run() -> None:
         wr.writerows(rows)
     print(f"Saved: {tab_path}")
 
-    # Two-panel comparison: gap vs iteration (left) and gap vs CPU time
-    # (right). Log-log axes on both: linear x-axis would crush IRLS' ~100
-    # iterations against SGPTL's many thousands.
     fig, axes = plt.subplots(1, 2, figsize=SIZE_DOUBLE)
 
     irls_gaps = np.maximum(res_irls["gaps"], 1e-16)
@@ -126,12 +116,7 @@ def run() -> None:
     style_axes(ax)
 
     ax = axes[1]
-    # Both algorithms share the warm-start point at t=0; we replace it with a
-    # small offset (half the smallest non-zero measurement) so the shared
-    # starting gap appears on the log axis. Without this the panel would
-    # suggest IRLS "starts later" at a lower gap, while in fact IRLS' first
-    # iteration is a Cholesky solve that drops the gap by an order of
-    # magnitude in one step.
+    # OLS warm-start time is 0; offset to plot in log scale.
     irls_t = np.asarray(res_irls["times"], dtype=float)
     dsm_t  = np.asarray(res_dsm["times"],  dtype=float)
     smallest = min(irls_t[1] if len(irls_t) > 1 else 1e-5,
@@ -163,12 +148,7 @@ def run() -> None:
     print(f"Saved: {path}")
     plt.close(fig)
 
-    # Solution-quality summary used in §5.4. Sparsity is measured at multiple
-    # thresholds applied identically to IRLS and SGPTL: a single 1e-6 cutoff
-    # would let IRLS' eps_thr-driven shrinkage masquerade as algorithmic
-    # advantage over SGPTL's continuous subgradient steps. A unified threshold
-    # plus support-recovery metrics (precision/recall/F1 vs the planted
-    # support) makes the two methods directly comparable.
+    # support recovery: same threshold applied to IRLS and SGPTL for a fair comparison.
     w_irls, w_dsm = res_irls["w"], res_dsm["w"]
     print("\nSolution quality:")
     print(f"  ||w_irls - w*||_2 = {np.linalg.norm(w_irls - w_star):.3e}")

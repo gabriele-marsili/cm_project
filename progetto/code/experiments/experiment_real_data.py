@@ -1,25 +1,4 @@
-"""
-Real-data validation (report §5.7).
-
-Validates IRLS and SGPTL on two regression datasets shipped with sklearn,
-``diabetes`` (442 × 10) and ``california_housing`` (~20640 × 8). For each
-dataset:
-
-  1. 80/20 train/test split, with feature and target standardisation fit on
-     the training split only;
-  2. apply a fixed random ELM transformation ``sigma(X W_1^T)`` with H = 200
-     sigmoid units;
-  3. compute the high-tolerance sklearn LASSO reference at ``alpha = lam/M``;
-  4. solve the same problem with IRLS (100 iter, eps_thr = 1e-8) and SGPTL
-     (8000 iter, OLS warm start, delta_0 = 0.1 f*, rho = 0.9);
-  5. report objective value, sparsity, and held-out MSE; also a closed-form
-     Ridge baseline for context.
-
-Outputs:
-
-    results/figures/real_data_convergence.pdf
-    results/tables/real_data.csv
-"""
+"""IRLS and SGPTL on diabetes and california_housing under an ELM transformation."""
 
 import csv
 import os
@@ -65,13 +44,7 @@ os.makedirs(TAB_DIR, exist_ok=True)
 
 
 def _split_scale(X, y, test_frac=TEST_FRACTION, seed=SEED):
-    """Train/test split with feature *and* target standardisation.
-
-    Statistics are estimated on the training split only — without this
-    no-leakage guarantee the test MSE numbers in §5.7 of the report would be
-    optimistic. Standardising y to unit train-variance also keeps lam
-    comparable across datasets.
-    """
+    """Train/test split + standardisation fit on the train split only (no leakage)."""
     rng = np.random.RandomState(seed)
     perm = rng.permutation(len(y))
     n_test = int(test_frac * len(y))
@@ -140,10 +113,6 @@ def _sparsity(w, tol=1e-6):
     return float(np.mean(np.abs(w) < tol))
 
 
-# Two thresholds for sparsity, applied identically to IRLS, SGPTL and sklearn.
-# 1e-6 picks up IRLS' eps_thr-driven shrinkage; 1e-3 is a uniform cutoff at
-# which SGPTL also returns a meaningful support estimate, so it makes the
-# three methods directly comparable.
 SPARSITY_TOLS = (1e-6, 1e-3)
 
 
@@ -158,18 +127,10 @@ def run_one(name):
     print(f"  hidden activations: shape={X_tr.shape}, "
           f"cond(X^T X) ≈ {np.linalg.cond(X_tr.T @ X_tr):.2e}")
 
-    # sklearn coordinate descent does not converge in any reasonable budget on
-    # the California ELM (M=16512, H=200, cond ~ 2.8e6), so we skip the
-    # third-party reference there and let IRLS' final f provide the empirical
-    # baseline for the figure. This costs us a sanity check on California but
-    # IRLS reaches sklearn's tol-1e-12 plateau on diabetes, where the
-    # comparison is feasible, so the algorithmic verification carries over.
+    # sklearn CD does not converge on the California ELM in a reasonable budget
+    # (M=16512, H=200, cond ~ 2.8e6); skip it there and use IRLS as the baseline.
     if name == "california":
-        print(f"  sklearn skipped on this dataset (coord-descent does not "
-              f"converge on the ELM-transformed instance in any reasonable "
-              f"budget; we use IRLS' final f as the figure baseline).")
-        # Use a quick OLS solution as a placeholder reference; not used for
-        # the figure scaling, only for the gap accounting in algo internals.
+        print("  sklearn skipped on this dataset; using OLS f as placeholder.")
         f_star = float(f_lasso(X_tr, y_tr, ols_warm_start(X_tr, y_tr), LAMBDA))
         w_star = ols_warm_start(X_tr, y_tr)
     else:
@@ -211,8 +172,7 @@ def run_one(name):
           f"{spar_d_str}, "
           f"test MSE = {_mse(y_te, X_te @ w_d):.4f}")
 
-    # Closed-form Ridge baseline at the same regularisation strength on the
-    # quadratic term — a useful reference for the L1-vs-L2 trade-off.
+    # closed-form Ridge baseline at the same regularisation strength
     A_ridge = X_tr.T @ X_tr + LAMBDA * np.eye(X_tr.shape[1])
     w_ridge = solve_spd(A_ridge, X_tr.T @ y_tr, method="cholesky")
     print(f"  Ridge: closed form, test MSE = {_mse(y_te, X_te @ w_ridge):.4f}")
@@ -270,14 +230,8 @@ def run() -> None:
             wr.writerow({k: r[k] for k in public_keys})
     print(f"\nSaved: {tab_path}")
 
-    # Convergence figure — one panel per dataset. We plot the gap to a
-    # *common baseline* per dataset, defined as the minimum f any of the
-    # three references (IRLS, SGPTL, sklearn) achieved on that dataset.
-    # This sidesteps the gap-to-sklearn clipping problem (IRLS and SGPTL
-    # routinely beat sklearn's CD at the budgeted tolerance) while still
-    # giving a single quantity that descends to the floor for the winning
-    # algorithm and plateaus for the others. Log-log axes make both IRLS'
-    # ~30-iteration sprint and SGPTL's 8000-iteration plateau visible.
+    # gap to f_min := min{f_irls, f_dsm, f_sklearn} per dataset (IRLS and SGPTL
+    # routinely beat sklearn CD at the budgeted tolerance, so f* is not always usable)
     n_panels = len(rows)
     fig, axes = plt.subplots(1, n_panels, figsize=(7.0 * n_panels, 5.5),
                              squeeze=False)
@@ -304,7 +258,6 @@ def run() -> None:
         ax.axhline(skl_gap, color="#2c7a30", linestyle="--",
                    linewidth=1.4, alpha=0.85,
                    label=r"sklearn $f^{*}-f_{\min}$")
-        # Mark the shared OLS warm-start point at iteration 1.
         ax.scatter([1], [irls_gap[0]], s=80, marker="*",
                    color="black", zorder=6,
                    label="OLS warm start (shared)")
@@ -313,10 +266,6 @@ def run() -> None:
         ax.set_ylabel(r"$f - f_{\min}$  (log scale)")
         ax.set_title(f"{row['name']} ($M={row['M_train']}$, $H={row['H']}$)")
         ax.legend(loc="lower left", fontsize=10)
-        # Pin a sensible y-floor so IRLS' machine-precision tail does not
-        # stretch the panel over 12+ decades (which crushes the more
-        # interesting top of the trajectory). 1e-10 is enough to show IRLS'
-        # convergence to f_min without dominating the visual budget.
         ax.set_ylim(bottom=1e-10)
         style_axes(ax)
     fig.tight_layout()

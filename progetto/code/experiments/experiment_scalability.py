@@ -1,16 +1,4 @@
-"""
-Scalability experiment (report §5.5).
-
-Runs IRLS and SGPTL at fixed iteration budgets across H ∈ {50, 100, 500,
-1000, 2000} with M = 5H, both starting from the OLS warm start. Saves the
-total wall-clock time, iteration count and final gap for each algorithm to
-``results/tables/scalability.csv`` and produces a log-log figure with the
-``O(H^3)`` and ``O(H^2)`` reference slopes (``results/figures/scalability.pdf``).
-
-The point of the experiment is to confirm that IRLS' total cost tracks the
-``O(MH^2)`` precomputation slope (which is ``O(H^3)`` at M = 5H), while
-SGPTL's tracks ``O(MH) = O(H^2)`` per iteration.
-"""
+"""Scalability: total wall-clock and per-iteration cost across H = 50..2000, M = 5H."""
 
 import csv
 import os
@@ -93,7 +81,6 @@ def run() -> None:
             "t_dsm":  t_dsm,  "iter_dsm":  k_dsm,  "gap_dsm":  gap_dsm,
         })
 
-    # CSV table.
     tab_path = os.path.join(TAB_DIR, "scalability.csv")
     with open(tab_path, "w", newline="") as fh:
         wr = csv.DictWriter(fh, fieldnames=rows[0].keys())
@@ -101,7 +88,6 @@ def run() -> None:
         wr.writerows(rows)
     print(f"\nSaved: {tab_path}")
 
-    # Log-log plot with reference slopes.
     Hs       = np.array([r["n"] for r in rows], dtype=float)
     t_irls_v = np.array([r["t_irls"] for r in rows])
     t_dsm_v  = np.array([r["t_dsm"]  for r in rows])
@@ -115,7 +101,7 @@ def run() -> None:
               linewidth=2.0, label="IRLS")
     ax.loglog(Hs, t_dsm_v, color=COLOR_DSM, marker="s", markersize=7,
               linewidth=2.0, label="SGPTL")
-    # Reference slopes anchored on the smallest-H data point.
+    # reference slopes anchored on smallest H
     ref_h3 = t_irls_v[0] * (Hs / Hs[0]) ** 3
     ref_h2 = t_dsm_v[0]  * (Hs / Hs[0]) ** 2
     ax.loglog(Hs, ref_h3, color=COLOR_IRLS, linestyle="--",

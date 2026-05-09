@@ -1,35 +1,10 @@
-"""
-SPD linear solvers used by IRLS.
-
-The IRLS subproblem at iteration k is
-
-    Q_k w = b,    Q_k = X^T X + lam W_k^T W_k    (SPD; report eq. 2.10),
-
-so we only ever need to solve symmetric positive definite systems. We provide
-two solvers, both backing the ``solve_spd`` dispatcher:
-
-* a direct Cholesky path, which delegates the L L^T factorisation and the two
-  triangular solves to ``scipy.linalg.cho_factor`` / ``cho_solve`` --- as
-  allowed by §4.4 of the project comando, basic linear algebra calls go to
-  the library;
-
-* a Conjugate Gradient path implemented from scratch (§4.4 again: the linear
-  solver is a main task here, so it cannot be a single library call).
-
-Cholesky is the default for moderate H; CG is preferable when H is large and
-Q_k is well conditioned.
-"""
+"""SPD solvers used by IRLS: dense Cholesky and Jacobi-preconditioned CG."""
 
 import numpy as np
 import scipy.linalg as la
 
 
 def cholesky_solve(Q, b):
-    """Direct solver Q w = b via L L^T factorisation + two triangular solves.
-
-    ``check_finite=False`` skips the input validation pass; we already know Q
-    is finite because we just assembled it from finite operands.
-    """
     c, low = la.cho_factor(Q, lower=True, check_finite=False)
     return la.cho_solve((c, low), b, check_finite=False)
 
@@ -42,26 +17,25 @@ def conjugate_gradient(Q, b, x0=None, tol=1e-10, max_iter=None, precond=None):
     x = np.zeros(n) if x0 is None else x0.copy()
     r = b - Q @ x
 
-    # M^{-1} r where M = diag(Q) is the Jacobi preconditioner
     if precond is None:
-        precond = 1.0 / np.diag(Q)   # diagonal preconditioner, always safe for SPD
+        precond = 1.0 / np.diag(Q)   # Jacobi
     z = precond * r
     p = z.copy()
-    rz = np.dot(r, z)
+    rz = r @ z
 
-    b_norm = np.linalg.norm(b)
-    if b_norm == 0:
+    bn = np.linalg.norm(b)
+    if bn == 0:
         return x, 0
 
     for k in range(max_iter):
-        if np.linalg.norm(r) <= tol * b_norm:
+        if np.linalg.norm(r) <= tol * bn:
             return x, k
         Qp = Q @ p
-        alpha = rz / np.dot(p, Qp)
+        alpha = rz / (p @ Qp)
         x += alpha * p
         r -= alpha * Qp
         z = precond * r
-        rz_new = np.dot(r, z)
+        rz_new = r @ z
         p = z + (rz_new / rz) * p
         rz = rz_new
 
@@ -69,10 +43,9 @@ def conjugate_gradient(Q, b, x0=None, tol=1e-10, max_iter=None, precond=None):
 
 
 def solve_spd(Q, b, method='cholesky', **kwargs):
-    """Dispatcher: pick Cholesky or CG. Extra kwargs are forwarded to CG."""
     if method == 'cholesky':
         return cholesky_solve(Q, b)
     if method == 'cg':
         w, _ = conjugate_gradient(Q, b, **kwargs)
         return w
-    raise ValueError(f"Unknown method: '{method}'. Use 'cholesky' or 'cg'.")
+    raise ValueError(f"Unknown method: {method!r}")

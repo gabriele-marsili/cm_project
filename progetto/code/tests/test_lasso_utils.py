@@ -1,8 +1,4 @@
-"""
-Tests for src/lasso_utils.py — the LASSO objective and its (sub)gradients.
-
-The objective is f(w) = (1/2) ||Xw - y||^2 + lam * ||w||_1   (report Eq 1.3).
-"""
+"""Tests for lasso_utils.py."""
 import numpy as np
 import pytest
 
@@ -99,7 +95,7 @@ def test_subgradient_minimum_norm_at_zero():
     Our code returns grad_smooth + lam*sign(0) = grad_smooth + 0 = grad_smooth.
     This is the minimum-norm element when |grad_smooth_i| <= lam (then s_i = 0
     minimises (g_i + lam*s_i)^2 over s_i in [-1,1]); it remains in the
-    subdifferential and matches what the report (Sec 3.5.1) prescribes.
+    subdifferential and is the choice we adopt.
     """
     rng = np.random.default_rng(0)
     n = 8
