@@ -117,7 +117,7 @@ At each iteration on ELM LASSO, we choose $\gamma_i$ to minimize the deflected d
 \begin{equation}\label{eq:gamma_opt}
 \gamma_i \in \argmin_{\gamma \in [\gamma_{\min},1]} \norm{\gamma\, \mathbf{g}_i + (1-\gamma)\, \mathbf{d}_{i-1}}_2^2.
 \end{equation}
-Since the Polyak stepsize has denominator $\norm{\mathbf{d}_i}^2$, minimizing this maximizes step length and progress. The constraint $\gamma_i \ge \gamma_{\min}$ keeps the stepsize-restricted condition $\beta_i = \min(\beta,\gamma_i) \ge \gamma_{\min}$ operational (Section~\ref{sec:dsm_convergence_conditions}); we use $\gamma_{\min} = 0.05$ throughout and discuss the rationale in that section. The problem is quadratic in $\gamma$ with closed-form solution \cite{deflected-subgradient-method}:
+Since the Polyak stepsize has denominator $\norm{\mathbf{d}_i}^2$, minimizing this maximizes step length and progress. The constraint $\gamma_i \ge \gamma_{\min}$ keeps the stepsize-restricted condition $\beta_i = \min(\beta,\gamma_i) \ge \gamma_{\min}$ operational (Section~\ref{sec:dsm_convergence_conditions}). The problem is quadratic in $\gamma$ with closed-form solution \cite{deflected-subgradient-method}:
 \begin{equation}\label{eq:gamma_star}
 \gamma^* = \frac{\norm{\mathbf{d}_{i-1}}_2^2 - \inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}}{\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}_2^2}, \quad \gamma_i = \min(1,\max(\gamma_{\min},\gamma^*)).
 \end{equation}
@@ -251,7 +251,7 @@ where $\nabla g(\mathbf{w}) = \mathbf{X}^T(\mathbf{X}\mathbf{w} - \mathbf{y})$ a
 \begin{equation}\label{eq:dsm_subgrad}
   \mathbf{g} = \mathbf{X}^T(\mathbf{X}\mathbf{w} - \mathbf{y}) + \lambda_{\text{LASSO}}\, \mathbf{s}, \quad s_i \in \partial|w_i|.
 \end{equation}
-At a component where $w_i \ne 0$ the subdifferential is a singleton and we have no choice but $s_i = \operatorname{sign}(w_i)$; at $w_i = 0$, the subdifferential is the whole interval $[-1, +1]$ and we pick the minimum-norm element $s_i = 0$. This choice is not arbitrary: among all admissible subgradients at $\mathbf{w}$ it is the one with smallest Euclidean norm, which in turn minimizes $\norm{\mathbf{g}}^2$ and therefore maximizes the Polyak-step progress $\alpha_i(f(\mathbf{w}_i) - f^*)$ in~\eqref{eq:sr_step}.
+At a component where $w_i \ne 0$ the subdifferential is a singleton and we have no choice but $s_i = \operatorname{sign}(w_i)$; at $w_i = 0$, the subdifferential is the whole interval $[-1, +1]$ and we pick the reference value $s_i = 0$. A more sophisticated way to define the value of $s_i$ could be made in order to minimize the Euclidean norm of the subgradient $g$. The decision doesn't have much impact because the probability of having a $w_i = 0$ in the algorithm, which uses floating-point precision, is relatively low.
 
 % ------------------------------------------------------------------
 \subsection{Convergence analysis and hypothesis verification for ELM LASSO}
