@@ -55,6 +55,9 @@ def run() -> None:
     print(f"Problem: H={H}, M={M}, lambda={LAMBDA}, f*={f_star:.6f}\n")
 
     w_ols = solve_spd(X.T @ X + 1e-12 * np.eye(H), X.T @ y, method="cholesky")
+    from src.lasso_utils import f_lasso
+    f_w0 = float(f_lasso(X, y, w_ols, LAMBDA))
+    print(f"OLS warm start: f(w_0)={f_w0:.6f}, gap0={f_w0-f_star:.3e}\n")
 
     # ---- IRLS sweeps ----
     fig, axes = plt.subplots(1, 2, figsize=SIZE_DOUBLE)
@@ -121,13 +124,13 @@ def run() -> None:
     for factor, color in zip(delta0_factors, colors):
         res = deflected_subgradient(
             X, y, LAMBDA, w0=w_ols, i_max=5000, beta=1.0,
-            delta0=factor * f_star, rho=0.9, f_star=f_star,
+            delta0=factor * f_w0, rho=0.7, f_star=f_star,
         )
         gaps = _safe_log(res["gaps"])
         iters = np.arange(1, len(gaps) + 1)
-        label = rf"$\delta_{{0}}={factor:g}\,f^{{*}}$"
+        label = rf"$\delta_{{0}}={factor:g}\,f(w_{{0}})$"
         axes[0].loglog(iters, gaps, color=color, linewidth=1.8, label=label)
-        print(f"  delta0={factor}*f*={factor*f_star:.4f}: gap={gaps[-1]:.2e}")
+        print(f"  delta0={factor}*f(w0)={factor*f_w0:.4f}: gap={gaps[-1]:.2e}")
 
     axes[0].set_xlabel(r"Iteration $i$  (log scale)")
     axes[0].set_ylabel(r"$\bar{f}^{i} - f^{*}$  (log scale)")
@@ -136,14 +139,14 @@ def run() -> None:
     style_axes(axes[0])
 
     print("\n--- SGPTL: varying rho ---")
-    rho_vals = [0.5, 0.7, 0.9, 0.95, 0.99]
+    rho_vals = [0.3, 0.5, 0.7, 0.8, 0.9, 0.95]
     cmap = plt.get_cmap(RAMP_PURPLES)
     colors = cmap(np.linspace(0.30, 1.0, len(rho_vals)))
     rho_records = []
     for rho, color in zip(rho_vals, colors):
         res = deflected_subgradient(
             X, y, LAMBDA, w0=w_ols, i_max=5000, beta=1.0,
-            delta0=0.1 * f_star, rho=rho, f_star=f_star,
+            delta0=0.1 * f_w0, rho=rho, f_star=f_star,
         )
         gaps = _safe_log(res["gaps"])
         iters = np.arange(1, len(gaps) + 1)

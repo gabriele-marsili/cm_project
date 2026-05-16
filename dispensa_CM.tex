@@ -172,6 +172,156 @@ e gli appunti dalle esercitazioni di Cortinovis.
 \clearpage
 
 %============================================================
+%  PERCORSO DI STUDIO AD INTORNI
+%============================================================
+\chapter*{Percorso di Studio ad Intorni — Progetto ML-25}
+\addcontentsline{toc}{chapter}{Percorso di Studio ad Intorni}
+\markboth{Percorso di Studio}{Percorso di Studio}
+
+Questa dispensa è organizzata attorno a \textbf{6 livelli di priorità} centrati sul progetto ML-25
+(ELM + LASSO con algoritmi IRLS e Deflected Subgradient). Studia dall'interno verso
+l'esterno: padroneggia perfettamente il Livello~1 prima di procedere.
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0]
+  \def\rx{6.5} \def\ry{3.2}
+  \foreach \i/\col/\label in {
+    6/gray!20/{L6: distante},
+    5/yellow!20/{L5: potrebbe chiedere},
+    4/cyan!25/{L4: intorno NLA},
+    3/NavyBlue!20/{L3: core NLA},
+    2/orange!20/{L2: intorno OPT},
+    1/red!20/{L1: core OPT}}{
+    \pgfmathsetmacro{\rx}{\rx - 0.95}
+    \pgfmathsetmacro{\ry}{\ry - 0.48}
+    \fill[\col] (0,0) ellipse ({\rx cm} and {\ry cm});
+    \draw[gray!60] (0,0) ellipse ({\rx cm} and {\ry cm});
+  }
+  \node[align=center, font=\scriptsize\bfseries] at (0, 0) {L1\\CORE OPT};
+\end{tikzpicture}
+\end{center}
+
+\vspace{0.3cm}
+
+%--- LIVELLO 1 ---
+\begin{tcolorbox}[enhanced, colback=red!8, colframe=red!60,
+  title={\textbf{Livello 1 — Core Ottimizzazione (critici per il progetto)}},
+  fonttitle=\bfseries, breakable]
+Questi argomenti \emph{devono essere padroneggiati perfettamente}. Costituiscono la teoria
+diretta di entrambi gli algoritmi del progetto.
+\begin{itemize}
+  \item \textbf{Subgradienti e subdifferenziale} $\partial f(x)$: definizione, calcolo per $\|w\|_1$,
+        condizione di ottimalità $0 \in \partial f(w^*)$ (\S\ref{sec:nonsmooth-functions}).
+  \item \textbf{Algoritmo A1 — IRLS}: riformulazione smooth del LASSO tramite approssimazione quadratica
+        di $|w_i|$, framework MM (Majorization-Minimization), convergenza lineare (\S\ref{sec:irls}).
+  \item \textbf{Algoritmo A2 — Deflected Subgradient}: formula $d^i = \gamma^i g^i + (1{-}\gamma^i)d^{i-1}$,
+        stepsize con target level, regole di deflection, convergenza $O(1/\varepsilon^2)$
+        (\S\ref{sec:deflected-subgradient}).
+  \item \textbf{Complessità non-smooth vs smooth}: $O(1/\varepsilon^2)$ per convex Lipschitz,
+        $O(1/\varepsilon)$ per smooth convex, $O(\log 1/\varepsilon)$ per fortemente convex
+        (\S\ref{sec:complessita-nonsmooth}).
+  \item \textbf{Record value} $\bar{f}^i = \min_{h \leq i} f(x^h)$: la sequenza non è monotona, ma il
+        record converge.
+  \item \textbf{Polyak stepsize} $\alpha^i = (f^i - f^*)/\|g^i\|^2$ e target level stepsize (\S\ref{sec:deflected-subgradient}).
+\end{itemize}
+\textit{Riferimento principale: \texttt{OPT/5-nonsmooth.pdf} (slide 3–15); Capitolo~\ref{ch:nonsmooth} di questa dispensa.}
+\end{tcolorbox}
+
+%--- LIVELLO 2 ---
+\begin{tcolorbox}[enhanced, colback=orange!8, colframe=orange!60,
+  title={\textbf{Livello 2 — Intorno Ottimizzazione (esame orale, approcci alternativi)}},
+  fonttitle=\bfseries, breakable]
+Argomenti correlati al progetto: il professore può chiederli per approfondire la teoria
+o valutare la comprensione degli approcci alternativi.
+\begin{itemize}
+  \item \textbf{$L$-smooth e $\tau$-fortemente convessa}: definizioni, lemma di discesa, tassi di
+        convergenza del gradient descent (\S\ref{sec:classi-regularita}).
+  \item \textbf{Deflected gradient methods (smooth)}: NCG (Fletcher-Reeves, Polak-Ribière),
+        Heavy Ball — analoghi smooth di A2. Utili per capire la deflection (\S\ref{sec:deflected-smooth}).
+  \item \textbf{Proximal gradient / ISTA / FISTA}: soluzione alternativa per $f = h + \lambda\|\cdot\|_1$
+        con convergenza $O(1/k)$ e $O(1/k^2)$ (\S\ref{sec:prox-gradient}).
+  \item \textbf{Bundle methods}: approccio sofisticato non-smooth, modello piecewise-linear (\S\ref{sec:bundle}).
+  \item \textbf{Condizioni KKT}: formulazione con LICQ, condizioni del secondo ordine (\S\ref{sec:kkt}).
+  \item \textbf{Metodo di Newton multivariato e BFGS}: passo cubico vs quadratico (\S\ref{sec:newton}).
+\end{itemize}
+\textit{Riferimento: \texttt{OPT/4-smooth.pdf} (slide 9–19); \texttt{OPT/3-unconstrained.pdf} (slide 9–16).}
+\end{tcolorbox}
+
+%--- LIVELLO 3 ---
+\begin{tcolorbox}[enhanced, colback=NavyBlue!8, colframe=NavyBlue!60,
+  title={\textbf{Livello 3 — Core NLA (critici per il progetto)}},
+  fonttitle=\bfseries, breakable]
+Questi sono i prerequisiti numerici diretti del sotto-passo di IRLS.
+\begin{itemize}
+  \item \textbf{Equazioni normali} $X^\top X w = X^\top y$: derivazione come condizione di ottimalità
+        dei minimi quadrati, rango pieno, pseudoinversa (\S\ref{sec:equazioni-normali}).
+  \item \textbf{Fattorizzazione di Cholesky}: per $Q \succ 0$, $Q = LL^\top$, costo $n^3/3$,
+        uso diretto nel sotto-problema IRLS (\S\ref{sec:cholesky}).
+  \item \textbf{Gradiente Coniugato (CG)}: metodo iterativo alternativo per sistemi SPD grandi;
+        convergenza $\leq 2\left(\frac{\sqrt{\kappa}-1}{\sqrt{\kappa}+1}\right)^k$ (\S\ref{sec:cg-sistemi}).
+  \item \textbf{Condizionamento} $\kappa(A)$: perché $\kappa(X^\top X) = \kappa(X)^2$ — le equazioni
+        normali peggiorano il condizionamento al quadrato (\S\ref{sec:condizionamento}).
+\end{itemize}
+\textit{Riferimento: \texttt{NLA/4-leastsquares-normal.pdf}; \texttt{NLA/20-chol.pdf}; \texttt{NLA/5-CG.pdf}.}
+\end{tcolorbox}
+
+%--- LIVELLO 4 ---
+\begin{tcolorbox}[enhanced, colback=cyan!8, colframe=cyan!60,
+  title={\textbf{Livello 4 — Intorno NLA (esame orale, contesto numerico)}},
+  fonttitle=\bfseries, breakable]
+\begin{itemize}
+  \item \textbf{Fattorizzazione LU}: background per Cholesky, pivoting per stabilità (\S\ref{sec:lu}).
+  \item \textbf{Condizionamento LS specifico}: bound sull'errore relativo $\|\tilde x - x\|/\|x\| \leq \kappa \cdot \|\tilde y - y\|/\|y\|$ (\S\ref{sec:condizionamento}).
+  \item \textbf{SVD}: definizione, Eckart-Young, pseudoinversa — non usata direttamente nel progetto ma spesso chiesta (\S\ref{sec:svd}).
+  \item \textbf{QR (Householder)}: alternativa stabile alle equazioni normali; riflettori $H = I - 2vv^\top/\|v\|^2$ (\S\ref{sec:householder}).
+  \item \textbf{Stabilità backward}: definizione e prova per il prodotto interno (\S\ref{sec:stabilita}).
+\end{itemize}
+\textit{Riferimento: \texttt{NLA/12-conditioning.pdf}; \texttt{NLA/9-QR.pdf}; \texttt{NLA/14-stability.pdf}.}
+\end{tcolorbox}
+
+%--- LIVELLO 5 ---
+\begin{tcolorbox}[enhanced, colback=yellow!8, colframe=yellow!60!black,
+  title={\textbf{Livello 5 — Tutto il resto che potrebbe chiedere}},
+  fonttitle=\bfseries, breakable]
+\begin{itemize}
+  \item \textbf{GMRES e Arnoldi}: metodi di Krylov per sistemi non-SPD; il nostro sotto-problema è sempre SPD, ma potrebbe esser chiesto per contrasto (\S\ref{sec:gmres}).
+  \item \textbf{Tikhonov}: $\|Ax-b\|^2 + \delta\|x\|^2$, soluzione via SVD (\S\ref{sec:tikhonov}).
+  \item \textbf{Norme matriciali}: norma spettrale $\|A\|_2 = \sigma_1$, Frobenius, sub-moltiplicatività (\S\ref{sec:norme-matrici}).
+  \item \textbf{Approssimazione di rango basso}: teorema di Eckart-Young (\S\ref{sec:eckart-young}).
+\end{itemize}
+\end{tcolorbox}
+
+%--- LIVELLO 6 ---
+\begin{tcolorbox}[enhanced, colback=gray!8, colframe=gray!50,
+  title={\textbf{Livello 6 — Distante dal progetto (copertura di completezza)}},
+  fonttitle=\bfseries, breakable]
+\begin{itemize}
+  \item \textbf{Ottimizzazione vincolata}: KKT completo, dualità lagrangiana, metodi barrier e active set (\S\ref{ch:vincolata}).
+  \item \textbf{Ottimizzazione univariata}: Golden Section Search, Newton 1D (\S\ref{sec:univ}).
+  \item \textbf{Frank-Wolfe / Conditional Gradient}: solo per contesto (\S\ref{sec:frank-wolfe}).
+  \item \textbf{Ottimizzazione combinatoria}: non coperta in questa dispensa.
+\end{itemize}
+\textit{I file \texttt{OPT/6,7} (ottimizzazione vincolata) e \texttt{NLA/17-18} (GMRES) sono classificati
+"non necessari" dalla guida teorica del progetto per chi deve solo superare il progetto. Studiare
+se rimane tempo.}
+\end{tcolorbox}
+
+\vspace{0.5em}
+\begin{keybox}[Percorso di studio consigliato (guida\_teorica.pdf §8.3)]
+\textbf{Ordine ottimale:}
+\begin{enumerate}
+  \item \texttt{OPT/3} slide 1–16: norme, gradiente, Hessiano, convessità.
+  \item \texttt{NLA/3} e \texttt{NLA/4}: minimi quadrati ed equazioni normali.
+  \item \texttt{NLA/20}: Cholesky. Ora capisci il sotto-problema dell'IRLS.
+  \item \texttt{OPT/4} slide 9–19: $L$-smoothness, convessità forte, deflected gradient.
+  \item \texttt{NLA/5}: CG. Ora capisci i solver alternativi per IRLS.
+  \item \texttt{OPT/5} intero: subgradienti, Polyak, target level, deflected subgradient.
+  \item Opzionale: \texttt{NLA/12-13} condizionamento, \texttt{NLA/21} esempi pratici.
+\end{enumerate}
+Totale essenziale: circa \textbf{175 pagine di slide} (non di testo denso).
+\end{keybox}
+
+%============================================================
 \chapter*{Introduzione al Corso}
 \addcontentsline{toc}{chapter}{Introduzione al Corso}
 
@@ -187,69 +337,364 @@ Le due parti sono strettamente interconnesse: molti algoritmi di ottimizzazione 
 \textbf{Prerequisiti:} algebra lineare (spazi vettoriali, autovalori), analisi (Taylor, derivate parziali), nozioni di programmazione (Matlab/Python).
 
 %============================================================
-\part{Ottimizzazione Matematica}
+%  CAPITOLO: IL PROGETTO ML-25
+%============================================================
 
+%============================================================
+\part{Livello 1 --- Core Ottimizzazione del Progetto}
+\label{part:L1-opt}
+%============================================================
+% Contenuto: algoritmi IRLS e Deflected Subgradient, formulazione LASSO,
+% subgradienti, target level stepsize, Polyak stepsize, complessita' O(1/eps^2).
+% Fonte: OPT/5-nonsmooth.pdf (slide 3-15) + guida_teorica.pdf sez. 1-6
+
+\chapter{Il Progetto ML-25: ELM con Regolarizzazione LASSO}
+\label{ch:progetto}
 %------------------------------------------------------------
-\chapter{Semplici Problemi di Ottimizzazione}
-%------------------------------------------------------------
 
-\section{Formulazione generale}
+\section{Formulazione del problema}
+\label{sec:elm-lasso}
 
-\begin{defn}[Problema di ottimizzazione]
-Dato un insieme \emph{ammissibile} $S \subseteq \R^n$ e una funzione \emph{obiettivo} $f: S \to \R$, il problema è:
+Il progetto riguarda l'\textbf{Extreme Learning Machine (ELM)}: una rete neurale a uno strato
+nascosto in cui i pesi del primo strato $W_1$ sono fissati casualmente e solo i pesi
+dell'output $w \in \R^n$ vengono ottimizzati.
+
+La feature matrix $X \in \R^{m \times n}$ è data da:
 \[
-  f^* = \min_{x \in S} f(x).
+  X_{ij} = \sigma\bigl(\langle W_1^{(j)}, x_i\rangle\bigr), \quad
+  W_1^{(j)} \sim \mathcal{N}(0, I), \text{ fissato.}
 \]
-Un punto $x^* \in S$ tale che $f(x^*) = f^*$ è una \emph{soluzione ottima} (o \emph{minimizzatore}).
-\end{defn}
+Il problema di addestramento con regolarizzazione LASSO è:
+\begin{equation}
+  \label{eq:lasso}
+  \min_{w \in \R^n}\; f(w) = \underbrace{\|Xw - y\|_2^2}_{g(w)\;\text{smooth}} + \lambda\underbrace{\|w\|_1}_{h(w)\;\text{non-smooth}},
+  \quad \lambda > 0.
+\end{equation}
 
-\begin{remark}
-Il valore ottimo $f^*$ è unico se esiste, ma possono esistere più minimizzatori $x^*$. Massimizzare $g(x)$ equivale a minimizzare $f(x) = -g(x)$. Un punto $x_\eps$ è una \emph{soluzione $\eps$-ottima} se $f(x_\eps) \leq f^* + \eps$.
+\begin{prop}[Proprietà del problema LASSO]
+\begin{itemize}
+  \item $f$ è \emph{convessa} (somma di convesse). È \emph{strettamente convessa} sse $X$ ha rango pieno colonna, cioè $X^\top X \succ 0$.
+  \item $g(w) = \|Xw - y\|^2$ è $L$-smooth con $L = 2\lambda_{\max}(X^\top X)$ e $\tau$-fortemente convessa con $\tau = 2\lambda_{\min}(X^\top X)$.
+  \item $f$ \emph{non è smooth}: il termine $\|w\|_1$ non è differenziabile in $w_i = 0$.
+  \item La condizione di ottimalità è $0 \in \partial f(w^*)$, che componente per componente diventa:
+        \[
+          [X^\top(Xw^* - y)]_j + \lambda s_j^* = 0, \quad s_j^* \in \partial|w_j^*|.
+        \]
+        Per $w_j^* \neq 0$: $s_j^* = \sign(w_j^*)$. Per $w_j^* = 0$: $|[X^\top(Xw^*-y)]_j| \leq \lambda$.
+\end{itemize}
+\end{prop}
+
+\begin{remark}[Numero di condizione del sotto-problema]
+Il sotto-problema lineare di IRLS richiede di risolvere $A_k w = b$ con $A_k = X^\top X + 2\lambda W_k^\top W_k \succ 0$.
+Il numero di condizione $\kappa(A_k)$ dipende da $\kappa(X)^2$ (le equazioni normali peggiorano la conditioning al quadrato). Per $\kappa(X) \gg 1$, il CG può essere preferibile a Cholesky per mantenere l'accuratezza.
 \end{remark}
 
-\subsection{Minimi locali vs globali}
-
-\begin{defn}
-$x^*$ è un \emph{minimo locale} se esiste $\delta > 0$ tale che $f(x^*) \leq f(x)$ per ogni $x \in S$ con $\|x - x^*\| \leq \delta$. È un \emph{minimo globale} se $f(x^*) \leq f(x)$ per ogni $x \in S$.
-\end{defn}
-
-Per funzioni convesse, ogni minimo locale è globale. Per funzioni non convesse, possono esistere minimi locali che non sono globali — trovare il globale è in generale NP-difficile.
-
 %------------------------------------------------------------
-\section{Ottimizzazione univariata (1D)}
+\section{Algoritmo A1: IRLS (Iteratively Reweighted Least Squares)}
+\label{sec:irls}
 
-Il caso $n=1$ è fondamentale perché molte line search si riducono a questo.
+L'idea chiave è \emph{approssimare la norma L1 con una forma quadratica} attorno all'iterato corrente:
+\[
+  |w_i| \approx \frac{w_i^2}{|w_{k,i}|} = \frac{w_i^2}{\sqrt{w_{k,i}^2}},
+  \quad \text{per } w_{k,i} \neq 0.
+\]
+Definendo la matrice dei pesi $W_k = \diag\bigl(\max(|w_{k,i}|, \varepsilon_{\mathrm{thr}})^{-1/2}\bigr)_{i=1}^n$
+con $\varepsilon_{\mathrm{thr}} \in [10^{-6}, 10^{-10}]$ per evitare la divisione per zero,
+l'approssimazione del termine L1 diventa:
+\[
+  \lambda\|w\|_1 \approx \lambda \|W_k w\|^2_2 = \lambda w^\top W_k^\top W_k w.
+\]
 
-\begin{defn}[Funzione unimodale]
-$f: [a,b] \to \R$ è unimodale se esiste $x^* \in [a,b]$ tale che $f$ è strettamente decrescente su $[a, x^*]$ e strettamente crescente su $[x^*, b]$.
-\end{defn}
-
-\subsection{Golden Section Search}
-
-\begin{algobox}[Golden Section Search]
-Dato $f$ unimodale su $[a, b]$, con $\tau = (\sqrt{5}-1)/2 \approx 0.618$:
+\begin{algobox}[IRLS — Iteratively Reweighted Least Squares]
+\textbf{Input:} $X, y, \lambda$; tolleranza $\varepsilon_{\mathrm{thr}}$; $\varepsilon_{\mathrm{stop}}$; $w_0$ (es.\ $w_0 = 0$).
 \begin{enumerate}
-  \item $x_1 = a + (1-\tau)(b-a)$, $x_2 = a + \tau(b-a)$.
-  \item Se $f(x_1) < f(x_2)$: poni $b \leftarrow x_2$, altrimenti $a \leftarrow x_1$.
-  \item Aggiorna il punto interno rimanente senza ricalcolarlo (1 valutazione per passo).
-  \item Ripeti finché $|b-a| \leq \eps$.
+  \item Per $k = 0, 1, 2, \ldots$:
+  \item \quad Calcola $W_k = \diag\bigl(\max(|w_{k,i}|, \varepsilon_{\mathrm{thr}})^{-1/2}\bigr)_{i=1}^n$.
+  \item \quad Risolvi il sistema lineare SPD:
+        \[
+          \underbrace{(X^\top X + 2\lambda W_k^\top W_k)}_{A_k\;\succ\;0} w_{k+1} = X^\top y
+        \]
+        tramite \textbf{Cholesky} ($O(n^3/3)$) o \textbf{CG} (per $n$ grande).
+  \item \quad Criteri di arresto:
+        \[
+          \frac{\|w_{k+1} - w_k\|}{\max(1, \|w_k\|)} < \varepsilon_{\mathrm{stop}}
+          \quad\text{oppure}\quad \frac{f(w_{k+1}) - f(w_k)}{f(w_k)} < \varepsilon_{\mathrm{stop}}.
+        \]
+  \item Fine per.
 \end{enumerate}
-Dopo $k$ passi, l'intervallo si è ridotto a $(b-a) \cdot \tau^k$. Costo: $O(\log(1/\eps))$ valutazioni.
+\textbf{Output:} $w^* \approx w_k$.
 \end{algobox}
 
-\begin{intuition}
-La scelta di $\tau = (\sqrt{5}-1)/2$ (rapporto aureo) garantisce che il punto ``risparmiato'' cada nella posizione giusta nel sotto-intervallo successivo: un'elegante proprietà di auto-similarità.
-\end{intuition}
+\begin{remark}[Framework MM]
+IRLS è un caso del framework \textbf{Majorization-Minimization (MM)}: ad ogni passo si costruisce
+una funzione surrogate $Q(w \mid w_k) \geq f(w)$ con uguaglianza in $w_k$, e si minimizza $Q$.
+Questo garantisce $f(w_{k+1}) \leq f(w_k)$ (discesa monotona), a differenza del subgradiente.
+\end{remark}
 
-\subsection{Metodo di Newton 1D}
+\begin{thm}[Convergenza di IRLS]
+Se $X$ ha rango pieno colonna ($X^\top X \succ 0$), allora la sequenza $\{w_k\}$ generata da IRLS
+converge alla soluzione ottima $w^*$ del problema LASSO. Il tasso di convergenza è tipicamente
+\emph{lineare} ($O(c^k)$ con $c < 1$) nella pratica, riflettendo la struttura localmente quadratica
+dell'approssimazione MM.
+\end{thm}
 
-Per $f \in C^2$, partendo da $x_0$:
-\[
-  x_{k+1} = x_k - \frac{f'(x_k)}{f''(x_k)}.
-\]
-Convergenza \emph{quadratica} ($\|e_{k+1}\| = O(\|e_k\|^2)$) vicino a una radice di $f'$ con $f''(x^*) \neq 0$.
+\begin{warningbox}
+Il parametro $\varepsilon_{\mathrm{thr}}$ controlla il trade-off tra sparsità della soluzione e
+stabilità numerica. Valori troppo piccoli ($\varepsilon_{\mathrm{thr}} \ll 10^{-10}$) possono
+rendere $A_k$ male condizionata e causare instabilità numerica. Valori troppo grandi smussano
+eccessivamente il termine L1 e riducono la sparsità della soluzione.
+\end{warningbox}
 
 %------------------------------------------------------------
+\section{Algoritmo A2: Deflected Subgradient}
+\label{sec:deflected-subgradient}
+
+Il deflected subgradient affronta il problema LASSO \eqref{eq:lasso} direttamente nella sua forma
+non-smooth. L'idea è \emph{mescolare} il subgradiente corrente con la direzione precedente
+(analogamente al Gradiente Coniugato nel caso smooth) per ottenere una direzione di discesa
+più informata.
+
+\subsection{Subgradiente del problema LASSO}
+\label{sec:complessita-nonsmooth}
+
+Il subgradiente di $f(w) = \|Xw-y\|^2 + \lambda\|w\|_1$ è:
+\[
+  g^i \in \partial f(w^i) = 2X^\top(Xw^i - y) + \lambda s^i,
+  \quad s^i \in \partial\|w^i\|_1, \quad [s^i]_j = \begin{cases} \sign(w^i_j) & w^i_j \neq 0 \\ \text{qualsiasi in } [-1,1] & w^i_j = 0 \end{cases}.
+\]
+
+\textbf{Complessità ottimale non-smooth} (da [OPT/5, slide 8]):
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lllc}
+\hline
+Classe & Smoothness & Convessità & Complessità \\
+\hline
+$f \in C^1$ & $L$-smooth & $\tau$-forte & $O(\log 1/\varepsilon)$ \\
+$f \in C^1$ & $L$-smooth & convexa & $O(1/\sqrt{\varepsilon})$ \\
+$f \notin C^1$ & $L$-Lipschitz & $\tau$-forte & $\Omega(L^2/\varepsilon)$ \\
+$f \notin C^1$ & $L$-Lipschitz & convexa & $\Omega(L/\varepsilon^2)$ \\
+\hline
+\end{tabular}
+\end{center}
+Il nostro $f = g + \lambda\|\cdot\|_1$ è non-smooth (L-Lipschitz convessa): il caso peggiore
+richiede $O(1/\varepsilon^2)$ iterazioni. Il deflected subgradient \emph{non} migliora questo tasso
+asintotico, ma offre convergenza empiricamente più veloce.
+
+\subsection{Target level stepsize}
+
+Il passo fisso "non funziona" per funzioni non-smooth (il subgradiente non è una direzione di discesa
+garantita). Si usa lo \textbf{stepsize con target level} [OPT/5, slide 14]:
+
+\begin{algobox}[Target Level Stepsize (SGPTL)]
+Parametri: $\beta \in (0,2)$, $\delta_0 > 0$, $R > 0$, $\rho \in (0,1)$.
+\begin{enumerate}
+  \item $\texttt{fref} \leftarrow f(w^0)$; $\delta \leftarrow \delta_0$; $r \leftarrow 0$; $\bar{f} \leftarrow f(w^0)$.
+  \item Per $i = 1, 2, \ldots$:
+  \item \quad $g^i \in \partial f(w^i)$; $\alpha^i \leftarrow \beta(f^i - (\texttt{fref} - \delta)) / \|g^i\|^2$;
+  \item \quad $w^{i+1} \leftarrow w^i - \alpha^i g^i$.
+  \item \quad Se $f(w^{i+1}) \leq \texttt{fref} - \delta/2$: $\texttt{fref} \leftarrow \bar{f}$; $r \leftarrow 0$.
+  \item \quad Altrimenti se $r > R$: $\delta \leftarrow \delta \cdot \rho$; $r \leftarrow 0$.
+  \item \quad Altrimenti: $r \leftarrow r + \alpha^i\|g^i\|$.
+  \item \quad $\bar{f} \leftarrow \min(\bar{f}, f(w^{i+1}))$.
+\end{enumerate}
+\end{algobox}
+
+\subsection{Deflection}
+
+\begin{algobox}[Deflected Subgradient (Algoritmo A2)]
+Dati $w^0$, $d^0 = -g^0 \in -\partial f(w^0)$; parametri target level.
+\begin{enumerate}
+  \item Per $i = 1, 2, \ldots$:
+  \item \quad Calcola $g^i \in \partial f(w^i)$.
+  \item \quad Calcola il \emph{coefficiente di deflection} (formula chiusa):
+        \[
+          \gamma^i = \argmin_{\gamma \in [0,1]} \|\gamma g^i + (1{-}\gamma) d^{i-1}\|^2
+          = \max\!\left(0,\; \frac{(d^{i-1})^\top(d^{i-1} - g^i)}{\|g^i - d^{i-1}\|^2}\right),
+        \]
+        con la convenzione $\gamma^i \in [0,1]$.
+  \item \quad Forma la direzione deflessa:
+        $d^i = \gamma^i g^i + (1{-}\gamma^i) d^{i-1}$.
+  \item \quad Calcola lo stepsize $\alpha^i$ (target level) con una delle due regole:
+        \begin{itemize}
+          \item \emph{Stepsize-restricted}: $\alpha^i = \beta^i(f^i - f_{\mathrm{target}}) / \|d^i\|^2$,
+                con $\beta^i \leq \gamma^i$.
+          \item \emph{Deflection-restricted}: stepsize standard DSS o Polyak, con
+                $\gamma^i \leq \alpha^{i-1}\|d^{i-1}\|^2 / (f^i - f^* + \alpha^{i-1}\|d^{i-1}\|^2)$.
+        \end{itemize}
+  \item \quad $w^{i+1} \leftarrow w^i - \alpha^i d^i$.
+  \item \quad Aggiorna il record: $\bar{f}^i \leftarrow \min(\bar{f}^{i-1}, f(w^{i+1}))$.
+\end{enumerate}
+\end{algobox}
+
+\begin{warningbox}
+Quando $\beta^i \to 0$, si ha $d^i \to -\nabla f(w^i)$ (il deflected subgradient degenera
+nel subgradiente standard) — convergenza lenta. La deflection è utile \emph{solo se} si mantiene
+$\gamma^i$ significativo, il che richiede che i parametri siano calibrati con cura.
+\end{warningbox}
+
+\begin{thm}[Convergenza del Deflected Subgradient, d'Antonio--Frangioni 2009]
+Sotto le regole stepsize-restricted o deflection-restricted e con il target level stepsize,
+la sequenza $\{\bar{f}^i\}$ converge al valore ottimo $f^*$. Il tasso di convergenza è
+$O(1/\sqrt{k})$ (record value), con complessità $O(1/\varepsilon^2)$ nel caso peggiore.
+\end{thm}
+
+%------------------------------------------------------------
+\section{Confronto A1 vs A2}
+\label{sec:confronto-algos}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lcc}
+\hline
+ & \textbf{A1 (IRLS)} & \textbf{A2 (Deflected Subgradient)} \\
+\hline
+Approccio & Smooth (surrogate) & Non-smooth diretto \\
+Costo/iterazione & Alto: $O(n^3)$ (Chol.) o $O(kn^2)$ (CG) & Basso: $O(mn)$ \\
+Num.\ iterazioni & Poche (10–50) & Molte (migliaia) \\
+Convergenza & Tipicamente lineare & Sublineare $O(1/\varepsilon^2)$ \\
+Alta precisione & Sì ($\varepsilon < 10^{-8}$) & Difficile ($\varepsilon < 10^{-4}$) \\
+Parametri & $\varepsilon_{\mathrm{thr}}$, solver lineare & $\delta_0$, $\rho$, $R$, $\beta$, $\gamma$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\begin{keybox}[Quando usare quale]
+\textbf{IRLS} è preferibile quando si richiede alta precisione ($\varepsilon < 10^{-6}$). \textbf{A2}
+può essere competitivo in tempo CPU per soluzioni a bassa precisione ($\varepsilon \sim 10^{-2}$),
+specialmente per $n$ molto grande dove Cholesky diventa proibitivo.
+\end{keybox}
+
+%============================================================
+\chapter{Ottimizzazione Non Vincolata — Metodi non-smooth}
+\label{ch:nonsmooth}
+%------------------------------------------------------------
+
+\section{Funzioni non differenziabili}
+\label{sec:nonsmooth-functions}
+
+Molte funzioni nel ML non sono differenziabili ovunque:
+\begin{itemize}
+  \item $f(x) = \|x\|_1 = \sum_i |x_i|$ (LASSO, sparsità, compressive sensing).
+  \item $f(x) = \max_j g_j(x)$ (SVM, ottimizzazione worst-case).
+  \item $f(x) = \max(0, x)$ (ReLU, attivazione neurale).
+\end{itemize}
+
+\begin{defn}[Subgradiente]
+$g \in \R^n$ è un \emph{subgradiente} di $f$ convessa in $x$ se:
+\[
+  f(y) \geq f(x) + g^\top (y - x) \quad \forall y.
+\]
+L'insieme dei subgradienti $\partial f(x)$ è detto \emph{subdifferenziale}.
+\end{defn}
+
+\begin{example}
+Per $f(x) = |x|$: $\partial f(x) = \{+1\}$ se $x > 0$, $[-1,+1]$ se $x = 0$, $\{-1\}$ se $x < 0$.
+Per $f(x) = \|x\|_1$: $[\partial f(x)]_i = \sign(x_i)$ se $x_i \neq 0$, e $\in [-1,+1]$ se $x_i = 0$.
+\end{example}
+
+\begin{thm}
+$x^*$ è un minimo globale di $f$ convessa $\Leftrightarrow$ $0 \in \partial f(x^*)$.
+\end{thm}
+
+\section{Metodo del subgradiente}
+
+\begin{algobox}[Subgradient Method]
+Dato $x_0$, step sizes $\{\alpha_k\}$:
+\[
+  x_{k+1} = x_k - \alpha_k g_k, \quad g_k \in \partial f(x_k).
+\]
+\end{algobox}
+
+\begin{warningbox}
+A differenza del gradient descent, il subgradiente \textbf{non garantisce} $f(x_{k+1}) < f(x_k)$: l'obiettivo può aumentare da un'iterazione all'altra. Si usa il record del best so far: $f_k^{\mathrm{best}} = \min_{i \leq k} f(x_i)$.
+\end{warningbox}
+
+\begin{thm}[Convergenza del subgradiente]
+Se $f$ convessa, Lipschitz con costante $G$:
+\begin{itemize}
+  \item Con $\alpha_k = c/\sqrt{k}$ (dimishing): $f_k^{\mathrm{best}} - f^* \leq \frac{G \|x_0 - x^*\|}{\sqrt{k}}$ (tasso $O(1/\sqrt{k})$).
+  \item Con $\alpha_k = c$ costante: $\liminf f_k^{\mathrm{best}} \leq f^* + Gc/2$.
+\end{itemize}
+\end{thm}
+
+\begin{remark}
+Il tasso $O(1/\sqrt{k})$ è \emph{ottimale} per metodi del primo ordine su funzioni Lipschitz non smooth. Per funzioni smooth, si può fare meglio: $O(1/k)$ con GD.
+\end{remark}
+
+\section{Metodo del gradiente prossimale}
+\label{sec:prox-gradient}
+
+Molte funzioni hanno la forma $f(x) = h(x) + r(x)$, con $h$ smooth e $r$ non-smooth ma semplice (es.\ $r(x) = \lambda \|x\|_1$).
+
+\begin{defn}[Operatore prossimale]
+Per $r: \R^n \to \R \cup \{+\infty\}$ e $\alpha > 0$:
+\[
+  \prox_{\alpha r}(v) = \argmin_x \left(r(x) + \frac{1}{2\alpha}\|x - v\|^2\right).
+\]
+\end{defn}
+
+\begin{example}[Prox dell'$\ell^1$: soft thresholding]
+Per $r(x) = \lambda\|x\|_1$:
+\[
+  [\prox_{\alpha\lambda\|\cdot\|_1}(v)]_i = \sign(v_i)\max(|v_i| - \alpha\lambda, 0).
+\]
+Questa è la \emph{sogliatura morbida} (soft thresholding).
+\end{example}
+
+\begin{algobox}[Proximal Gradient (ISTA)]
+Per $f = h + r$ con $h$ $L$-smooth, $r$ convessa:
+\[
+  x_{k+1} = \prox_{\alpha r}\left(x_k - \alpha \nabla h(x_k)\right), \quad \alpha = 1/L.
+\]
+\end{algobox}
+
+\begin{thm}[Convergenza ISTA]
+Con $\alpha = 1/L$: $f(x_k) - f^* \leq \frac{L\|x_0 - x^*\|^2}{2k}$ (tasso $O(1/k)$).
+\end{thm}
+
+\begin{remark}[FISTA — accelerazione di Nesterov]
+FISTA (Fast ISTA) aggiunge un passo di momento come Nesterov e raggiunge $O(1/k^2)$, ottimale per la classe. È il metodo standard per LASSO di grande scala.
+\end{remark}
+
+\section{Metodi bundle}
+\label{sec:bundle}
+
+I metodi bundle sono la generalizzazione dei metodi del gradiente coniugato per funzioni non-smooth.
+
+\begin{defn}[Modello bundle (piecewise-linear inferior)]
+Dati gli iterati precedenti $x^1, \ldots, x^i$ con subgradienti $g^j \in \partial f(x^j)$, il \emph{bundle} è:
+\[
+  f_B(x) = \max_{j \leq i} \left\{f(x^j) + (g^j)^\top(x - x^j)\right\} \leq f(x).
+\]
+$f_B$ è un modello \emph{inferiore} di $f$.
+\end{defn}
+
+\begin{algobox}[Bundle Method (schema generale)]
+Dati $x_0$, parametro di prossimità $\mu > 0$:
+\begin{enumerate}
+  \item Risolvi: $d^* = \argmin_d \{f_B(x_k + d) + \frac{\mu}{2}\|d\|^2\}$.
+  \item Se $\|d^*\| \leq \eps$: STOP (criterio di ottimalità).
+  \item Valuta $f(x_k + d^*)$ e $g^* \in \partial f(x_k + d^*)$.
+  \item \textbf{Serious step}: se $f(x_k + d^*) \leq f(x_k) - m_1(f_B(x_k + d^*) - f(x_k))$: $x_{k+1} \leftarrow x_k + d^*$.
+  \item \textbf{Null step}: altrimenti $x_{k+1} \leftarrow x_k$. Aggiorna il bundle con il nuovo punto.
+\end{enumerate}
+\end{algobox}
+
+\begin{thm}[Convergenza dei metodi bundle]
+Per $f$ convessa Lipschitz, con $\mu$ fisso e bounded: se $f^* > -\infty$, allora $\|d^*_i\| \to 0$, il che implica la convergenza all'ottimo.
+\end{thm}
+
+%------------------------------------------------------------
+
+%============================================================
+\part{Livello 2 --- Intorno Ottimizzazione (Esame Orale)}
+\label{part:L2-opt}
+%============================================================
+% Contenuto: L-smooth, tau-convessa forte, gradient descent, NCG, Heavy Ball,
+% BFGS, KKT, Frank-Wolfe. Metodi alternativi allo stesso problema o correlati.
+% Fonte: OPT/4-smooth.pdf (slide 9-19); OPT/3-unconstrained.pdf
+
 \chapter{Ottimizzazione Non Vincolata}
 %------------------------------------------------------------
 
@@ -294,6 +739,7 @@ Per $f \in C^2$:
 \end{thm}
 
 \subsection{Classi di regolarità importanti}
+\label{sec:classi-regularita}
 
 \begin{defn}[$L$-smooth]
 $f \in C^1$ è \emph{$L$-smooth} se $\nabla f$ è Lipschitz con costante $L > 0$:
@@ -447,6 +893,7 @@ Per $f(x) = \frac{1}{2}x^\top Q x - c^\top x$, $g_k = Qx_k - c$:
 
 %------------------------------------------------------------
 \section{Metodo di Newton multivariato}
+\label{sec:newton}
 
 \begin{algobox}[Metodo di Newton]
 Dato $x_0$, per $k = 0, 1, \ldots$:
@@ -557,123 +1004,709 @@ CG minimizza il residuo relativo su uno spazio polinomiale: trova il polinomio $
 \end{intuition}
 
 %------------------------------------------------------------
-\chapter{Ottimizzazione Non Vincolata — Metodi non-smooth}
+\section{Metodi del gradiente deflesso (smooth)}
+\label{sec:deflected-smooth}
+
+Il concetto di \emph{deflection} nel caso smooth precede e motiva l'Algoritmo A2 del progetto.
+L'idea è mescolare il gradiente corrente $-\nabla f(x^i)$ con la direzione precedente $d^{i-1}$:
+\[
+  d^i = -\nabla f(x^i) + \beta^i d^{i-1}, \quad x^{i+1} = x^i + \alpha^i d^i.
+\]
+
+\textbf{NCG (Nonlinear Conjugate Gradient)} — quattro formule per $\beta^i$:
+\begin{itemize}
+  \item \textbf{Fletcher-Reeves}: $\beta^i = \|\nabla f(x^i)\|^2 / \|\nabla f(x^{i-1})\|^2$.
+  \item \textbf{Polak-Ribière}: $\beta^i = \nabla f(x^i)^\top(\nabla f(x^i) - \nabla f(x^{i-1})) / \|\nabla f(x^{i-1})\|^2$.
+  \item \textbf{Hestenes-Stiefel}: $\beta^i = \nabla f(x^i)^\top y^i / (d^{i-1})^\top y^i$, $y^i = \nabla f(x^i) - \nabla f(x^{i-1})$.
+  \item \textbf{Dai-Yuan}: $\beta^i = \|\nabla f(x^i)\|^2 / (d^{i-1})^\top y^i$.
+\end{itemize}
+
+\textbf{Heavy Ball}: usa la formula $d^i = -\nabla f(x^i) + \beta d^{i-1}$ con $\beta$ fisso.
+Per funzioni fortemente convesse con costanti $\tau$, $L$: tasso di convergenza
+$r = (\sqrt{\kappa}-1)/(\sqrt{\kappa}+1)$, lo stesso del CG lineare.
+
+\begin{remark}[Analogia con A2]
+Il Deflected Subgradient (Algoritmo A2) applica la stessa idea al caso non-smooth:
+sostituisce $\nabla f$ con $g^i \in \partial f(x^i)$ e usa regole di deflection e stepsize più
+complesse per garantire la convergenza. La deflection smooth riduce il numero di condizione
+efficace; la deflection non-smooth riduce l'oscillazione dovuta alla scelta del subgradiente.
+\end{remark}
+
 %------------------------------------------------------------
 
-\section{Funzioni non differenziabili}
+%============================================================
+\part{Livello 3 --- Core NLA del Progetto}
+\label{part:L3-nla}
+%============================================================
+% Contenuto: equazioni normali (cuore sotto-problema IRLS), Cholesky (solver),
+% Gradiente Coniugato (solver alternativo), spazi di Krylov.
+% Fonte: NLA/4-leastsquares-normal.pdf; NLA/20-chol.pdf; NLA/5-CG.pdf
 
-Molte funzioni nel ML non sono differenziabili ovunque:
-\begin{itemize}
-  \item $f(x) = \|x\|_1 = \sum_i |x_i|$ (LASSO, sparsità, compressive sensing).
-  \item $f(x) = \max_j g_j(x)$ (SVM, ottimizzazione worst-case).
-  \item $f(x) = \max(0, x)$ (ReLU, attivazione neurale).
-\end{itemize}
+\chapter{Il Problema dei Minimi Quadrati}
+%------------------------------------------------------------
 
-\begin{defn}[Subgradiente]
-$g \in \R^n$ è un \emph{subgradiente} di $f$ convessa in $x$ se:
+\section{Formulazione}
+
+\begin{defn}[Least Squares]
+Dato $A \in \R^{m \times n}$ ($m \geq n$), $b \in \R^m$:
 \[
-  f(y) \geq f(x) + g^\top (y - x) \quad \forall y.
+  \min_{x \in \R^n} \|Ax - b\|_2^2.
 \]
-L'insieme dei subgradienti $\partial f(x)$ è detto \emph{subdifferenziale}.
+Se $m > n$, il sistema $Ax = b$ è sovradeterminato (più equazioni che incognite) — in generale non ha soluzione esatta.
 \end{defn}
 
-\begin{example}
-Per $f(x) = |x|$: $\partial f(x) = \{+1\}$ se $x > 0$, $[-1,+1]$ se $x = 0$, $\{-1\}$ se $x < 0$.
-Per $f(x) = \|x\|_1$: $[\partial f(x)]_i = \sign(x_i)$ se $x_i \neq 0$, e $\in [-1,+1]$ se $x_i = 0$.
-\end{example}
-
-\begin{thm}
-$x^*$ è un minimo globale di $f$ convessa $\Leftrightarrow$ $0 \in \partial f(x^*)$.
+\begin{thm}[Soluzione geometrica]
+$x^*$ è soluzione LS $\Leftrightarrow$ il residuo $r^* = Ax^* - b$ è ortogonale a $\mathrm{Im}(A)$, cioè $A^\top(Ax^* - b) = 0$.
 \end{thm}
 
-\section{Metodo del subgradiente}
+\begin{intuition}
+$Ax^*$ è la \emph{proiezione ortogonale} di $b$ su $\mathrm{Im}(A)$. Il punto più vicino a $b$ nell'immagine di $A$ si trova proiettando.
+\end{intuition}
 
-\begin{algobox}[Subgradient Method]
-Dato $x_0$, step sizes $\{\alpha_k\}$:
+\section{Equazioni normali}
+\label{sec:equazioni-normali}
+
+\begin{thm}[Equazioni normali]
+$x^*$ è soluzione LS $\Leftrightarrow$ soddisfa le \emph{equazioni normali}:
 \[
-  x_{k+1} = x_k - \alpha_k g_k, \quad g_k \in \partial f(x_k).
+  A^\top A x^* = A^\top b.
 \]
-\end{algobox}
-
-\begin{warningbox}
-A differenza del gradient descent, il subgradiente \textbf{non garantisce} $f(x_{k+1}) < f(x_k)$: l'obiettivo può aumentare da un'iterazione all'altra. Si usa il record del best so far: $f_k^{\mathrm{best}} = \min_{i \leq k} f(x_i)$.
-\end{warningbox}
-
-\begin{thm}[Convergenza del subgradiente]
-Se $f$ convessa, Lipschitz con costante $G$:
-\begin{itemize}
-  \item Con $\alpha_k = c/\sqrt{k}$ (dimishing): $f_k^{\mathrm{best}} - f^* \leq \frac{G \|x_0 - x^*\|}{\sqrt{k}}$ (tasso $O(1/\sqrt{k})$).
-  \item Con $\alpha_k = c$ costante: $\liminf f_k^{\mathrm{best}} \leq f^* + Gc/2$.
-\end{itemize}
 \end{thm}
 
-\begin{remark}
-Il tasso $O(1/\sqrt{k})$ è \emph{ottimale} per metodi del primo ordine su funzioni Lipschitz non smooth. Per funzioni smooth, si può fare meglio: $O(1/k)$ con GD.
+Se $A$ ha \emph{rango massimo} ($\rank A = n$, cioè $A^\top A \succ 0$), la soluzione è unica: $x^* = (A^\top A)^{-1} A^\top b$.
+
+\section{Soluzione via SVD}
+
+Dalla thin SVD $A = \hat{U}\Sigma V^\top$, la soluzione di norma minima è:
+\[
+  x^* = A^+ b = V \Sigma^+ \hat{U}^\top b = \sum_{i=1}^r \frac{\hat{u}_i^\top b}{\sigma_i} v_i.
+\]
+
+\begin{remark}[Valori singolari piccoli e regolarizzazione]
+\label{sec:tikhonov}
+Se $A$ ha valori singolari piccoli, la soluzione $x^*$ è amplificata enormemente. La \emph{regolarizzazione di Tikhonov} (ridge regression) modifica il problema:
+\[
+  \min_x \|Ax - b\|^2 + \delta\|x\|^2 \quad \Rightarrow \quad x_\delta = (A^\top A + \delta I)^{-1} A^\top b = V \, \mathrm{diag}\!\left(\frac{\sigma_i}{\sigma_i^2 + \delta}\right) \hat{U}^\top b.
+\]
+Per $\delta > 0$, i valori singolari piccoli vengono smorzati: $\sigma_i/(\sigma_i^2 + \delta) \approx 1/\delta$ se $\sigma_i \ll \sqrt{\delta}$.
 \end{remark}
 
-\section{Metodo del gradiente prossimale}
+%------------------------------------------------------------
+\chapter{Fattorizzazioni Dirette per Sistemi Lineari}
+%------------------------------------------------------------
 
-Molte funzioni hanno la forma $f(x) = h(x) + r(x)$, con $h$ smooth e $r$ non-smooth ma semplice (es.\ $r(x) = \lambda \|x\|_1$).
+\section{Fattorizzazione LU}
+\label{sec:lu}
 
-\begin{defn}[Operatore prossimale]
-Per $r: \R^n \to \R \cup \{+\infty\}$ e $\alpha > 0$:
+\begin{thm}[LU con pivoting parziale]
+Per ogni $A \in \R^{n \times n}$, con un'opportuna matrice di permutazione $P$:
 \[
-  \prox_{\alpha r}(v) = \argmin_x \left(r(x) + \frac{1}{2\alpha}\|x - v\|^2\right).
+  PA = LU,
 \]
-\end{defn}
-
-\begin{example}[Prox dell'$\ell^1$: soft thresholding]
-Per $r(x) = \lambda\|x\|_1$:
-\[
-  [\prox_{\alpha\lambda\|\cdot\|_1}(v)]_i = \sign(v_i)\max(|v_i| - \alpha\lambda, 0).
-\]
-Questa è la \emph{sogliatura morbida} (soft thresholding).
-\end{example}
-
-\begin{algobox}[Proximal Gradient (ISTA)]
-Per $f = h + r$ con $h$ $L$-smooth, $r$ convessa:
-\[
-  x_{k+1} = \prox_{\alpha r}\left(x_k - \alpha \nabla h(x_k)\right), \quad \alpha = 1/L.
-\]
-\end{algobox}
-
-\begin{thm}[Convergenza ISTA]
-Con $\alpha = 1/L$: $f(x_k) - f^* \leq \frac{L\|x_0 - x^*\|^2}{2k}$ (tasso $O(1/k)$).
+con $L$ triangolare inferiore con diagonale unitaria ($|L_{ij}| \leq 1$), $U$ triangolare superiore. \textbf{Costo}: $\frac{2}{3}n^3$ flop.
 \end{thm}
 
-\begin{remark}[FISTA — accelerazione di Nesterov]
-FISTA (Fast ISTA) aggiunge un passo di momento come Nesterov e raggiunge $O(1/k^2)$, ottimale per la classe. È il metodo standard per LASSO di grande scala.
-\end{remark}
+\begin{intuition}
+LU è la fattorizzazione dell'eliminazione gaussiana. Il pivoting parziale (scegliere il pivot come l'elemento di modulo massimo nella colonna corrente) garantisce la stabilità numerica: $|L_{ij}| \leq 1$ previene la crescita degli errori di arrotondamento.
+\end{intuition}
 
-\section{Metodi bundle}
-
-I metodi bundle sono la generalizzazione dei metodi del gradiente coniugato per funzioni non-smooth.
-
-\begin{defn}[Modello bundle (piecewise-linear inferior)]
-Dati gli iterati precedenti $x^1, \ldots, x^i$ con subgradienti $g^j \in \partial f(x^j)$, il \emph{bundle} è:
-\[
-  f_B(x) = \max_{j \leq i} \left\{f(x^j) + (g^j)^\top(x - x^j)\right\} \leq f(x).
-\]
-$f_B$ è un modello \emph{inferiore} di $f$.
-\end{defn}
-
-\begin{algobox}[Bundle Method (schema generale)]
-Dati $x_0$, parametro di prossimità $\mu > 0$:
+\begin{algobox}[Risoluzione via LU]
+Per $Ax = b$ con $PA = LU$:
 \begin{enumerate}
-  \item Risolvi: $d^* = \argmin_d \{f_B(x_k + d) + \frac{\mu}{2}\|d\|^2\}$.
-  \item Se $\|d^*\| \leq \eps$: STOP (criterio di ottimalità).
-  \item Valuta $f(x_k + d^*)$ e $g^* \in \partial f(x_k + d^*)$.
-  \item \textbf{Serious step}: se $f(x_k + d^*) \leq f(x_k) - m_1(f_B(x_k + d^*) - f(x_k))$: $x_{k+1} \leftarrow x_k + d^*$.
-  \item \textbf{Null step}: altrimenti $x_{k+1} \leftarrow x_k$. Aggiorna il bundle con il nuovo punto.
+  \item Permuta: $\tilde{b} = Pb$.
+  \item Forward substitution: $Ly = \tilde{b}$, $O(n^2)$.
+  \item Back substitution: $Ux = y$, $O(n^2)$.
+\end{enumerate}
+Costo totale: $\frac{2}{3}n^3$ (fattorizzazione) + $2n^2$ (soluzione). Stessa fattorizzazione per più termini noti.
+\end{algobox}
+
+\begin{thm}[Backward stability di LU con pivoting]
+LU con pivoting parziale è backward stable: $\tilde{L}\tilde{U} = PA + E$ con $\|E\| = O(u\|A\|)$ (tipicamente — casi patologici esistono ma sono rari in pratica).
+\end{thm}
+
+\section{Fattorizzazione $LDL^\top$ per matrici simmetriche}
+
+Per $M = M^\top$, l'eliminazione simmetrica produce $M = LDL^\top$: costo $\frac{1}{3}n^3$ (metà di LU pieno sfruttando la simmetria). Il pivoting di Bunch-Kaufman usa blocchi $1 \times 1$ e $2 \times 2$ in $D$ per stabilità.
+
+\section{Fattorizzazione di Cholesky}
+\label{sec:cholesky}
+
+\begin{thm}[Cholesky]
+Se $M = M^\top \succ 0$, esiste un'unica $R$ triangolare superiore con diagonale positiva tale che $M = R^\top R$. \textbf{Costo}: $\frac{1}{3}n^3$ — metà di LU!
+\end{thm}
+
+\begin{prop}
+$M \succ 0 \Leftrightarrow$ tutti i pivot dell'eliminazione di Cholesky sono positivi. Quindi Cholesky può servire come test di definitezza positiva (se fallisce, $M \not\succ 0$).
+\end{prop}
+
+\begin{algobox}[Risoluzione con Cholesky]
+Per $Mx = b$ con $M \succ 0$:
+\begin{enumerate}
+  \item Calcola $R = \mathrm{chol}(M)$, $\frac{1}{3}n^3$.
+  \item Forward: $R^\top y = b$, $O(n^2)$.
+  \item Back: $Rx = y$, $O(n^2)$.
 \end{enumerate}
 \end{algobox}
 
-\begin{thm}[Convergenza dei metodi bundle]
-Per $f$ convessa Lipschitz, con $\mu$ fisso e bounded: se $f^* > -\infty$, allora $\|d^*_i\| \to 0$, il che implica la convergenza all'ottimo.
+\section{Confronto e scelta dell'algoritmo}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{llll}
+\hline
+\textbf{Struttura di $A$} & \textbf{Algoritmo} & \textbf{Costo} & \textbf{Backward stable} \\
+\hline
+Quadrata generica & LU + pivoting parz. & $\frac{2}{3}n^3$ & Sì (praticamente) \\
+Simmetrica & $LDL^\top$ (Bunch-K.) & $\frac{1}{3}n^3$ & Sì \\
+SPD & Cholesky & $\frac{1}{3}n^3$ & Sì (no pivoting!) \\
+LS, $m \geq n$ & QR (Householder) & $2mn^2 - \frac{2}{3}n^3$ & Sì \\
+SPD sparsa & CG (precondizionato) & $O(k \cdot \mathrm{nnz})$ & — \\
+Generale sparsa & GMRES (precond.) & $O(k \cdot \mathrm{nnz})$ & — \\
+\hline
+\end{tabular}
+\end{center}
+
+\begin{remark}[Regola pratica]
+Per sistemi densi: scegliere in base alla struttura (Cholesky se SPD, LU altrimenti). Per sistemi sparsi di grande scala ($n > 10^4$): usare CG (se SPD) o GMRES (altrimenti) con un buon precondizionatore. Non usare mai \texttt{inv(A)}.
+\end{remark}
+
+\section{Esempi pratici}
+
+\begin{example}[Riordino per ridurre il fill-in]
+Per matrici sparse, LU/Cholesky può produrre fattori molto più densi (\emph{fill-in}). Riordinare con Cuthill-McKee (\texttt{symrcm} in Matlab) riduce l'ampiezza di banda.
+\begin{lstlisting}[language=Matlab]
+p = symrcm(A);
+R = chol(A(p, p));          % Cholesky riordinato
+x_perm = R \ (R' \ b(p));
+x(p) = x_perm;              % permutazione inversa
+\end{lstlisting}
+\end{example}
+
+\begin{example}[Tikhonov via SVD in Python]
+\begin{lstlisting}[language=Python]
+import numpy as np
+U, s, Vt = np.linalg.svd(A, full_matrices=False)
+delta = 1e-4
+d = s / (s**2 + delta)      # filtro di Tikhonov
+x = Vt.T @ (d * (U.T @ b))  # soluzione regolarizzata
+\end{lstlisting}
+\end{example}
+
+%------------------------------------------------------------
+\chapter{Metodi Iterativi per Sistemi Lineari}
+%------------------------------------------------------------
+
+\section{Motivazione: sistemi sparsi di grande scala}
+
+Per $n = 10^5$--$10^7$: LU richiede $O(n^3) \gg 10^{15}$ flop — completamente impraticabile. Ma spesso la matrice è \emph{sparsa}: $\mathrm{nnz}(A) \ll n^2$ (es.\ $O(n)$ nonzeri per riga). Il prodotto $Av$ ha allora costo $O(\mathrm{nnz}(A))$.
+
+I \emph{metodi iterativi di Krylov} sfruttano questa struttura: ogni passo richiede solo un prodotto matrice-vettore.
+
+\section{Spazi di Krylov}
+
+\begin{defn}
+$\mathcal{K}_k(A, b) = \mathrm{span}(b, Ab, A^2b, \ldots, A^{k-1}b) \subseteq \R^n$.
+\end{defn}
+
+\begin{prop}
+$x_k = q_{k-1}(A)b$ per qualche polinomio $q_{k-1}$ di grado $\leq k-1$. I metodi di Krylov scelgono $q_{k-1}$ in modo ottimale rispetto a qualche criterio.
+\end{prop}
+
+\section{Gradiente Coniugato per sistemi SPD}
+\label{sec:cg-sistemi}
+
+CG (già visto nell'ottimizzazione) risolve $Qx = v$ con $Q \succ 0$:
+
+\begin{thm}[Convergenza CG]
+\[
+  \frac{\|x_k - x^*\|_Q}{\|x_0 - x^*\|_Q} \leq 2\left(\frac{\sqrt{\kappa(Q)}-1}{\sqrt{\kappa(Q)}+1}\right)^k.
+\]
+Se $Q$ ha $m$ autovalori distinti, CG converge in esattamente $m$ passi. Per autovalori \emph{raggruppati} (clustered), la convergenza è rapida: il polinomio di Chebyshev approssima bene la ``forma'' dello spettro.
 \end{thm}
+
+\subsection{Precondizionamento}
+
+\begin{defn}[Preconditioned CG]
+$P \approx Q$ invertibile, $P \succ 0$. Si risolve $P^{-1}Qx = P^{-1}v$, che ha lo stesso spettro ``rimodellato''.
+\end{defn}
+
+La convergenza dipende da $\kappa(P^{-1}Q) \ll \kappa(Q)$. Scelte comuni:
+\begin{itemize}
+  \item $P = \diag(Q)$ (Jacobi): semplice, smorzamento delle scale.
+  \item $P = $ fattore di Cholesky incompleto (ICC): più efficace.
+  \item $P = $ ILUTP per sistemi non simmetrici.
+\end{itemize}
+
+\section{Algoritmo di Arnoldi}
+
+Per sistemi non simmetrici, si costruisce una base ortonormale di $\mathcal{K}_k(A, b)$ stabilmente.
+
+\begin{algobox}[Arnoldi]
+$q_1 = b/\|b\|$. Per $j = 1, \ldots, k$:
+\begin{enumerate}
+  \item $w = Aq_j$.
+  \item Per $i = 1, \ldots, j$: $h_{ij} = q_i^\top w$; $w \leftarrow w - h_{ij} q_i$ (ortogonalizzazione).
+  \item $h_{j+1,j} = \|w\|$; se $h_{j+1,j} = 0$: STOP (breakdown). Altrimenti $q_{j+1} = w/h_{j+1,j}$.
+\end{enumerate}
+\end{algobox}
+
+\begin{thm}[Fattorizzazione di Arnoldi]
+Dopo $k$ passi: $AQ_k = Q_{k+1} H_k$, dove:
+\begin{itemize}
+  \item $Q_k = [q_1, \ldots, q_k] \in \R^{n \times k}$ ha colonne ortonormali.
+  \item $H_k \in \R^{(k+1) \times k}$ è una matrice di Hessenberg superiore.
+\end{itemize}
+\end{thm}
+
+\begin{intuition}
+Arnoldi è Gram-Schmidt applicato alle potenze di $A$: costruisce una base ortogonale senza formare esplicitamente $[b, Ab, \ldots, A^{k-1}b]$ (che sarebbero numericamente instabili per potenze elevate).
+\end{intuition}
+
+\begin{remark}[Caso simmetrico: Lanczos]
+Se $A = A^\top$, la matrice $H_k$ è simmetrica tridiagonale. L'algoritmo si semplifica nella ricorrenza di Lanczos: ogni passo richiede solo 2 prodotti matrice-vettore e la memorizzazione di 3 vettori (invece di $k$ per Arnoldi). Si ricade nel metodo CG per sistemi SPD.
+\end{remark}
+
+\section{GMRES}
+\label{sec:gmres}
+
+\begin{defn}[GMRES — Generalized Minimal Residual]
+Al passo $k$, GMRES trova la migliore approssimazione nello spazio di Krylov rispetto al residuo:
+\[
+  x_k = \argmin_{x \in x_0 + \mathcal{K}_k(A, r_0)} \|Ax - b\|.
+\]
+\end{defn}
+
+\begin{algobox}[GMRES]
+\begin{enumerate}
+  \item Esegui $k$ passi di Arnoldi su $(A, r_0)$: ottieni $Q_{k+1}$, $H_k$.
+  \item Nota che $r_k = Ax_k - b = Q_{k+1}(H_k z_k - \|r_0\|e_1)$ con $x_k = x_0 + Q_k z_k$.
+  \item Risolvi il piccolo problema LS: $z_k = \argmin_z \|H_k z - \|r_0\|e_1\|$ (costo $O(k^2)$).
+  \item Soluzione: $x_k = x_0 + Q_k z_k$.
+\end{enumerate}
+Il residuo si calcola come by-product dalla fattorizzazione QR di $H_k$ (aggiornata a ogni passo).
+\end{algobox}
+
+\begin{thm}[Convergenza GMRES]
+Se $A = V\Lambda V^{-1}$ (diagonalizzabile), allora:
+\[
+  \frac{\|r_k\|}{\|r_0\|} \leq \kappa(V) \min_{p \in \mathcal{P}_k,\, p(0)=1} \max_{\lambda_i} |p(\lambda_i)|,
+\]
+dove $\mathcal{P}_k$ è l'insieme dei polinomi di grado $\leq k$. Il termine $\kappa(V)$ misura quanto $A$ ``non è normale''.
+\end{thm}
+
+\begin{intuition}
+GMRES converge rapidamente se gli autovalori di $A$ sono \emph{raggruppati} in pochi cluster: il polinomio ottimale può essere piccolo su tutti gli autovalori con poche ``radici'' (una per cluster). Se $A$ ha autovalori ben separati, la convergenza è lenta.
+
+\textbf{Breakdown fortunato}: se $\|w\| = 0$ in Arnoldi, allora $Ax = b$ ha una soluzione esatta nel Krylov — GMRES ha trovato la soluzione!
+\end{intuition}
+
+\begin{warningbox}
+GMRES ha costo crescente per iterazione: $O(k^2)$ per la fattorizzazione QR di $H_k$ e $O(kn)$ per lo storage. Si usa \emph{restarted GMRES}: dopo $m$ passi si ricomincia da $x_m$. Il costo diventa $O(mn)$ per ciclo, ma la convergenza può rallentare.
+\end{warningbox}
+
+%------------------------------------------------------------
+
+%============================================================
+\part{Livello 4 --- Intorno NLA (Esame Orale)}
+\label{part:L4-nla}
+%============================================================
+% Contenuto: condizionamento kappa(A^TA)=kappa(A)^2, stabilita' backward,
+% fattorizzazione QR (alternativa stabile a eq. normali), SVD.
+% Fonte: NLA/12-13-conditioning.pdf; NLA/9-QR.pdf; NLA/14-stability.pdf
+
+\chapter{Condizionamento e Stabilità}
+%------------------------------------------------------------
+
+\section{Numero di condizionamento}
+\label{sec:condizionamento}
+
+\begin{defn}[Numero di condizionamento assoluto e relativo]
+Per $f: \R^m \to \R^n$:
+\[
+  \kappa_{\mathrm{abs}}(f, x) = \lim_{\delta \to 0} \sup_{\|d\| \leq \delta} \frac{\|f(x+d) - f(x)\|}{\|d\|}, \quad
+  \kappa_{\mathrm{rel}}(f, x) = \kappa_{\mathrm{abs}} \cdot \frac{\|x\|}{\|f(x)\|}.
+\]
+\end{defn}
+
+\begin{thm}[Numero di condizionamento di un sistema lineare]
+Per $f(b) = A^{-1}b$ (risolvere $Ax = b$):
+\[
+  \boxed{\kappa(A) = \|A\| \cdot \|A^{-1}\| = \frac{\sigma_1}{\sigma_n}}.
+\]
+Perturbando $b$ di $\delta b$: $\frac{\|\delta x\|}{\|x\|} \leq \kappa(A) \frac{\|\delta b\|}{\|b\|}$.
+\end{thm}
+
+\begin{intuition}
+$\kappa(A) \gg 1$: problema \emph{mal condizionato}. Se $\kappa(A) = 10^6$ e $b$ ha un errore relativo di $10^{-12}$ (precisione di macchina), la soluzione $x$ ha un errore relativo di $\approx 10^{-6}$: si perdono 6 cifre decimali.
+\end{intuition}
+
+\begin{prop}[Distanza dalla singolarità]
+$1/\kappa(A) = \min_{\tilde{A}\ \text{singolare}} \|\tilde{A} - A\|/\|A\|$.
+Matrici con $\kappa(A) \gg 1$ sono ``quasi singolari''.
+\end{prop}
+
+\begin{thm}[Condizionamento del problema LS]
+Per $\min_x \|Ax - b\|$ con $A$ a rango massimo e soluzione $x^*$:
+\begin{itemize}
+  \item Perturbazione di $b$: errore relativo proporzionale a $\kappa(A)$.
+  \item Perturbazione di $A$: errore proporzionale a $\kappa(A)^2$ se $\|r^*\|/\|b\|$ non è trascurabile.
+\end{itemize}
+Nota: $\kappa(A^\top A) = \kappa(A)^2$, confermando l'instabilità delle equazioni normali.
+\end{thm}
+
+\section{Aritmetica floating point}
+
+I numeri double-precision (IEEE 754, 64 bit) hanno struttura:
+\[
+  \underbrace{1 \text{ bit}}_{\text{segno}} \underbrace{11 \text{ bit}}_{\text{esponente}} \underbrace{52 \text{ bit}}_{\text{mantissa}}.
+\]
+\begin{itemize}
+  \item Range: $\approx [10^{-308}, 10^{308}]$.
+  \item Precisione di macchina: $u = 2^{-52} \approx 2.2 \times 10^{-16}$.
+  \item Ogni numero reale $x$ è rappresentato da $\tilde{x}$ con $|\tilde{x} - x|/|x| \leq u$.
+  \item Ogni operazione aritmetica introduce un errore relativo $\leq u$: $a \oplus b = (a+b)(1+\delta)$, $|\delta| \leq u$.
+\end{itemize}
+
+\begin{remark}[Problemi di cancellazione]
+Se si sottraggono due numeri quasi uguali, le cifre significative vengono annullate. Es.\ $1.000001 - 1.000000 = 0.000001$: con 7 cifre significative, il risultato ne ha solo 1. Algoritmi che evitano la cancellazione sono preferibili.
+\end{remark}
+
+\section{Stabilità degli algoritmi}
+\label{sec:stabilita}
+
+\begin{defn}[Backward stability]
+Un algoritmo che calcola $\tilde{y} \approx f(x)$ è \emph{backward stable} se:
+\[
+  \tilde{y} = f(\tilde{x}), \quad \frac{\|\tilde{x} - x\|}{\|x\|} = O(u).
+\]
+L'output è l'esatto risultato per un input \emph{leggermente perturbato}.
+\end{defn}
+
+\begin{thm}[Backward stability del prodotto interno]
+Sia $y = a^\top b = \sum_{i=1}^n a_i b_i$ calcolato in macchina come $\tilde{y}$. Allora:
+\[
+  \tilde{y} = \tilde{a}^\top b = a^\top \tilde{b},
+\]
+dove $\|\tilde{a} - a\| \leq nu\|a\| + O(u^2)$ e analogamente per $b$. Il prodotto interno è backward stable.
+\end{thm}
+
+\begin{proof}[Prova (sketch)]
+Ogni moltiplicazione $a_i \odot b_i = a_i b_i(1+\delta_i)$, $|\delta_i| \leq u$. Le addizioni successive introducono ulteriori errori. Un'analisi rigorosa mostra che l'errore accumulato soddisfa:
+\[
+  |\tilde{y} - y| \leq nu \sum_i |a_i b_i| + O(u^2) \leq nu \|a\|_1\|b\|_\infty.
+\]
+L'algoritmo può essere visto come il calcolo esatto di $\tilde{a}^\top b$ con $\tilde{a}_i = a_i(1+\varepsilon_i)$, $|\varepsilon_i| \leq (2i-1)u$: backward stable.
+\end{proof}
+
+\begin{example}[Prodotto interno di vettori lunghi]
+Con $n = 1000$ e $u \approx 10^{-16}$: l'errore relativo del prodotto interno è $\leq 1000 \cdot 10^{-16} = 10^{-13}$. Ancora molto piccolo! Il prodotto interno è numericamente robusto.
+\end{example}
+
+\begin{thm}[Backward stability di Householder QR]
+La fattorizzazione QR tramite riflettori di Householder è backward stable: $\tilde{Q}\tilde{R} = A + E$ con $\|E\| = O(u\|A\|)$.
+\end{thm}
+
+\begin{warningbox}
+Il metodo di Gram-Schmidt classico \textbf{non} è backward stable: gli errori di cancellazione possono rendere le colonne di $Q$ non ortogonali. Gram-Schmidt modificato è meglio, ma Householder rimane il metodo preferito.
+\end{warningbox}
+
+\subsection{Test a posteriori: analisi del residuo}
+
+\begin{thm}[Residual bound per sistemi lineari]
+Dato $\tilde{x} \approx A^{-1}b$ con residuo $r = A\tilde{x} - b$:
+\[
+  \frac{\|\tilde{x} - x^*\|}{\|x^*\|} \leq \kappa(A) \cdot \frac{\|r\|}{\|b\|}.
+\]
+\end{thm}
+
+Se $\|r\|/\|b\| = O(u)$ (residuo piccolo in machine precision), allora l'algoritmo è backward stable. Ma l'errore forward può ancora essere grande se $\kappa(A) \gg 1$.
+
+%------------------------------------------------------------
+\chapter{Fattorizzazione QR}
+%------------------------------------------------------------
+
+\section{Definizione e teorema}
+
+\begin{thm}[Fattorizzazione QR]
+Per ogni $A \in \R^{m \times n}$ con $m \geq n$, esistono:
+\begin{itemize}
+  \item $Q \in \R^{m \times m}$ ortogonale.
+  \item $R \in \R^{m \times n}$ triangolare superiore.
+\end{itemize}
+tali che $A = QR$. La \emph{thin QR} è $A = \hat{Q}R$ con $\hat{Q} \in \R^{m \times n}$ (colonne ortonormali) e $R \in \R^{n \times n}$ triangolare superiore.
+\end{thm}
+
+\section{Riflettori di Householder}
+\label{sec:householder}
+
+Il metodo numericamente stabile per calcolare la QR.
+
+\begin{defn}[Riflettore di Householder]
+Dato un vettore $v \in \R^m$, il riflettore di Householder è:
+\[
+  H = I - 2\frac{vv^\top}{\|v\|^2} \in \R^{m \times m}.
+\]
+$H$ è simmetrica e ortogonale ($H = H^\top$, $H^2 = I$). Riflette rispetto all'iperpiano ortogonale a $v$.
+\end{defn}
+
+\begin{prop}[Azzeramento di colonne]
+Dato $x \in \R^m$, si sceglie $v = x - \|x\|e_1$ (o $v = x + \|x\|e_1$ per stabilità numerica, scegliendo il segno opposto a $x_1$). Allora:
+\[
+  Hx = \|x\|\, e_1 = (\|x\|, 0, \ldots, 0)^\top.
+\]
+Questo azzerava tutti gli elementi sotto il primo.
+\end{prop}
+
+\begin{algobox}[Fattorizzazione QR via Householder]
+Per $j = 1, \ldots, n$:
+\begin{enumerate}
+  \item Considera $x = A_{j:m, j}$ (colonna corrente a partire dalla diagonale).
+  \item Costruisci $v_j$ tale che $H_j x = \|x\| e_1$.
+  \item Aggiorna: $A \leftarrow H_j A$ (applica il riflettore all'intera matrice).
+\end{enumerate}
+Alla fine: $H_n \cdots H_1 A = R$ (triangolare sup.), quindi $Q = H_1 \cdots H_n$.
+\textbf{Costo}: $2mn^2 - \frac{2}{3}n^3$ flop.
+\end{algobox}
+
+\begin{thm}[Backward stability della QR]
+La fattorizzazione QR calcolata con riflettori di Householder soddisfa:
+\[
+  \tilde{Q}\tilde{R} = A + \Delta A, \quad \frac{\|\Delta A\|_F}{\|A\|_F} = O(u),
+\]
+dove $u \approx 2.2 \times 10^{-16}$ è la precisione di macchina. La QR di Householder è \emph{backward stable}.
+\end{thm}
+
+\section{Soluzione dei minimi quadrati con QR}
+
+Con la thin QR $A = \hat{Q}R$:
+\[
+  \|Ax - b\|^2 = \|\hat{Q}Rx - b\|^2 = \|Rx - \hat{Q}^\top b\|^2 + \|(I - \hat{Q}\hat{Q}^\top)b\|^2.
+\]
+Il secondo termine non dipende da $x$. Quindi si risolve il sistema triangolare:
+\[
+  Rx^* = \hat{Q}^\top b.
+\]
+\textbf{Costo totale}: QR in $O(mn^2)$, risoluzione $Rx = c$ in $O(n^2)$.
+
+\begin{warningbox}
+Le \emph{equazioni normali} $A^\top Ax = A^\top b$ risolte con Cholesky hanno costo simile, ma l'errore numerico è proporzionale a $\kappa(A)^2$ anziché $\kappa(A)$. Preferire QR per problemi mal condizionati.
+\end{warningbox}
+
+%------------------------------------------------------------
+\chapter{Decomposizione a Valori Singolari (SVD)}
+\label{sec:svd}
+%------------------------------------------------------------
+
+\section{Definizione e proprietà}
+
+\begin{thm}[SVD — Singular Value Decomposition]
+Per ogni $A \in \R^{m \times n}$ (con $m \geq n$), esistono:
+\begin{itemize}
+  \item $U \in \R^{m \times m}$ ortogonale (vettori singolari sinistri).
+  \item $V \in \R^{n \times n}$ ortogonale (vettori singolari destri).
+  \item $\Sigma = \diag(\sigma_1, \ldots, \sigma_n) \in \R^{m \times n}$ con $\sigma_1 \geq \sigma_2 \geq \cdots \geq \sigma_n \geq 0$.
+\end{itemize}
+tali che $A = U \Sigma V^\top$.
+\end{thm}
+
+\begin{proof}[Prova per $A$ quadrata]
+La matrice $A^\top A$ è simmetrica semidefinita positiva. Sia $A^\top A = V D V^\top$ la sua decomposizione spettrale con $D = \diag(\sigma_1^2, \ldots, \sigma_n^2)$, $\sigma_i \geq 0$. Poniamo $\Sigma = \sqrt{D}$ e $U_r = AV_r \Sigma_r^{-1}$ (vettori singolari sinistri per i valori singolari non nulli). Si verifica che $U_r^\top U_r = \Sigma_r^{-1} V_r^\top A^\top A V_r \Sigma_r^{-1} = I$, e completando $U_r$ a una base ortonormale si ottiene $U$.
+\end{proof}
+
+\begin{defn}[SVD thin/ridotta]
+Per $A \in \R^{m \times n}$ con $m \geq n$, la \emph{thin SVD} è $A = \hat{U} \Sigma V^\top$ con $\hat{U} \in \R^{m \times n}$ (colonne ortonormali). Sufficiente per la maggior parte delle applicazioni.
+\end{defn}
+
+\begin{thm}[Sottospazi fondamentali]
+Dalla SVD $A = U\Sigma V^\top$ con $\rank A = r$:
+\begin{itemize}
+  \item $\mathrm{Im}(A) = \mathrm{span}(u_1, \ldots, u_r)$ (prime $r$ colonne di $U$).
+  \item $\ker(A) = \mathrm{span}(v_{r+1}, \ldots, v_n)$ (ultimi $n-r$ colonne di $V$).
+  \item $\mathrm{Im}(A^\top) = \mathrm{span}(v_1, \ldots, v_r)$.
+  \item $\ker(A^\top) = \mathrm{span}(u_{r+1}, \ldots, u_m)$.
+\end{itemize}
+\end{thm}
+
+\begin{defn}[Pseudoinversa di Moore-Penrose]
+$A^+ = V \Sigma^+ U^\top$, dove $\Sigma^+ = \diag(\sigma_1^{-1}, \ldots, \sigma_r^{-1}, 0, \ldots, 0)$.
+\end{defn}
+
+\section{Teorema di Eckart-Young (approssimazione di basso rango)}
+\label{sec:eckart-young}
+
+\begin{thm}[Eckart-Young, 1936]
+Sia $A = U\Sigma V^\top$ e sia $A_k = \sum_{i=1}^k \sigma_i u_i v_i^\top$ il \emph{troncamento al rango $k$}. Allora:
+\[
+  \|A - A_k\|_2 = \sigma_{k+1}, \quad \|A - A_k\|_F = \sqrt{\sigma_{k+1}^2 + \cdots + \sigma_n^2},
+\]
+e $A_k$ è il miglior approssimante di rango $\leq k$ di $A$ in entrambe le norme.
+\end{thm}
+
+\begin{intuition}
+$A_k$ cattura le $k$ ``direzioni principali'' di $A$ (quelle con maggiore varianza/energia). Fondamentale per: PCA, compressione di immagini, sistemi di raccomandazione.
+\end{intuition}
+
+\begin{example}[Matrice dei voti studenti]
+$A \in \R^{s \times t}$ con $A_{ij}$ = voto dello studente $i$ al test $j$. Se $A \approx A_1 = \sigma_1 u_1 v_1^\top$ (rango 1), allora $A_{ij} \approx \sigma_1 (u_1)_i (v_1)_j$: il voto è prodotto di una ``abilità'' dello studente per una ``difficoltà'' del test. Se $A \approx A_2$, ci sono due ``dimensioni'' di abilità.
+\end{example}
+
+%------------------------------------------------------------
+\chapter{Norme e Matrici Ortogonali}
+%------------------------------------------------------------
+
+\section{Norme vettoriali}
+
+\begin{defn}
+La famiglia delle \emph{$p$-norme}: $\|x\|_p = \left(\sum_i |x_i|^p\right)^{1/p}$ per $p \geq 1$. La norma euclidea è $\|\cdot\|_2$; la norma $\|\cdot\|_\infty = \max_i |x_i|$; la norma $\|\cdot\|_1 = \sum_i |x_i|$.
+\end{defn}
+
+\section{Matrici ortogonali}
+
+\begin{defn}
+$U \in \R^{m \times m}$ è \emph{ortogonale} se $U^\top U = UU^\top = I$.
+\end{defn}
+
+\begin{prop}
+Le matrici ortogonali preservano la norma euclidea: $\|Ux\|_2 = \|x\|_2$.
+Conseguenza: i valori singolari di $UA$ e $AV$ (con $U, V$ ortogonali) coincidono con quelli di $A$.
+\end{prop}
+
+\section{Norme di matrici}
+\label{sec:norme-matrici}
+
+\begin{defn}[Norma indotta]
+La norma di matrice indotta dalla norma vettoriale $\|\cdot\|$ è:
+\[
+  \|A\| = \max_{\|x\|=1} \|Ax\| = \max_{x \neq 0} \frac{\|Ax\|}{\|x\|}.
+\]
+\end{defn}
+
+\begin{thm}[Norma spettrale]
+La norma indotta dalla norma euclidea è la \emph{norma spettrale}:
+\[
+  \|A\|_2 = \sigma_1(A) = \max_i \sigma_i(A).
+\]
+Per matrici ortogonali: $\|Q_1 A Q_2\|_2 = \|A\|_2$ (invarianza unitaria).
+\end{thm}
+
+\begin{defn}[Norma di Frobenius]
+$\|A\|_F = \sqrt{\sum_{i,j} A_{ij}^2} = \sqrt{\sum_i \sigma_i^2}$. Anche la norma di Frobenius è unitariamente invariante.
+\end{defn}
+
+%------------------------------------------------------------
+
+%============================================================
+\part{Livello 5 --- Il Resto del Corso}
+\label{part:L5}
+%============================================================
+% Contenuto: richiami di algebra lineare, GMRES/Arnoldi (non necessari per
+% il progetto ma parte del corso), norme, fondamenti.
+% Fonte: NLA/0,1,17,18
+
+\chapter{Background: Algebra Lineare}
+%------------------------------------------------------------
+
+\section{Prodotto matriciale e interpretazioni}
+
+\begin{remark}[Costo computazionale]
+Prodotto $Av$ con $A \in \R^{m \times n}$: $O(mn)$ flop. Prodotto $AB$ con $B \in \R^{n \times p}$: $O(mnp)$. \textbf{Regola fondamentale}: $A(Bv)$ costa $O(mn + np)$, mentre $(AB)v$ costa $O(mnp + mp)$ — non formare mai esplicitamente $AB$ se si vuole solo $ABv$.
+\end{remark}
+
+\section{Sistemi triangolari}
+
+Un sistema $Lx = b$ con $L$ triangolare inferiore si risolve con \emph{forward substitution} in $O(n^2)$; $Ux = b$ con $U$ triangolare superiore con \emph{back substitution}.
+
+\begin{warningbox}
+Non calcolare mai $A^{-1}$ esplicitamente per risolvere $Ax = b$: il costo è $O(n^3)$ (come LU) ma il risultato è meno accurato. Usare \texttt{A\textbackslash b} in Matlab o \texttt{np.linalg.solve} in Python.
+\end{warningbox}
+
+\section{Autovalori e forme quadratiche}
+
+\begin{thm}[Teorema spettrale]
+Ogni $A = A^\top \in \R^{n \times n}$ si decompone come $A = Q\Lambda Q^\top$ con $Q$ ortogonale, $\Lambda = \diag(\lambda_1, \ldots, \lambda_n)$, $\lambda_i \in \R$.
+\end{thm}
+
+\begin{defn}[Definitezza]
+$Q \succ 0$ (definita positiva) $\Leftrightarrow$ $\lambda_i > 0$ per ogni $i$ $\Leftrightarrow$ $x^\top Qx > 0$ per ogni $x \neq 0$.
+\end{defn}
+
+\begin{prop}
+Per ogni $A \in \R^{m \times n}$: $A^\top A \succeq 0$. Se $A$ ha rango massimo ($\rank A = n \leq m$): $A^\top A \succ 0$.
+\end{prop}
+
+%------------------------------------------------------------
+
+%============================================================
+\part{Livello 6 --- Distante dal Progetto}
+\label{part:L6}
+%============================================================
+% Contenuto: problemi semplici (Golden Section, Newton 1D), ottimizzazione
+% vincolata (KKT, dualita', barrier), ottimizzazione univariata.
+% Fonte: OPT/0,1,2,6,7
+
+\chapter{Semplici Problemi di Ottimizzazione}
+%------------------------------------------------------------
+
+\section{Formulazione generale}
+
+\begin{defn}[Problema di ottimizzazione]
+Dato un insieme \emph{ammissibile} $S \subseteq \R^n$ e una funzione \emph{obiettivo} $f: S \to \R$, il problema è:
+\[
+  f^* = \min_{x \in S} f(x).
+\]
+Un punto $x^* \in S$ tale che $f(x^*) = f^*$ è una \emph{soluzione ottima} (o \emph{minimizzatore}).
+\end{defn}
+
+\begin{remark}
+Il valore ottimo $f^*$ è unico se esiste, ma possono esistere più minimizzatori $x^*$. Massimizzare $g(x)$ equivale a minimizzare $f(x) = -g(x)$. Un punto $x_\eps$ è una \emph{soluzione $\eps$-ottima} se $f(x_\eps) \leq f^* + \eps$.
+\end{remark}
+
+\subsection{Minimi locali vs globali}
+
+\begin{defn}
+$x^*$ è un \emph{minimo locale} se esiste $\delta > 0$ tale che $f(x^*) \leq f(x)$ per ogni $x \in S$ con $\|x - x^*\| \leq \delta$. È un \emph{minimo globale} se $f(x^*) \leq f(x)$ per ogni $x \in S$.
+\end{defn}
+
+Per funzioni convesse, ogni minimo locale è globale. Per funzioni non convesse, possono esistere minimi locali che non sono globali — trovare il globale è in generale NP-difficile.
+
+%------------------------------------------------------------
+\section{Ottimizzazione univariata (1D)}
+\label{sec:univ}
+
+Il caso $n=1$ è fondamentale perché molte line search si riducono a questo.
+
+\begin{defn}[Funzione unimodale]
+$f: [a,b] \to \R$ è unimodale se esiste $x^* \in [a,b]$ tale che $f$ è strettamente decrescente su $[a, x^*]$ e strettamente crescente su $[x^*, b]$.
+\end{defn}
+
+\subsection{Golden Section Search}
+
+\begin{algobox}[Golden Section Search]
+Dato $f$ unimodale su $[a, b]$, con $\tau = (\sqrt{5}-1)/2 \approx 0.618$:
+\begin{enumerate}
+  \item $x_1 = a + (1-\tau)(b-a)$, $x_2 = a + \tau(b-a)$.
+  \item Se $f(x_1) < f(x_2)$: poni $b \leftarrow x_2$, altrimenti $a \leftarrow x_1$.
+  \item Aggiorna il punto interno rimanente senza ricalcolarlo (1 valutazione per passo).
+  \item Ripeti finché $|b-a| \leq \eps$.
+\end{enumerate}
+Dopo $k$ passi, l'intervallo si è ridotto a $(b-a) \cdot \tau^k$. Costo: $O(\log(1/\eps))$ valutazioni.
+\end{algobox}
+
+\begin{intuition}
+La scelta di $\tau = (\sqrt{5}-1)/2$ (rapporto aureo) garantisce che il punto ``risparmiato'' cada nella posizione giusta nel sotto-intervallo successivo: un'elegante proprietà di auto-similarità.
+\end{intuition}
+
+\subsection{Metodo di Newton 1D}
+
+Per $f \in C^2$, partendo da $x_0$:
+\[
+  x_{k+1} = x_k - \frac{f'(x_k)}{f''(x_k)}.
+\]
+Convergenza \emph{quadratica} ($\|e_{k+1}\| = O(\|e_k\|^2)$) vicino a una radice di $f'$ con $f''(x^*) \neq 0$.
 
 %------------------------------------------------------------
 \chapter{Ottimizzazione Vincolata}
+\label{ch:vincolata}
 %------------------------------------------------------------
 
 \section{Formulazione e topologia}
@@ -693,6 +1726,7 @@ Per il problema vincolato, un punto stazionario di $f$ su $\R^n$ potrebbe essere
 \end{remark}
 
 \section{Condizioni KKT}
+\label{sec:kkt}
 
 \subsection{Vincoli attivi e LICQ}
 
@@ -810,6 +1844,7 @@ Converge come GD standard se $f$ è smooth e convessa, $S$ è convesso.
 \end{example}
 
 \subsection{Metodo di Frank-Wolfe (Conditional Gradient)}
+\label{sec:frank-wolfe}
 
 \begin{algobox}[Frank-Wolfe]
 \begin{enumerate}
@@ -835,572 +1870,11 @@ Idea: approssima il vincolo $g(x) \leq 0$ con la \emph{funzione barriera logarit
 Si risolve una sequenza di problemi al diminuire di $t \to 0$. Il percorso delle soluzioni al variare di $t$ è detto \emph{central path}. I metodi interior point hanno complessità polinomiale e sono la scelta per LP/QP/SOCP di grande scala.
 
 %============================================================
-\part{Analisi Numerica Lineare (NLA)}
 
-%------------------------------------------------------------
-\chapter{Background: Algebra Lineare}
-%------------------------------------------------------------
+%============================================================
+% RIEPILOGO E APPENDICE
+%============================================================
 
-\section{Prodotto matriciale e interpretazioni}
-
-\begin{remark}[Costo computazionale]
-Prodotto $Av$ con $A \in \R^{m \times n}$: $O(mn)$ flop. Prodotto $AB$ con $B \in \R^{n \times p}$: $O(mnp)$. \textbf{Regola fondamentale}: $A(Bv)$ costa $O(mn + np)$, mentre $(AB)v$ costa $O(mnp + mp)$ — non formare mai esplicitamente $AB$ se si vuole solo $ABv$.
-\end{remark}
-
-\section{Sistemi triangolari}
-
-Un sistema $Lx = b$ con $L$ triangolare inferiore si risolve con \emph{forward substitution} in $O(n^2)$; $Ux = b$ con $U$ triangolare superiore con \emph{back substitution}.
-
-\begin{warningbox}
-Non calcolare mai $A^{-1}$ esplicitamente per risolvere $Ax = b$: il costo è $O(n^3)$ (come LU) ma il risultato è meno accurato. Usare \texttt{A\textbackslash b} in Matlab o \texttt{np.linalg.solve} in Python.
-\end{warningbox}
-
-\section{Autovalori e forme quadratiche}
-
-\begin{thm}[Teorema spettrale]
-Ogni $A = A^\top \in \R^{n \times n}$ si decompone come $A = Q\Lambda Q^\top$ con $Q$ ortogonale, $\Lambda = \diag(\lambda_1, \ldots, \lambda_n)$, $\lambda_i \in \R$.
-\end{thm}
-
-\begin{defn}[Definitezza]
-$Q \succ 0$ (definita positiva) $\Leftrightarrow$ $\lambda_i > 0$ per ogni $i$ $\Leftrightarrow$ $x^\top Qx > 0$ per ogni $x \neq 0$.
-\end{defn}
-
-\begin{prop}
-Per ogni $A \in \R^{m \times n}$: $A^\top A \succeq 0$. Se $A$ ha rango massimo ($\rank A = n \leq m$): $A^\top A \succ 0$.
-\end{prop}
-
-%------------------------------------------------------------
-\chapter{Norme e Matrici Ortogonali}
-%------------------------------------------------------------
-
-\section{Norme vettoriali}
-
-\begin{defn}
-La famiglia delle \emph{$p$-norme}: $\|x\|_p = \left(\sum_i |x_i|^p\right)^{1/p}$ per $p \geq 1$. La norma euclidea è $\|\cdot\|_2$; la norma $\|\cdot\|_\infty = \max_i |x_i|$; la norma $\|\cdot\|_1 = \sum_i |x_i|$.
-\end{defn}
-
-\section{Matrici ortogonali}
-
-\begin{defn}
-$U \in \R^{m \times m}$ è \emph{ortogonale} se $U^\top U = UU^\top = I$.
-\end{defn}
-
-\begin{prop}
-Le matrici ortogonali preservano la norma euclidea: $\|Ux\|_2 = \|x\|_2$.
-Conseguenza: i valori singolari di $UA$ e $AV$ (con $U, V$ ortogonali) coincidono con quelli di $A$.
-\end{prop}
-
-\section{Norme di matrici}
-
-\begin{defn}[Norma indotta]
-La norma di matrice indotta dalla norma vettoriale $\|\cdot\|$ è:
-\[
-  \|A\| = \max_{\|x\|=1} \|Ax\| = \max_{x \neq 0} \frac{\|Ax\|}{\|x\|}.
-\]
-\end{defn}
-
-\begin{thm}[Norma spettrale]
-La norma indotta dalla norma euclidea è la \emph{norma spettrale}:
-\[
-  \|A\|_2 = \sigma_1(A) = \max_i \sigma_i(A).
-\]
-Per matrici ortogonali: $\|Q_1 A Q_2\|_2 = \|A\|_2$ (invarianza unitaria).
-\end{thm}
-
-\begin{defn}[Norma di Frobenius]
-$\|A\|_F = \sqrt{\sum_{i,j} A_{ij}^2} = \sqrt{\sum_i \sigma_i^2}$. Anche la norma di Frobenius è unitariamente invariante.
-\end{defn}
-
-%------------------------------------------------------------
-\chapter{Decomposizione a Valori Singolari (SVD)}
-%------------------------------------------------------------
-
-\section{Definizione e proprietà}
-
-\begin{thm}[SVD — Singular Value Decomposition]
-Per ogni $A \in \R^{m \times n}$ (con $m \geq n$), esistono:
-\begin{itemize}
-  \item $U \in \R^{m \times m}$ ortogonale (vettori singolari sinistri).
-  \item $V \in \R^{n \times n}$ ortogonale (vettori singolari destri).
-  \item $\Sigma = \diag(\sigma_1, \ldots, \sigma_n) \in \R^{m \times n}$ con $\sigma_1 \geq \sigma_2 \geq \cdots \geq \sigma_n \geq 0$.
-\end{itemize}
-tali che $A = U \Sigma V^\top$.
-\end{thm}
-
-\begin{proof}[Prova per $A$ quadrata]
-La matrice $A^\top A$ è simmetrica semidefinita positiva. Sia $A^\top A = V D V^\top$ la sua decomposizione spettrale con $D = \diag(\sigma_1^2, \ldots, \sigma_n^2)$, $\sigma_i \geq 0$. Poniamo $\Sigma = \sqrt{D}$ e $U_r = AV_r \Sigma_r^{-1}$ (vettori singolari sinistri per i valori singolari non nulli). Si verifica che $U_r^\top U_r = \Sigma_r^{-1} V_r^\top A^\top A V_r \Sigma_r^{-1} = I$, e completando $U_r$ a una base ortonormale si ottiene $U$.
-\end{proof}
-
-\begin{defn}[SVD thin/ridotta]
-Per $A \in \R^{m \times n}$ con $m \geq n$, la \emph{thin SVD} è $A = \hat{U} \Sigma V^\top$ con $\hat{U} \in \R^{m \times n}$ (colonne ortonormali). Sufficiente per la maggior parte delle applicazioni.
-\end{defn}
-
-\begin{thm}[Sottospazi fondamentali]
-Dalla SVD $A = U\Sigma V^\top$ con $\rank A = r$:
-\begin{itemize}
-  \item $\mathrm{Im}(A) = \mathrm{span}(u_1, \ldots, u_r)$ (prime $r$ colonne di $U$).
-  \item $\ker(A) = \mathrm{span}(v_{r+1}, \ldots, v_n)$ (ultimi $n-r$ colonne di $V$).
-  \item $\mathrm{Im}(A^\top) = \mathrm{span}(v_1, \ldots, v_r)$.
-  \item $\ker(A^\top) = \mathrm{span}(u_{r+1}, \ldots, u_m)$.
-\end{itemize}
-\end{thm}
-
-\begin{defn}[Pseudoinversa di Moore-Penrose]
-$A^+ = V \Sigma^+ U^\top$, dove $\Sigma^+ = \diag(\sigma_1^{-1}, \ldots, \sigma_r^{-1}, 0, \ldots, 0)$.
-\end{defn}
-
-\section{Teorema di Eckart-Young (approssimazione di basso rango)}
-
-\begin{thm}[Eckart-Young, 1936]
-Sia $A = U\Sigma V^\top$ e sia $A_k = \sum_{i=1}^k \sigma_i u_i v_i^\top$ il \emph{troncamento al rango $k$}. Allora:
-\[
-  \|A - A_k\|_2 = \sigma_{k+1}, \quad \|A - A_k\|_F = \sqrt{\sigma_{k+1}^2 + \cdots + \sigma_n^2},
-\]
-e $A_k$ è il miglior approssimante di rango $\leq k$ di $A$ in entrambe le norme.
-\end{thm}
-
-\begin{intuition}
-$A_k$ cattura le $k$ ``direzioni principali'' di $A$ (quelle con maggiore varianza/energia). Fondamentale per: PCA, compressione di immagini, sistemi di raccomandazione.
-\end{intuition}
-
-\begin{example}[Matrice dei voti studenti]
-$A \in \R^{s \times t}$ con $A_{ij}$ = voto dello studente $i$ al test $j$. Se $A \approx A_1 = \sigma_1 u_1 v_1^\top$ (rango 1), allora $A_{ij} \approx \sigma_1 (u_1)_i (v_1)_j$: il voto è prodotto di una ``abilità'' dello studente per una ``difficoltà'' del test. Se $A \approx A_2$, ci sono due ``dimensioni'' di abilità.
-\end{example}
-
-%------------------------------------------------------------
-\chapter{Il Problema dei Minimi Quadrati}
-%------------------------------------------------------------
-
-\section{Formulazione}
-
-\begin{defn}[Least Squares]
-Dato $A \in \R^{m \times n}$ ($m \geq n$), $b \in \R^m$:
-\[
-  \min_{x \in \R^n} \|Ax - b\|_2^2.
-\]
-Se $m > n$, il sistema $Ax = b$ è sovradeterminato (più equazioni che incognite) — in generale non ha soluzione esatta.
-\end{defn}
-
-\begin{thm}[Soluzione geometrica]
-$x^*$ è soluzione LS $\Leftrightarrow$ il residuo $r^* = Ax^* - b$ è ortogonale a $\mathrm{Im}(A)$, cioè $A^\top(Ax^* - b) = 0$.
-\end{thm}
-
-\begin{intuition}
-$Ax^*$ è la \emph{proiezione ortogonale} di $b$ su $\mathrm{Im}(A)$. Il punto più vicino a $b$ nell'immagine di $A$ si trova proiettando.
-\end{intuition}
-
-\section{Equazioni normali}
-
-\begin{thm}[Equazioni normali]
-$x^*$ è soluzione LS $\Leftrightarrow$ soddisfa le \emph{equazioni normali}:
-\[
-  A^\top A x^* = A^\top b.
-\]
-\end{thm}
-
-Se $A$ ha \emph{rango massimo} ($\rank A = n$, cioè $A^\top A \succ 0$), la soluzione è unica: $x^* = (A^\top A)^{-1} A^\top b$.
-
-\section{Soluzione via SVD}
-
-Dalla thin SVD $A = \hat{U}\Sigma V^\top$, la soluzione di norma minima è:
-\[
-  x^* = A^+ b = V \Sigma^+ \hat{U}^\top b = \sum_{i=1}^r \frac{\hat{u}_i^\top b}{\sigma_i} v_i.
-\]
-
-\begin{remark}[Valori singolari piccoli e regolarizzazione]
-Se $A$ ha valori singolari piccoli, la soluzione $x^*$ è amplificata enormemente. La \emph{regolarizzazione di Tikhonov} (ridge regression) modifica il problema:
-\[
-  \min_x \|Ax - b\|^2 + \delta\|x\|^2 \quad \Rightarrow \quad x_\delta = (A^\top A + \delta I)^{-1} A^\top b = V \, \mathrm{diag}\!\left(\frac{\sigma_i}{\sigma_i^2 + \delta}\right) \hat{U}^\top b.
-\]
-Per $\delta > 0$, i valori singolari piccoli vengono smorzati: $\sigma_i/(\sigma_i^2 + \delta) \approx 1/\delta$ se $\sigma_i \ll \sqrt{\delta}$.
-\end{remark}
-
-%------------------------------------------------------------
-\chapter{Fattorizzazione QR}
-%------------------------------------------------------------
-
-\section{Definizione e teorema}
-
-\begin{thm}[Fattorizzazione QR]
-Per ogni $A \in \R^{m \times n}$ con $m \geq n$, esistono:
-\begin{itemize}
-  \item $Q \in \R^{m \times m}$ ortogonale.
-  \item $R \in \R^{m \times n}$ triangolare superiore.
-\end{itemize}
-tali che $A = QR$. La \emph{thin QR} è $A = \hat{Q}R$ con $\hat{Q} \in \R^{m \times n}$ (colonne ortonormali) e $R \in \R^{n \times n}$ triangolare superiore.
-\end{thm}
-
-\section{Riflettori di Householder}
-
-Il metodo numericamente stabile per calcolare la QR.
-
-\begin{defn}[Riflettore di Householder]
-Dato un vettore $v \in \R^m$, il riflettore di Householder è:
-\[
-  H = I - 2\frac{vv^\top}{\|v\|^2} \in \R^{m \times m}.
-\]
-$H$ è simmetrica e ortogonale ($H = H^\top$, $H^2 = I$). Riflette rispetto all'iperpiano ortogonale a $v$.
-\end{defn}
-
-\begin{prop}[Azzeramento di colonne]
-Dato $x \in \R^m$, si sceglie $v = x - \|x\|e_1$ (o $v = x + \|x\|e_1$ per stabilità numerica, scegliendo il segno opposto a $x_1$). Allora:
-\[
-  Hx = \|x\|\, e_1 = (\|x\|, 0, \ldots, 0)^\top.
-\]
-Questo azzerava tutti gli elementi sotto il primo.
-\end{prop}
-
-\begin{algobox}[Fattorizzazione QR via Householder]
-Per $j = 1, \ldots, n$:
-\begin{enumerate}
-  \item Considera $x = A_{j:m, j}$ (colonna corrente a partire dalla diagonale).
-  \item Costruisci $v_j$ tale che $H_j x = \|x\| e_1$.
-  \item Aggiorna: $A \leftarrow H_j A$ (applica il riflettore all'intera matrice).
-\end{enumerate}
-Alla fine: $H_n \cdots H_1 A = R$ (triangolare sup.), quindi $Q = H_1 \cdots H_n$.
-\textbf{Costo}: $2mn^2 - \frac{2}{3}n^3$ flop.
-\end{algobox}
-
-\begin{thm}[Backward stability della QR]
-La fattorizzazione QR calcolata con riflettori di Householder soddisfa:
-\[
-  \tilde{Q}\tilde{R} = A + \Delta A, \quad \frac{\|\Delta A\|_F}{\|A\|_F} = O(u),
-\]
-dove $u \approx 2.2 \times 10^{-16}$ è la precisione di macchina. La QR di Householder è \emph{backward stable}.
-\end{thm}
-
-\section{Soluzione dei minimi quadrati con QR}
-
-Con la thin QR $A = \hat{Q}R$:
-\[
-  \|Ax - b\|^2 = \|\hat{Q}Rx - b\|^2 = \|Rx - \hat{Q}^\top b\|^2 + \|(I - \hat{Q}\hat{Q}^\top)b\|^2.
-\]
-Il secondo termine non dipende da $x$. Quindi si risolve il sistema triangolare:
-\[
-  Rx^* = \hat{Q}^\top b.
-\]
-\textbf{Costo totale}: QR in $O(mn^2)$, risoluzione $Rx = c$ in $O(n^2)$.
-
-\begin{warningbox}
-Le \emph{equazioni normali} $A^\top Ax = A^\top b$ risolte con Cholesky hanno costo simile, ma l'errore numerico è proporzionale a $\kappa(A)^2$ anziché $\kappa(A)$. Preferire QR per problemi mal condizionati.
-\end{warningbox}
-
-%------------------------------------------------------------
-\chapter{Condizionamento e Stabilità}
-%------------------------------------------------------------
-
-\section{Numero di condizionamento}
-
-\begin{defn}[Numero di condizionamento assoluto e relativo]
-Per $f: \R^m \to \R^n$:
-\[
-  \kappa_{\mathrm{abs}}(f, x) = \lim_{\delta \to 0} \sup_{\|d\| \leq \delta} \frac{\|f(x+d) - f(x)\|}{\|d\|}, \quad
-  \kappa_{\mathrm{rel}}(f, x) = \kappa_{\mathrm{abs}} \cdot \frac{\|x\|}{\|f(x)\|}.
-\]
-\end{defn}
-
-\begin{thm}[Numero di condizionamento di un sistema lineare]
-Per $f(b) = A^{-1}b$ (risolvere $Ax = b$):
-\[
-  \boxed{\kappa(A) = \|A\| \cdot \|A^{-1}\| = \frac{\sigma_1}{\sigma_n}}.
-\]
-Perturbando $b$ di $\delta b$: $\frac{\|\delta x\|}{\|x\|} \leq \kappa(A) \frac{\|\delta b\|}{\|b\|}$.
-\end{thm}
-
-\begin{intuition}
-$\kappa(A) \gg 1$: problema \emph{mal condizionato}. Se $\kappa(A) = 10^6$ e $b$ ha un errore relativo di $10^{-12}$ (precisione di macchina), la soluzione $x$ ha un errore relativo di $\approx 10^{-6}$: si perdono 6 cifre decimali.
-\end{intuition}
-
-\begin{prop}[Distanza dalla singolarità]
-$1/\kappa(A) = \min_{\tilde{A}\ \text{singolare}} \|\tilde{A} - A\|/\|A\|$.
-Matrici con $\kappa(A) \gg 1$ sono ``quasi singolari''.
-\end{prop}
-
-\begin{thm}[Condizionamento del problema LS]
-Per $\min_x \|Ax - b\|$ con $A$ a rango massimo e soluzione $x^*$:
-\begin{itemize}
-  \item Perturbazione di $b$: errore relativo proporzionale a $\kappa(A)$.
-  \item Perturbazione di $A$: errore proporzionale a $\kappa(A)^2$ se $\|r^*\|/\|b\|$ non è trascurabile.
-\end{itemize}
-Nota: $\kappa(A^\top A) = \kappa(A)^2$, confermando l'instabilità delle equazioni normali.
-\end{thm}
-
-\section{Aritmetica floating point}
-
-I numeri double-precision (IEEE 754, 64 bit) hanno struttura:
-\[
-  \underbrace{1 \text{ bit}}_{\text{segno}} \underbrace{11 \text{ bit}}_{\text{esponente}} \underbrace{52 \text{ bit}}_{\text{mantissa}}.
-\]
-\begin{itemize}
-  \item Range: $\approx [10^{-308}, 10^{308}]$.
-  \item Precisione di macchina: $u = 2^{-52} \approx 2.2 \times 10^{-16}$.
-  \item Ogni numero reale $x$ è rappresentato da $\tilde{x}$ con $|\tilde{x} - x|/|x| \leq u$.
-  \item Ogni operazione aritmetica introduce un errore relativo $\leq u$: $a \oplus b = (a+b)(1+\delta)$, $|\delta| \leq u$.
-\end{itemize}
-
-\begin{remark}[Problemi di cancellazione]
-Se si sottraggono due numeri quasi uguali, le cifre significative vengono annullate. Es.\ $1.000001 - 1.000000 = 0.000001$: con 7 cifre significative, il risultato ne ha solo 1. Algoritmi che evitano la cancellazione sono preferibili.
-\end{remark}
-
-\section{Stabilità degli algoritmi}
-
-\begin{defn}[Backward stability]
-Un algoritmo che calcola $\tilde{y} \approx f(x)$ è \emph{backward stable} se:
-\[
-  \tilde{y} = f(\tilde{x}), \quad \frac{\|\tilde{x} - x\|}{\|x\|} = O(u).
-\]
-L'output è l'esatto risultato per un input \emph{leggermente perturbato}.
-\end{defn}
-
-\begin{thm}[Backward stability del prodotto interno]
-Sia $y = a^\top b = \sum_{i=1}^n a_i b_i$ calcolato in macchina come $\tilde{y}$. Allora:
-\[
-  \tilde{y} = \tilde{a}^\top b = a^\top \tilde{b},
-\]
-dove $\|\tilde{a} - a\| \leq nu\|a\| + O(u^2)$ e analogamente per $b$. Il prodotto interno è backward stable.
-\end{thm}
-
-\begin{proof}[Prova (sketch)]
-Ogni moltiplicazione $a_i \odot b_i = a_i b_i(1+\delta_i)$, $|\delta_i| \leq u$. Le addizioni successive introducono ulteriori errori. Un'analisi rigorosa mostra che l'errore accumulato soddisfa:
-\[
-  |\tilde{y} - y| \leq nu \sum_i |a_i b_i| + O(u^2) \leq nu \|a\|_1\|b\|_\infty.
-\]
-L'algoritmo può essere visto come il calcolo esatto di $\tilde{a}^\top b$ con $\tilde{a}_i = a_i(1+\varepsilon_i)$, $|\varepsilon_i| \leq (2i-1)u$: backward stable.
-\end{proof}
-
-\begin{example}[Prodotto interno di vettori lunghi]
-Con $n = 1000$ e $u \approx 10^{-16}$: l'errore relativo del prodotto interno è $\leq 1000 \cdot 10^{-16} = 10^{-13}$. Ancora molto piccolo! Il prodotto interno è numericamente robusto.
-\end{example}
-
-\begin{thm}[Backward stability di Householder QR]
-La fattorizzazione QR tramite riflettori di Householder è backward stable: $\tilde{Q}\tilde{R} = A + E$ con $\|E\| = O(u\|A\|)$.
-\end{thm}
-
-\begin{warningbox}
-Il metodo di Gram-Schmidt classico \textbf{non} è backward stable: gli errori di cancellazione possono rendere le colonne di $Q$ non ortogonali. Gram-Schmidt modificato è meglio, ma Householder rimane il metodo preferito.
-\end{warningbox}
-
-\subsection{Test a posteriori: analisi del residuo}
-
-\begin{thm}[Residual bound per sistemi lineari]
-Dato $\tilde{x} \approx A^{-1}b$ con residuo $r = A\tilde{x} - b$:
-\[
-  \frac{\|\tilde{x} - x^*\|}{\|x^*\|} \leq \kappa(A) \cdot \frac{\|r\|}{\|b\|}.
-\]
-\end{thm}
-
-Se $\|r\|/\|b\| = O(u)$ (residuo piccolo in machine precision), allora l'algoritmo è backward stable. Ma l'errore forward può ancora essere grande se $\kappa(A) \gg 1$.
-
-%------------------------------------------------------------
-\chapter{Metodi Iterativi per Sistemi Lineari}
-%------------------------------------------------------------
-
-\section{Motivazione: sistemi sparsi di grande scala}
-
-Per $n = 10^5$--$10^7$: LU richiede $O(n^3) \gg 10^{15}$ flop — completamente impraticabile. Ma spesso la matrice è \emph{sparsa}: $\mathrm{nnz}(A) \ll n^2$ (es.\ $O(n)$ nonzeri per riga). Il prodotto $Av$ ha allora costo $O(\mathrm{nnz}(A))$.
-
-I \emph{metodi iterativi di Krylov} sfruttano questa struttura: ogni passo richiede solo un prodotto matrice-vettore.
-
-\section{Spazi di Krylov}
-
-\begin{defn}
-$\mathcal{K}_k(A, b) = \mathrm{span}(b, Ab, A^2b, \ldots, A^{k-1}b) \subseteq \R^n$.
-\end{defn}
-
-\begin{prop}
-$x_k = q_{k-1}(A)b$ per qualche polinomio $q_{k-1}$ di grado $\leq k-1$. I metodi di Krylov scelgono $q_{k-1}$ in modo ottimale rispetto a qualche criterio.
-\end{prop}
-
-\section{Gradiente Coniugato per sistemi SPD}
-
-CG (già visto nell'ottimizzazione) risolve $Qx = v$ con $Q \succ 0$:
-
-\begin{thm}[Convergenza CG]
-\[
-  \frac{\|x_k - x^*\|_Q}{\|x_0 - x^*\|_Q} \leq 2\left(\frac{\sqrt{\kappa(Q)}-1}{\sqrt{\kappa(Q)}+1}\right)^k.
-\]
-Se $Q$ ha $m$ autovalori distinti, CG converge in esattamente $m$ passi. Per autovalori \emph{raggruppati} (clustered), la convergenza è rapida: il polinomio di Chebyshev approssima bene la ``forma'' dello spettro.
-\end{thm}
-
-\subsection{Precondizionamento}
-
-\begin{defn}[Preconditioned CG]
-$P \approx Q$ invertibile, $P \succ 0$. Si risolve $P^{-1}Qx = P^{-1}v$, che ha lo stesso spettro ``rimodellato''.
-\end{defn}
-
-La convergenza dipende da $\kappa(P^{-1}Q) \ll \kappa(Q)$. Scelte comuni:
-\begin{itemize}
-  \item $P = \diag(Q)$ (Jacobi): semplice, smorzamento delle scale.
-  \item $P = $ fattore di Cholesky incompleto (ICC): più efficace.
-  \item $P = $ ILUTP per sistemi non simmetrici.
-\end{itemize}
-
-\section{Algoritmo di Arnoldi}
-
-Per sistemi non simmetrici, si costruisce una base ortonormale di $\mathcal{K}_k(A, b)$ stabilmente.
-
-\begin{algobox}[Arnoldi]
-$q_1 = b/\|b\|$. Per $j = 1, \ldots, k$:
-\begin{enumerate}
-  \item $w = Aq_j$.
-  \item Per $i = 1, \ldots, j$: $h_{ij} = q_i^\top w$; $w \leftarrow w - h_{ij} q_i$ (ortogonalizzazione).
-  \item $h_{j+1,j} = \|w\|$; se $h_{j+1,j} = 0$: STOP (breakdown). Altrimenti $q_{j+1} = w/h_{j+1,j}$.
-\end{enumerate}
-\end{algobox}
-
-\begin{thm}[Fattorizzazione di Arnoldi]
-Dopo $k$ passi: $AQ_k = Q_{k+1} H_k$, dove:
-\begin{itemize}
-  \item $Q_k = [q_1, \ldots, q_k] \in \R^{n \times k}$ ha colonne ortonormali.
-  \item $H_k \in \R^{(k+1) \times k}$ è una matrice di Hessenberg superiore.
-\end{itemize}
-\end{thm}
-
-\begin{intuition}
-Arnoldi è Gram-Schmidt applicato alle potenze di $A$: costruisce una base ortogonale senza formare esplicitamente $[b, Ab, \ldots, A^{k-1}b]$ (che sarebbero numericamente instabili per potenze elevate).
-\end{intuition}
-
-\begin{remark}[Caso simmetrico: Lanczos]
-Se $A = A^\top$, la matrice $H_k$ è simmetrica tridiagonale. L'algoritmo si semplifica nella ricorrenza di Lanczos: ogni passo richiede solo 2 prodotti matrice-vettore e la memorizzazione di 3 vettori (invece di $k$ per Arnoldi). Si ricade nel metodo CG per sistemi SPD.
-\end{remark}
-
-\section{GMRES}
-
-\begin{defn}[GMRES — Generalized Minimal Residual]
-Al passo $k$, GMRES trova la migliore approssimazione nello spazio di Krylov rispetto al residuo:
-\[
-  x_k = \argmin_{x \in x_0 + \mathcal{K}_k(A, r_0)} \|Ax - b\|.
-\]
-\end{defn}
-
-\begin{algobox}[GMRES]
-\begin{enumerate}
-  \item Esegui $k$ passi di Arnoldi su $(A, r_0)$: ottieni $Q_{k+1}$, $H_k$.
-  \item Nota che $r_k = Ax_k - b = Q_{k+1}(H_k z_k - \|r_0\|e_1)$ con $x_k = x_0 + Q_k z_k$.
-  \item Risolvi il piccolo problema LS: $z_k = \argmin_z \|H_k z - \|r_0\|e_1\|$ (costo $O(k^2)$).
-  \item Soluzione: $x_k = x_0 + Q_k z_k$.
-\end{enumerate}
-Il residuo si calcola come by-product dalla fattorizzazione QR di $H_k$ (aggiornata a ogni passo).
-\end{algobox}
-
-\begin{thm}[Convergenza GMRES]
-Se $A = V\Lambda V^{-1}$ (diagonalizzabile), allora:
-\[
-  \frac{\|r_k\|}{\|r_0\|} \leq \kappa(V) \min_{p \in \mathcal{P}_k,\, p(0)=1} \max_{\lambda_i} |p(\lambda_i)|,
-\]
-dove $\mathcal{P}_k$ è l'insieme dei polinomi di grado $\leq k$. Il termine $\kappa(V)$ misura quanto $A$ ``non è normale''.
-\end{thm}
-
-\begin{intuition}
-GMRES converge rapidamente se gli autovalori di $A$ sono \emph{raggruppati} in pochi cluster: il polinomio ottimale può essere piccolo su tutti gli autovalori con poche ``radici'' (una per cluster). Se $A$ ha autovalori ben separati, la convergenza è lenta.
-
-\textbf{Breakdown fortunato}: se $\|w\| = 0$ in Arnoldi, allora $Ax = b$ ha una soluzione esatta nel Krylov — GMRES ha trovato la soluzione!
-\end{intuition}
-
-\begin{warningbox}
-GMRES ha costo crescente per iterazione: $O(k^2)$ per la fattorizzazione QR di $H_k$ e $O(kn)$ per lo storage. Si usa \emph{restarted GMRES}: dopo $m$ passi si ricomincia da $x_m$. Il costo diventa $O(mn)$ per ciclo, ma la convergenza può rallentare.
-\end{warningbox}
-
-%------------------------------------------------------------
-\chapter{Fattorizzazioni Dirette per Sistemi Lineari}
-%------------------------------------------------------------
-
-\section{Fattorizzazione LU}
-
-\begin{thm}[LU con pivoting parziale]
-Per ogni $A \in \R^{n \times n}$, con un'opportuna matrice di permutazione $P$:
-\[
-  PA = LU,
-\]
-con $L$ triangolare inferiore con diagonale unitaria ($|L_{ij}| \leq 1$), $U$ triangolare superiore. \textbf{Costo}: $\frac{2}{3}n^3$ flop.
-\end{thm}
-
-\begin{intuition}
-LU è la fattorizzazione dell'eliminazione gaussiana. Il pivoting parziale (scegliere il pivot come l'elemento di modulo massimo nella colonna corrente) garantisce la stabilità numerica: $|L_{ij}| \leq 1$ previene la crescita degli errori di arrotondamento.
-\end{intuition}
-
-\begin{algobox}[Risoluzione via LU]
-Per $Ax = b$ con $PA = LU$:
-\begin{enumerate}
-  \item Permuta: $\tilde{b} = Pb$.
-  \item Forward substitution: $Ly = \tilde{b}$, $O(n^2)$.
-  \item Back substitution: $Ux = y$, $O(n^2)$.
-\end{enumerate}
-Costo totale: $\frac{2}{3}n^3$ (fattorizzazione) + $2n^2$ (soluzione). Stessa fattorizzazione per più termini noti.
-\end{algobox}
-
-\begin{thm}[Backward stability di LU con pivoting]
-LU con pivoting parziale è backward stable: $\tilde{L}\tilde{U} = PA + E$ con $\|E\| = O(u\|A\|)$ (tipicamente — casi patologici esistono ma sono rari in pratica).
-\end{thm}
-
-\section{Fattorizzazione $LDL^\top$ per matrici simmetriche}
-
-Per $M = M^\top$, l'eliminazione simmetrica produce $M = LDL^\top$: costo $\frac{1}{3}n^3$ (metà di LU pieno sfruttando la simmetria). Il pivoting di Bunch-Kaufman usa blocchi $1 \times 1$ e $2 \times 2$ in $D$ per stabilità.
-
-\section{Fattorizzazione di Cholesky}
-
-\begin{thm}[Cholesky]
-Se $M = M^\top \succ 0$, esiste un'unica $R$ triangolare superiore con diagonale positiva tale che $M = R^\top R$. \textbf{Costo}: $\frac{1}{3}n^3$ — metà di LU!
-\end{thm}
-
-\begin{prop}
-$M \succ 0 \Leftrightarrow$ tutti i pivot dell'eliminazione di Cholesky sono positivi. Quindi Cholesky può servire come test di definitezza positiva (se fallisce, $M \not\succ 0$).
-\end{prop}
-
-\begin{algobox}[Risoluzione con Cholesky]
-Per $Mx = b$ con $M \succ 0$:
-\begin{enumerate}
-  \item Calcola $R = \mathrm{chol}(M)$, $\frac{1}{3}n^3$.
-  \item Forward: $R^\top y = b$, $O(n^2)$.
-  \item Back: $Rx = y$, $O(n^2)$.
-\end{enumerate}
-\end{algobox}
-
-\section{Confronto e scelta dell'algoritmo}
-
-\begin{center}
-\renewcommand{\arraystretch}{1.4}
-\begin{tabular}{llll}
-\hline
-\textbf{Struttura di $A$} & \textbf{Algoritmo} & \textbf{Costo} & \textbf{Backward stable} \\
-\hline
-Quadrata generica & LU + pivoting parz. & $\frac{2}{3}n^3$ & Sì (praticamente) \\
-Simmetrica & $LDL^\top$ (Bunch-K.) & $\frac{1}{3}n^3$ & Sì \\
-SPD & Cholesky & $\frac{1}{3}n^3$ & Sì (no pivoting!) \\
-LS, $m \geq n$ & QR (Householder) & $2mn^2 - \frac{2}{3}n^3$ & Sì \\
-SPD sparsa & CG (precondizionato) & $O(k \cdot \mathrm{nnz})$ & — \\
-Generale sparsa & GMRES (precond.) & $O(k \cdot \mathrm{nnz})$ & — \\
-\hline
-\end{tabular}
-\end{center}
-
-\begin{remark}[Regola pratica]
-Per sistemi densi: scegliere in base alla struttura (Cholesky se SPD, LU altrimenti). Per sistemi sparsi di grande scala ($n > 10^4$): usare CG (se SPD) o GMRES (altrimenti) con un buon precondizionatore. Non usare mai \texttt{inv(A)}.
-\end{remark}
-
-\section{Esempi pratici}
-
-\begin{example}[Riordino per ridurre il fill-in]
-Per matrici sparse, LU/Cholesky può produrre fattori molto più densi (\emph{fill-in}). Riordinare con Cuthill-McKee (\texttt{symrcm} in Matlab) riduce l'ampiezza di banda.
-\begin{lstlisting}[language=Matlab]
-p = symrcm(A);
-R = chol(A(p, p));          % Cholesky riordinato
-x_perm = R \ (R' \ b(p));
-x(p) = x_perm;              % permutazione inversa
-\end{lstlisting}
-\end{example}
-
-\begin{example}[Tikhonov via SVD in Python]
-\begin{lstlisting}[language=Python]
-import numpy as np
-U, s, Vt = np.linalg.svd(A, full_matrices=False)
-delta = 1e-4
-d = s / (s**2 + delta)      # filtro di Tikhonov
-x = Vt.T @ (d * (U.T @ b))  # soluzione regolarizzata
-\end{lstlisting}
-\end{example}
-
-%------------------------------------------------------------
 \chapter{Riepilogo: Connessioni tra NLA e Ottimizzazione}
 %------------------------------------------------------------
 

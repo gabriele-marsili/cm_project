@@ -55,6 +55,8 @@ def run() -> None:
 
         w_ols = solve_spd(X.T @ X + 1e-12 * np.eye(H),
                           X.T @ y, method="cholesky")
+        from src.lasso_utils import f_lasso
+        f_w0 = float(f_lasso(X, y, w_ols, LAMBDA))
 
         t0 = time.perf_counter()
         ri = irls(X, y, LAMBDA, eps_thr=1e-8, eps_stop=IRLS_EPSSTOP,
@@ -63,9 +65,10 @@ def run() -> None:
         t_irls = time.perf_counter() - t0
 
         t0 = time.perf_counter()
+        # SGPTL: same OLS warm start as IRLS, theory-pure config (R = 1 default).
         rd = deflected_subgradient(
             X, y, LAMBDA, w0=w_ols, i_max=DSM_IMAX,
-            beta=1.0, delta0=0.1 * f_star, rho=0.95, f_star=f_star,
+            beta=1.0, delta0=0.1 * f_w0, rho=0.7, f_star=f_star,
         )
         t_dsm = time.perf_counter() - t0
 

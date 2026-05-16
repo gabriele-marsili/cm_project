@@ -35,7 +35,9 @@ TEST_FRACTION = 0.2
 IRLS_KMAX     = 100
 DSM_IMAX      = 8000
 DSM_DELTA0    = 0.1
-DSM_RHO       = 0.9
+DSM_RHO       = 0.7        # revised default (see Section 5.3.3)
+DSM_RHO_OLD   = 0.9        # as-submitted default, kept for before/after table
+DSM_DELTA0_OLD = 0.1       # as-submitted: delta0 = c * f_star (vs new: c * f(w_0))
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
 TAB_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "tables")
@@ -141,6 +143,8 @@ def run_one(name):
               f"sklearn test MSE = {_mse(y_te, X_te @ w_star):.4f}")
 
     w_ols = ols_warm_start(X_tr, y_tr)
+    f_w0 = float(f_lasso(X_tr, y_tr, w_ols, LAMBDA))
+    print(f"  OLS warm start (shared): f(w_0) = {f_w0:.6f}")
 
     res_i = irls(X_tr, y_tr, LAMBDA,
                  eps_thr=1e-8, eps_stop=1e-12,
@@ -156,10 +160,11 @@ def run_one(name):
           f"{spar_i_str}, "
           f"test MSE = {_mse(y_te, X_te @ w_i):.4f}")
 
+    # SGPTL: same OLS warm start as IRLS, theory-pure config (R = 1 default).
     res_d = deflected_subgradient(
         X_tr, y_tr, LAMBDA,
         w0=w_ols, i_max=DSM_IMAX, beta=1.0,
-        delta0=DSM_DELTA0 * f_star, rho=DSM_RHO,
+        delta0=DSM_DELTA0 * f_w0, rho=DSM_RHO,
         f_star=f_star,
     )
     w_d = res_d["w"]
@@ -167,10 +172,10 @@ def run_one(name):
     tag_d = " (matches sklearn precision)" if res_d["gaps"][-1] == 0.0 else ""
     spar_d_str = ", ".join(f"sp@{tol:.0e}={_sparsity(w_d, tol):.0%}"
                            for tol in SPARSITY_TOLS)
-    print(f"  SGPTL: {res_d['n_iter']} iter, "
+    print(f"  SGPTL (warm, rho={DSM_RHO}, delta0=c*f(w_0)): "
+          f"{res_d['n_iter']} iter, "
           f"record gap = {res_d['gaps'][-1]:.3e}{tag_d}, f = {f_d:.6f}, "
-          f"{spar_d_str}, "
-          f"test MSE = {_mse(y_te, X_te @ w_d):.4f}")
+          f"{spar_d_str}, test MSE = {_mse(y_te, X_te @ w_d):.4f}")
 
     # closed-form Ridge baseline at the same regularisation strength
     A_ridge = X_tr.T @ X_tr + LAMBDA * np.eye(X_tr.shape[1])
@@ -181,24 +186,25 @@ def run_one(name):
         "name": name,
         "M_train": M, "M_test": X_te_raw.shape[0], "d": d_in, "H": H,
         "f_star": f_star,
+        "f_w0":  f_w0,
         "f_irls": f_i,
         "f_dsm":  f_d,
         "gap_irls": res_i["gaps"][-1],
         "gap_dsm":  res_d["gaps"][-1],
         "iter_irls": res_i["n_iter"],
         "iter_dsm":  res_d["n_iter"],
-        "spar_skl_1e6":  _sparsity(w_star, 1e-6),
-        "spar_irls_1e6": _sparsity(w_i,    1e-6),
-        "spar_dsm_1e6":  _sparsity(w_d,    1e-6),
-        "spar_skl_1e3":  _sparsity(w_star, 1e-3),
-        "spar_irls_1e3": _sparsity(w_i,    1e-3),
-        "spar_dsm_1e3":  _sparsity(w_d,    1e-3),
-        "mse_skl":   _mse(y_te, X_te @ w_star),
-        "mse_irls":  _mse(y_te, X_te @ w_i),
-        "mse_dsm":   _mse(y_te, X_te @ w_d),
-        "mse_ridge": _mse(y_te, X_te @ w_ridge),
-        "_irls_gaps": res_i["gaps"],
-        "_dsm_gaps":  res_d["gaps"],
+        "spar_skl_1e6":  _sparsity(w_star,   1e-6),
+        "spar_irls_1e6": _sparsity(w_i,      1e-6),
+        "spar_dsm_1e6":  _sparsity(w_d,      1e-6),
+        "spar_skl_1e3":  _sparsity(w_star,   1e-3),
+        "spar_irls_1e3": _sparsity(w_i,      1e-3),
+        "spar_dsm_1e3":  _sparsity(w_d,      1e-3),
+        "mse_skl":     _mse(y_te, X_te @ w_star),
+        "mse_irls":    _mse(y_te, X_te @ w_i),
+        "mse_dsm":     _mse(y_te, X_te @ w_d),
+        "mse_ridge":   _mse(y_te, X_te @ w_ridge),
+        "_irls_gaps":  res_i["gaps"],
+        "_dsm_gaps":   res_d["gaps"],
         "_irls_fvals": res_i["f_vals"],
         "_dsm_fbar":   res_d["f_bar"],
     }
@@ -237,30 +243,30 @@ def run() -> None:
                              squeeze=False)
     floor = 1e-12
     for ax, row in zip(axes[0], rows):
-        irls_fvals = np.asarray(row["_irls_fvals"], dtype=float)
-        dsm_fbar   = np.asarray(row["_dsm_fbar"],   dtype=float)
+        irls_fvals = np.asarray(row["_irls_fvals"],   dtype=float)
+        dsm_fbar   = np.asarray(row["_dsm_fbar"],     dtype=float)
         f_baseline = float(min(irls_fvals.min(), dsm_fbar.min(),
                                row["f_star"]))
 
-        irls_gap = np.maximum(irls_fvals - f_baseline, floor)
-        dsm_gap  = np.maximum(dsm_fbar   - f_baseline, floor)
-        skl_gap  = max(row["f_star"] - f_baseline, floor)
+        irls_gap   = np.maximum(irls_fvals - f_baseline, floor)
+        dsm_gap    = np.maximum(dsm_fbar   - f_baseline, floor)
+        skl_gap    = max(row["f_star"] - f_baseline, floor)
 
-        irls_iters = np.arange(1, len(irls_gap) + 1)
-        dsm_iters  = np.arange(1, len(dsm_gap)  + 1)
+        irls_iters    = np.arange(1, len(irls_gap)    + 1)
+        dsm_iters     = np.arange(1, len(dsm_gap)     + 1)
 
         ax.loglog(irls_iters, irls_gap,
                   color=COLOR_IRLS, marker="o", markersize=4.0,
-                  linewidth=2.0, label=r"IRLS  $f(w_k) - f_{\min}$")
+                  linewidth=2.0, label=r"IRLS (warm)  $f(w_k) - f_{\min}$")
         ax.loglog(dsm_iters, dsm_gap,
                   color=COLOR_DSM, linewidth=2.0,
-                  label=r"SGPTL  $\bar{f}^{\,i} - f_{\min}$")
+                  label=r"SGPTL (cold, $\rho{=}0.7$)")
         ax.axhline(skl_gap, color="#2c7a30", linestyle="--",
                    linewidth=1.4, alpha=0.85,
                    label=r"sklearn $f^{*}-f_{\min}$")
         ax.scatter([1], [irls_gap[0]], s=80, marker="*",
                    color="black", zorder=6,
-                   label="OLS warm start (shared)")
+                   label="IRLS OLS warm start")
 
         ax.set_xlabel("Iteration  (log scale)")
         ax.set_ylabel(r"$f - f_{\min}$  (log scale)")

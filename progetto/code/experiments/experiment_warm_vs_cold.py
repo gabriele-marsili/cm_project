@@ -1,4 +1,17 @@
-"""SGPTL: gamma_min = 0 vs 0.05, on warm (OLS) and cold (w_0=0) starts."""
+"""Playground: theory-pure SGPTL with warm (OLS) vs cold (w_0=0) start.
+
+The theory of Lemma 3.8 in d'Antonio-Frangioni 2009 (Theorem 3.1 in the
+report) does not depend on the starting point. In practice, however, the
+combination of OLS warm start + Polyak target level produces pathological
+behavior on ELM LASSO: the warm-started w_0 is close to w^*, the Polyak
+numerator is dominated by delta_0 rather than by the true gap, and either
+(i) delta_0 large -> first step overshoots and the iterate wanders, or
+(ii) delta_0 small -> step lengths are too small for r to ever reach R, so
+delta is never contracted.
+
+This script documents the phenomenon on a synthetic instance, comparing the
+record-value trajectory for warm vs cold start with the same algorithm.
+"""
 
 import os
 import sys
@@ -25,15 +38,22 @@ SEED   = 42
 LAMBDA = 0.10
 NOISE  = 0.05
 H, M   = 100, 300
-I_MAX  = 4000
+I_MAX  = 8000
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
 os.makedirs(FIG_DIR, exist_ok=True)
 
 
+def _n_contractions(delta_hist):
+    """Count how many times delta was contracted (strictly decreasing step)."""
+    d = np.asarray(delta_hist, dtype=float)
+    return int(np.sum(np.diff(d) < 0))
+
+
 def run() -> None:
     print("=" * 60)
-    print("SGPTL diagnostic: gamma_min = 0 vs gamma_min = 0.05")
+    print("SGPTL playground: warm (OLS) vs cold (w_0=0) start")
+    print("(theory-pure algorithm: no iter-fallback, no overshoot rescue)")
     print("=" * 60)
 
     X, y, _, f_star, _ = make_lasso_problem(
@@ -44,65 +64,68 @@ def run() -> None:
 
     w_ols  = solve_spd(X.T @ X + 1e-12 * np.eye(H), X.T @ y, method="cholesky")
     w_cold = np.zeros(H)
+    from src.lasso_utils import f_lasso
+    f_w0_warm = float(f_lasso(X, y, w_ols,  LAMBDA))
+    f_w0_cold = float(f_lasso(X, y, w_cold, LAMBDA))
+    print(f"f(w_0) warm = {f_w0_warm:.4f}, cold = {f_w0_cold:.4f}, f* = {f_star:.4f}")
 
     runs = {
-        ("floored",   "warm"): deflected_subgradient(
-            X, y, LAMBDA, w0=w_ols,  i_max=I_MAX, beta=1.0,
-            delta0=0.1 * f_star, rho=0.9, gamma_min=0.05, f_star=f_star),
-        ("floored",   "cold"): deflected_subgradient(
+        "warm":  deflected_subgradient(
+            X, y, LAMBDA, w0=w_ols, i_max=I_MAX, beta=1.0,
+            delta0=0.1 * f_w0_warm, rho=0.7, gamma_min=0.05, f_star=f_star),
+        "cold":  deflected_subgradient(
             X, y, LAMBDA, w0=w_cold, i_max=I_MAX, beta=1.0,
-            delta0=0.1 * f_star, rho=0.9, gamma_min=0.05, f_star=f_star),
-        ("unfloored", "warm"): deflected_subgradient(
-            X, y, LAMBDA, w0=w_ols,  i_max=I_MAX, beta=1.0,
-            delta0=0.1 * f_star, rho=0.9, gamma_min=0.0,  f_star=f_star),
-        ("unfloored", "cold"): deflected_subgradient(
-            X, y, LAMBDA, w0=w_cold, i_max=I_MAX, beta=1.0,
-            delta0=0.1 * f_star, rho=0.9, gamma_min=0.0,  f_star=f_star),
+            delta0=0.1 * f_w0_cold, rho=0.7, gamma_min=0.05, f_star=f_star),
     }
 
-    print(f"\n{'config':>22}  {'final gap':>11}  {'frac gamma<0.06':>15}")
+    print(f"\n{'config':>8}  {'final gap':>11}  {'#delta-contractions':>22}  "
+          f"{'frac gamma <=0.06':>18}")
     for key, res in runs.items():
         g = np.asarray(res["gamma_hist"], dtype=float)
-        frac = float(np.mean(g < 0.06)) if g.size else float("nan")
-        print(f"  {key[0]:>10}, {key[1]:>5}  {res['gaps'][-1]:>11.3e}  "
-              f"{frac:>15.2%}")
+        frac = float(np.mean(g <= 0.06)) if g.size else float("nan")
+        n_contr = _n_contractions(res["delta_hist"])
+        print(f"  {key:>6}  {res['gaps'][-1]:>11.3e}  "
+              f"{n_contr:>22d}  {frac:>17.2%}")
 
-    fig, axes = plt.subplots(1, 2, figsize=SIZE_DOUBLE, sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=SIZE_DOUBLE)
 
-    def _gap_panel(ax, key_warm, key_cold, title):
-        gw = np.maximum(np.asarray(runs[key_warm]["gaps"], dtype=float), 1e-16)
-        gc = np.maximum(np.asarray(runs[key_cold]["gaps"], dtype=float), 1e-16)
-        ax.loglog(np.arange(1, len(gw) + 1), gw,
-                  color=COLOR_DSM, linewidth=2.0, label="warm start (OLS)")
-        ax.loglog(np.arange(1, len(gc) + 1), gc,
-                  color=COLOR_FCUR, linewidth=2.0,
-                  label=r"cold start ($w_0=0$)")
-        ax.scatter([len(gw)], [gw[-1]], s=40, color=COLOR_DSM, zorder=5)
-        ax.scatter([len(gc)], [gc[-1]], s=40, color=COLOR_FCUR, zorder=5)
-        ax.annotate(f"{gw[-1]:.1e}",
-                    xy=(len(gw), gw[-1]),
-                    xytext=(8, -2), textcoords="offset points",
-                    fontsize=10, color=COLOR_DSM, ha="left", va="center")
-        ax.annotate(f"{gc[-1]:.1e}",
-                    xy=(len(gc), gc[-1]),
-                    xytext=(8, 6), textcoords="offset points",
-                    fontsize=10, color=COLOR_FCUR, ha="left", va="center")
-        ax.set_xlabel("Iteration  (log scale)")
-        ax.set_ylabel(r"$\bar{f}^{i} - f^{*}$  (log scale)")
-        ax.set_title(title)
-        ax.legend(loc="lower left")
-        style_axes(ax)
+    # Panel 1: record-gap trajectories (log-log).
+    ax = axes[0]
+    for key, color, label in (
+        ("warm", COLOR_DSM,  "warm start (OLS)"),
+        ("cold", COLOR_FCUR, r"cold start ($w_0=0$)"),
+    ):
+        g = np.maximum(np.asarray(runs[key]["gaps"], dtype=float), 1e-16)
+        ax.loglog(np.arange(1, len(g) + 1), g,
+                  color=color, linewidth=2.0, label=label)
+        ax.scatter([len(g)], [g[-1]], s=40, color=color, zorder=5)
+        ax.annotate(f"{g[-1]:.2e}", xy=(len(g), g[-1]),
+                    xytext=(8, 0), textcoords="offset points",
+                    fontsize=10, color=color, ha="left", va="center")
+    ax.set_xlabel("Iteration  (log scale)")
+    ax.set_ylabel(r"$\bar{f}^{i} - f^{*}$  (log scale)")
+    ax.set_title("Record gap")
+    ax.legend(loc="lower left")
+    style_axes(ax)
 
-    _gap_panel(axes[0], ("floored", "warm"), ("floored", "cold"),
-               r"With floor: $\gamma_{\min} = 0.05$")
-    _gap_panel(axes[1], ("unfloored", "warm"), ("unfloored", "cold"),
-               r"Without floor: $\gamma_{\min} = 0$ (literal)")
+    # Panel 2: delta history (linear-log).
+    ax = axes[1]
+    for key, color, label in (
+        ("warm", COLOR_DSM,  "warm start (OLS)"),
+        ("cold", COLOR_FCUR, r"cold start ($w_0=0$)"),
+    ):
+        d = np.asarray(runs[key]["delta_hist"], dtype=float)
+        ax.semilogy(np.arange(len(d)), d, color=color, linewidth=2.0,
+                    label=f"{label}  ({_n_contractions(d)} contr.)")
+    ax.set_xlabel("Iteration")
+    ax.set_ylabel(r"$\delta_{i}$  (log scale)")
+    ax.set_title(r"Target gap $\delta$ over iterations")
+    ax.legend(loc="lower left")
+    style_axes(ax)
 
-    fig.suptitle(rf"SGPTL on $H={H}$, $M={M}$, "
-                 rf"$\lambda_{{\mathrm{{LASSO}}}}={LAMBDA}$, "
-                 rf"$i_{{\max}}={I_MAX}$"
-                 "  --- the floor decides whether the algorithm makes progress",
-                 y=1.02, fontsize=14)
+    fig.suptitle(rf"Theory-pure SGPTL: warm vs cold start on $H={H}$, $M={M}$, "
+                 rf"$\lambda={LAMBDA}$, $i_{{\max}}={I_MAX}$",
+                 y=1.02, fontsize=13)
     fig.tight_layout()
     path = os.path.join(FIG_DIR, "warm_vs_cold.pdf")
     fig.savefig(path)

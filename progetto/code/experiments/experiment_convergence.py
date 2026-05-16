@@ -38,7 +38,7 @@ NOISE     = 0.05
 
 IRLS_KMAX = 100
 DSM_IMAX  = 8000
-DSM_RHO   = 0.9
+DSM_RHO   = 0.7
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
 TAB_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "tables")
@@ -63,6 +63,9 @@ def run() -> None:
     print(f"True sparsity: {np.mean(np.abs(w_star) < 1e-6):.0%}")
 
     w_ols = solve_spd(X.T @ X + 1e-12 * np.eye(H), X.T @ y, method="cholesky")
+    from src.lasso_utils import f_lasso
+    f_w0 = float(f_lasso(X, y, w_ols, LAMBDA))
+    print(f"OLS warm start (shared): f(w_0)={f_w0:.6f}, gap0={f_w0-f_star:.3e}")
 
     res_irls = irls(X, y, LAMBDA,
                     eps_thr=1e-8, eps_stop=1e-12,
@@ -72,10 +75,13 @@ def run() -> None:
           f"final gap = {res_irls['gaps'][-1]:.3e}, "
           f"converged = {res_irls['converged']}")
 
+    # SGPTL: same OLS warm start as IRLS, theory-pure config (R = 1 by default,
+    # ensuring the r > R branch triggers a sensible number of delta contractions;
+    # see Section 5.3 / 5.4 of the report).
     res_dsm = deflected_subgradient(
         X, y, LAMBDA,
         w0=w_ols, i_max=DSM_IMAX, beta=1.0,
-        delta0=0.1 * f_star, rho=DSM_RHO,
+        delta0=0.1 * f_w0, rho=DSM_RHO,
         f_star=f_star,
     )
     f_curr_gap = _safe_log([f - f_star for f in res_dsm["f_vals"]])

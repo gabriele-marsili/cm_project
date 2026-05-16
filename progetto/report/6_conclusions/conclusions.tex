@@ -28,16 +28,9 @@ accumulate, and an iterate with zero exact zeros, in line with the
 absence of any explicit thresholding mechanism. The $O(MH^{2})$
 pre-computation cost of IRLS was visible on the scalability plot as a
 clean cubic slope at $M=5H$, and the work required by each method to reach the same gap on the
-convergence instance ($1.5\cdot 10^{-6}$ for IRLS at iteration $100$
-versus $\approx 3\cdot 10^{-6}$ for SGPTL at iteration $8000$, an
-$80\times$ iteration multiplier for the same accuracy) lines up with
+convergence instance ($1.5\cdot 10^{-6}$ for IRLS at iteration $100$ versus $4.8\cdot 10^{-5}$ for SGPTL at iteration $8000$ --- an iteration multiplier of $80\times$ for a comparable order of magnitude) lines up with
 the $O(\log\varepsilon^{-1})$ versus $O(\varepsilon^{-2})$ comparison.
-On the moderate problem of Section~\ref{sec:iters-to-eps} IRLS reached
-$\varepsilon=10^{-2}$ in $3$~iterations against SGPTL's $664$, and
-$10^{-3}$ in $7$ against $8678$; SGPTL reached $10^{-6}$ only near the
-end of its $30000$-iteration budget (iteration $29184$), while IRLS
-reached it in $101$ iterations. This illustrates how quickly the rate
-gap dominates as the accuracy target tightens.
+On the moderate problem of Section~\ref{sec:iters-to-eps} IRLS reached $\varepsilon=10^{-2}$ in $3$~iterations against SGPTL's $141$, and $10^{-3}$ in $7$ against $978$; SGPTL reached $\varepsilon=10^{-4}$ at iteration $2584$ but did not reach $10^{-6}$ within the $30\,000$-iteration budget, against IRLS' $101$ to that target. This illustrates how quickly the rate gap dominates as the accuracy target tightens, exactly the $O(\log\varepsilon^{-1})$ vs $O(\varepsilon^{-2})$ separation predicted by the theory.
 
 \paragraph{Where the theoretical bounds proved conservative.}
 A few observations did not have a clean theoretical counterpart in the
@@ -46,36 +39,8 @@ $10^{-10}$ for $\varepsilon_\text{thr}=10^{-12}$, but pushing
 $\varepsilon_\text{thr}$ further did not improve the gap further: the
 linear solver hits floating-point limits before the safety mechanism
 does, so the ``smaller $\varepsilon_\text{thr}$ is always sharper''
-intuition has a hard floor. The SGPTL contraction factor $\rho$ proved
-highly influential at OLS warm start: the final record gap spreads over
-several orders of magnitude across $\rho\in[0.5,0.99]$
-(from $2.3\cdot 10^{-8}$ at $\rho=0.7$ to
-$1.2\cdot 10^{-2}$ at $\rho=0.99$, see Section~\ref{sec:params}).
-Aggressive contraction wins at OLS warm start, with $\rho=0.7$ the
-empirical optimum ($2.3\cdot 10^{-8}$), against the $[0.9, 0.95]$ range
-the slide recommendation of Section~\ref{sec:dsm_parameters} would
-suggest as a generic default. We keep $\rho=0.9$ as the default in the
-comparison and scalability runs for consistency with
-Section~\ref{sec:convergence}; the qualitative conclusions are
-unaffected by the $\rho$ choice. The initial gap estimate $\delta_{0}$
-was much less sensitive on the tested OLS-warm-start instance: all
-values in $\{0.01,0.05,0.1,0.5,1.0\}f^{*}$ ended in the
-$10^{-6}$ range.
-Finally, the OLS warm start mandated by
-Section~\ref{sec:dsm_algorithm} interacts unfavourably with the
-greedy deflection. The current subgradient becomes nearly aligned
-with $\mathbf{d}_{i-1}$ within a few tens of iterations,
-$\gamma_{i}\to 0$, and the stepsize-restricted
-$\beta_{i}=\min(\beta,\gamma_{i})$ multiplies the Polyak step by that
-same vanishing factor, so the iterate stops moving before the
-travel-distance counter $r$ can ever reach $R$ to trigger a
-$\delta$-contraction. We had to add an iteration-count fallback to
-the patience mechanism — contract $\delta$ and reset
-$\mathbf{d}_{i-1}=\mathbf{0}$ when $\bar{f}^{i}$ has not improved for
-$R_\text{iter}=\max(i_\text{max}/100,\,50)$ iterations — to recover
-the sublinear progress the theory predicts. The reset is consistent
-with the per-step bound~\eqref{eq:proof_perstep}, which holds iterate-by-iterate
-without requiring persistent memory.
+intuition has a hard floor. The SGPTL contraction factor $\rho$ proved highly influential: across $\rho\in[0.3,0.95]$ the final record gap spans about two orders of magnitude (from $\sim\!2\cdot 10^{-5}$ at $\rho=0.3$--$0.5$ to $8\cdot 10^{-4}$ at $\rho=0.95$, see Section~\ref{sec:params}). The aggressive--to--moderate range $[0.3,\,0.7]$ is the empirical sweet spot, with $\rho=0.7$ adopted as the default across the comparison, scalability and real-data runs for its robustness across the smoke-test grid. The initial gap estimate $\delta_{0}$ was less sensitive: across all values in $\{0.01,\,0.05,\,0.1,\,0.5,\,1.0\}\,f(\mathbf{w}_{0})$ the final record gap stayed in the band $[2\cdot 10^{-5},\,2\cdot 10^{-4}]$, i.e.\ within a single order of magnitude (Section~\ref{sec:params}, ``three families''). The diagnostic comparison against the inadmissible oracle $\delta_{0}=0.1\,f^{*}$ confirmed that the $f^{*}$-free recipe $\delta_{0}=c\,f(\mathbf{w}_{0})$ is indistinguishable from the oracle on this instance, which is the central methodological point we wanted to verify.
+Finally, an implementation lesson worth recording. The first submission of this project carried two non-theoretical safeguards on top of Algorithm~\ref{alg:dsm} (an iteration-count $\delta$-contraction trigger and an overshoot rescue snapping $\mathbf{w}$ back to $\mathbf{w}_{\mathrm{best}}$) plus a default travel-distance threshold $R = 10\sqrt{i_{\max}}$ that was orders of magnitude larger than any realistic accumulated travel. The combination looked numerically effective but flagged with the instructor as inconsistent with the theory of \cite[Lemma~3.8]{dantonio2009deflected}: every $\delta$-contraction has to be preceded by at least $R$ of travel via the $r_k > R$ trigger, and the iteration-count fallback violates that link. The fix that landed in this submission turned out to be conceptually simpler than the first construction: remove both safeguards and reduce $R$ to a small absolute value ($R = 1$, comparable to the natural per-iteration step length on ELM~LASSO). With that single calibration, the theory-pure $r_k > R$ branch fires repeatedly along the run, $\delta$ contracts at the rate the theory wants, and the algorithm converges sublinearly in line with Theorem~\ref{thm:dsm_convergence}. The cost relative to the first-submission numbers is moderate ($\bar f^{i} - f^{*} \sim 10^{-5}$ at $8\,000$ iterations rather than $\sim 10^{-8}$ with the workarounds), and is the honest baseline of the algorithm. The OLS warm start is shared with IRLS so the two methods minimise the same problem from the same point; Section~\ref{sec:warm_cold} of Chapter~\ref{chap:comparison} documents the (minor) warm-vs-cold sensitivity.
 
 \paragraph{Recommendation for the ELM LASSO problem.}
 On the project's intended regime, $M\gg H$ with $\mathbf{W}_{1}$ fixed

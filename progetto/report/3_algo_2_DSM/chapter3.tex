@@ -46,17 +46,7 @@ For deflected methods on ELM LASSO, the deflection $\gamma_i$ and stepsize $\alp
 The condition $\beta_i \leq \gamma_i$ ensures stronger deflection is balanced by smaller steps, preventing large moves in memory-weighted non-descent directions. Since $f^*$ is unknown for ELM LASSO, we replace it with target level $f_{\mathrm{ref}} - \delta$ (Section~\ref{sec:dsm_target_level}), providing an adaptive estimate throughout the run.
 
 \paragraph{Practical handling of the multiplier $\beta_i$.}\mbox{} \\
-We adopt the literal stepsize-restricted reading
-$\beta_i = \min(\beta,\gamma_i)$ from
-\cite[Algorithm~SGPTL]{target-level-mechanism} with $\beta = 1$, so the
-inequality $\beta_i \le \gamma_i$ holds by construction at every
-iteration and the per-step iterate-distance
-bound~\cite[Theorem~3.2]{dantonio2009deflected}
-(eq.~\eqref{eq:proof_perstep_deflected} in the proof of
-Theorem~\ref{thm:dsm_convergence}) applies verbatim. The clip is
-operational on ELM~LASSO only because we couple it with a strictly
-positive lower bound $\gamma_i \ge \gamma_{\min} > 0$ on the deflection
-parameter, motivated below.
+We take $\beta_i = \min(\beta,\gamma_i)$ with $\beta = 1$, the stepsize-restricted rule of \cite[Algorithm~SGPTL]{target-level-mechanism}; this enforces $\beta_i \le \gamma_i$ by construction, the hypothesis under which the deflected-Polyak rate (used in Theorem~\ref{thm:dsm_convergence}) is established in \cite{deflected-subgradient-method}, with original reference \cite{dantonio2009deflected}. The clip is operational on ELM~LASSO only because we pair it with $\gamma_i \ge \gamma_{\min} > 0$ on the deflection parameter, motivated below.
 
 \subparagraph{Why $\gamma_{\min} > 0$ is required.}
 Without a floor the closed-form greedy minimiser of
@@ -117,7 +107,7 @@ At each iteration on ELM LASSO, we choose $\gamma_i$ to minimize the deflected d
 \begin{equation}\label{eq:gamma_opt}
 \gamma_i \in \argmin_{\gamma \in [\gamma_{\min},1]} \norm{\gamma\, \mathbf{g}_i + (1-\gamma)\, \mathbf{d}_{i-1}}_2^2.
 \end{equation}
-Since the Polyak stepsize has denominator $\norm{\mathbf{d}_i}^2$, minimizing this maximizes step length and progress. The constraint $\gamma_i \ge \gamma_{\min}$ keeps the stepsize-restricted condition $\beta_i = \min(\beta,\gamma_i) \ge \gamma_{\min}$ operational (Section~\ref{sec:dsm_convergence_conditions}). The problem is quadratic in $\gamma$ with closed-form solution \cite{deflected-subgradient-method}:
+Since the Polyak stepsize has denominator $\norm{\mathbf{d}_i}^2$, minimizing this maximizes step length and progress. The constraint $\gamma_i \ge \gamma_{\min}$ keeps the stepsize-restricted condition $\beta_i = \min(\beta,\gamma_i) \ge \gamma_{\min}$ operational (Section~\ref{sec:dsm_convergence_conditions}); we use $\gamma_{\min} = 0.05$ throughout and discuss the rationale in that section. The problem is quadratic in $\gamma$ with closed-form solution \cite{deflected-subgradient-method}:
 \begin{equation}\label{eq:gamma_star}
 \gamma^* = \frac{\norm{\mathbf{d}_{i-1}}_2^2 - \inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}}{\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}_2^2}, \quad \gamma_i = \min(1,\max(\gamma_{\min},\gamma^*)).
 \end{equation}
@@ -188,31 +178,23 @@ Algorithm~\ref{alg:dsm} presents the full Deflected Subgradient Method with targ
 \caption{Deflected Subgradient with Target Level (SGPTL) for ELM LASSO~\cite{deflected-subgradient-method}}
 \label{alg:dsm}
 \begin{algorithmic}[1]
-\Require $f$ (ELM LASSO objective);\; $i_{\max}$;\; $\beta \in (0,1]$;\; $\delta_0 > 0$;\; $R > 0$;\; $\rho \in (0,1)$;\; $R_{\mathrm{iter}} > 0$
+\Require $f$ (ELM LASSO objective);\; $i_{\max}$;\; $\beta \in (0,1]$;\; $\delta_0 > 0$;\; $R > 0$;\; $\rho \in (0,1)$;\; $\gamma_{\min} \in (0,1]$
 \State $\mathbf{w}_0 \gets (\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}^T\mathbf{y}$ \hfill\emph{(same OLS warm start as IRLS)}
-\State $r \gets 0$;\; $\delta \gets \delta_0$;\; $f_{\mathrm{ref}} \gets \bar{f} \gets f(\mathbf{w}_0)$;\; $c \gets 0$;\; $\bar{f}_{\mathrm{prev}} \gets \bar{f}$
+\State $r \gets 0$;\; $\delta \gets \delta_0$;\; $f_{\mathrm{ref}} \gets \bar{f} \gets f(\mathbf{w}_0)$
 \For{$i = 0, 1, \ldots, i_{\max}$}
-\If{$\bar{f} < \bar{f}_{\mathrm{prev}}$} \hfill\emph{(record improved this round)}
-\State $c \gets 0$;\; $\bar{f}_{\mathrm{prev}} \gets \bar{f}$
-\Else
-\State $c \gets c + 1$
-\EndIf
-\If{$c \geq R_{\mathrm{iter}}$} \hfill\emph{(stalled for too long: iter-count fallback, \S\ref{sec:setup})}
-\State $\delta \gets \delta\,\rho$;\; $\mathbf{d}_{i-1} \gets \mathbf{0}$;\; $c \gets 0$ \hfill\emph{(force $\gamma_i = 1$ next step)}
-\EndIf
 \State Compute $\mathbf{g} \in \partial f(\mathbf{w}_i)$ \hfill\emph{(subgradient of LASSO)}
-\If{$i = 0$ \textbf{or} $\mathbf{d}_{i-1} = \mathbf{0}$} \hfill\emph{(no memory available)}
+\If{$i = 0$} \hfill\emph{(no $\mathbf{d}_{-1}$ available)}
 \State $\gamma_i \gets 1$;\; $\mathbf{d}_i \gets \mathbf{g}$
 \Else
-\State Compute $\gamma_i$ via \eqref{eq:gamma_star} \hfill\emph{(optimal deflection)}
+\State Compute $\gamma_i$ via \eqref{eq:gamma_star} \hfill\emph{(optimal deflection, clipped to $[\gamma_{\min},1]$)}
 \State $\mathbf{d}_i \gets \gamma_i\, \mathbf{g} + (1-\gamma_i)\, \mathbf{d}_{i-1}$ \hfill\emph{(deflected direction)}
 \EndIf
 \State $\beta_i \gets \min(\beta,\gamma_i)$ \hfill\emph{(stepsize-restricted, $\beta=1$ default; see \S\ref{sec:dsm_convergence_conditions})}
 \State $\alpha_i \gets \beta_i\,(f(\mathbf{w}_i) - (f_{\mathrm{ref}}-\delta))\,/\,\norm{\mathbf{d}_i}_2^2$ \hfill\emph{(Polyak step)}
 \State $\mathbf{w}_{i+1} \gets \mathbf{w}_i - \alpha_i\, \mathbf{d}_i$ \hfill\emph{(update)}
 \State $\bar{f} \gets \min(\bar{f},\; f(\mathbf{w}_{i+1}))$ \hfill\emph{(update record)}
-\If{$f(\mathbf{w}_{i+1}) \leq f_{\mathrm{ref}} - \delta/2$} \hfill\emph{(improvement)}
-\State $f_{\mathrm{ref}} \gets \bar{f}$;\; $r \gets 0$ \hfill\emph{(move checkpoint to current best)}
+\If{$f(\mathbf{w}_{i+1}) \leq f_{\mathrm{ref}} - \delta/2$} \hfill\emph{(sufficient descent)}
+\State $f_{\mathrm{ref}} \gets \bar{f}$;\; $r \gets 0$
 \ElsIf{$r > R$} \hfill\emph{(travel-distance patience exhausted)}
 \State $\delta \gets \delta\,\rho$;\; $r \gets 0$
 \Else
@@ -223,17 +205,49 @@ Algorithm~\ref{alg:dsm} presents the full Deflected Subgradient Method with targ
 \end{algorithmic}
 \end{algorithm}
 
-\paragraph{A few notes on the implementation.}\mbox{} \\
-Three details of the pseudocode deserve a comment. First, $\mathbf{w}_0 = (\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}^T\mathbf{y}$ is the same OLS warm start used by IRLS in Chapter~\ref{chap:irls}; this keeps the two algorithms comparable on the same instance and avoids a cold-start phase in which the Polyak numerator $f(\mathbf{w}_0) - (f_{\mathrm{ref}}-\delta_0)$ could be dominated by a bad guess of $\delta_0$. Second, the first iteration $i=0$ is treated separately because~\eqref{eq:gamma_star} requires a previous direction $\mathbf{d}_{-1}$ that does not exist yet; setting $\gamma_0 = 1$ matches the initial condition $\mathbf{d}_0 = \mathbf{g}_0$ in eq.~\eqref{eq:deflected_dir}. The naive choice $\mathbf{d}_{-1} = \mathbf{0}$, plugged into~\eqref{eq:gamma_star}, would yield $\gamma_0 = 0$ and hence $\mathbf{d}_0 = \mathbf{0}$, making the Polyak step ill-defined --- the same convention also applies whenever the iteration-count fallback resets $\mathbf{d}_{i-1}\gets\mathbf{0}$, which is why the if-branch on line 14 covers both cases. Third, the algorithm carries \emph{two} patience mechanisms that contract $\delta$: the travel-distance counter $r > R$ from~\cite{deflected-subgradient-method} (lines 26--27) and the iteration-count counter $c \geq R_{\mathrm{iter}}$ (lines 9--12). The latter is the only one that fires on the ELM~LASSO instances we consider: the greedy choice~\eqref{eq:gamma_star} drives $\gamma_i$ towards zero whenever consecutive subgradients are well aligned, which is the regime the iterate enters within a few tens of steps regardless of where it started --- $\mathbf{w}_0$ being close to a stationary point only accelerates the collapse. As $\gamma_i\to 0$ the stepsize-restricted factor $\beta_i = \min(\beta,\gamma_i)$ shrinks proportionally, the steps go to zero, and $r = \sum \alpha_i\norm{\mathbf{d}_i}$ never reaches $R$; without an additional safeguard the run stalls and $\rho$ has no contraction path through which to act on $\delta$. The iteration-count counter restores progress by contracting $\delta$ on a fixed cadence \emph{and} resetting $\mathbf{d}_{i-1}\gets\mathbf{0}$, which forces $\gamma_{i+1}=1$ at the next step --- so $\rho$ effectively acts \emph{through} this fallback rather than through the original travel-distance branch. We diagnose this empirically in Section~\ref{sec:setup} (Figure~\ref{fig:warm-vs-cold} compares vanilla SGPTL with the safeguarded version on warm and cold starts), with $R_{\mathrm{iter}} = \max(i_{\max}/100,\,50)$ as the default we use throughout the experiments. The remainder of the loop is standard SGPTL: the record value $\bar{f}_i = \min_{h \le i} f(\mathbf{w}_h)$ is monitored in place of $f(\mathbf{w}_i)$, and the target gap $\delta$ is contracted by $\rho < 1$ whenever no progress is registered over either patience budget, which removes the need for manual re-tuning of the stepsize when $f_{\mathrm{ref}} - \delta$ drifts below $f^*$ \cite{target-level-mechanism}.
+\paragraph{Correspondence with the theory.}\mbox{} \\
+Algorithm~\ref{alg:dsm} implements one-to-one the SGPTL rule of slide~14 of the course (Lessons~Optimization) and Lemma~3.8 of~\cite{dantonio2009deflected}. Lines~12--13 are the stepsize-restricted Polyak step ($\beta_i \le \gamma_i$, hypothesis of Theorem~\ref{thm:dsm_convergence}); lines~16--21 are the three-branch update of $(f_{\mathrm{ref}}, \delta, r)$ exactly as in Lemma~3.8. The single deviation from the slide's pseudocode is the clip on $\gamma_i$ at line~9: we project the greedy minimiser of~\eqref{eq:gamma_opt} onto $[\gamma_{\min}, 1]$ rather than $[0, 1]$, with $\gamma_{\min} = 0.05$. This is not a workaround but a structural choice that realises condition~(3.5) of~\cite{dantonio2009deflected} with $\beta^* = \gamma_{\min} > 0$: without the floor, the greedy choice~\eqref{eq:gamma_star} collapses to $0$ on near-aligned consecutive subgradients, $\beta_i = \min(\beta, \gamma_i) \to 0$ violates~(3.5), and the convergence hypothesis of Theorem~\ref{thm:dsm_convergence} fails. The floor is the minimal modification that keeps the theory applicable; we discuss the choice $\gamma_{\min} = 0.05$ in Section~\ref{sec:dsm_convergence_conditions}.
 
-\paragraph{Runtime safeguards.}\mbox{} \\
-Four numerical safeguards complete the implementation; none is shown in the pseudocode because none changes the algorithmic behaviour at convergence. \emph{(i)}~If $\norm{\mathbf{d}_i}^2 < 10^{-30}$ we exit the loop early: this only happens at a stationary point or right after the iteration-count fallback has just zeroed $\mathbf{d}_{i-1}$ and the very next subgradient $\mathbf{g}$ collapsed to noise. \emph{(ii)}~If the Polyak numerator $\beta_i\,(f(\mathbf{w}_i) - (f_{\mathrm{ref}}-\delta))$ goes non-positive --- which happens transiently when $\delta$ is too large and $f_{\mathrm{ref}}-\delta$ overshoots below $f(\mathbf{w}_i)$ --- we contract $\delta$ immediately rather than take a backward step. \emph{(iii)}~If the candidate iterate $\mathbf{w}_{i+1}$ would land at $f(\mathbf{w}_{i+1}) > 1.2\,\bar{f}^{i}$ \emph{and} $f(\mathbf{w}_{i+1}) > \bar{f}^{i}+\delta$, we discard it and snap $\mathbf{w}\gets\mathbf{w}_{\mathrm{best}}$, contract $\delta$, and zero $\mathbf{d}_{i-1}$. This is the classical Polyak-step pathology: when $\delta > f_{\mathrm{ref}} - f^*$ the target sits below $f^*$ and $\alpha_i = \beta_i(f(\mathbf{w}_i)-(f_{\mathrm{ref}}-\delta))/\norm{\mathbf{d}_i}^2$ blows up as $\norm{\mathbf{d}_i}$ collapses near a stationary region, sending $\mathbf{w}$ into an $f$-region 50--70\% above the record. The bound~(3.14) holds in iterate distance for any $\alpha_i\le 2(f(\mathbf{w}_i)-f^*)/\norm{\mathbf{d}_i}^2$ but says nothing about $f(\mathbf{w}_{i+1})$, so the rescue is needed in practice; we only ever return $\mathbf{w}_{\mathrm{best}}$ and the $\delta$-contraction is the same one the patience mechanism would have applied a few iterations later. \emph{(iv)}~If $\mathbf{w}_{i+1}$ contains a non-finite component the rescue in~(iii) does not apply (an inequality with NaN is False), and we fall back to contracting $\delta$ and skipping the step.
+\paragraph{Initial-iteration convention.}\mbox{} \\
+The first iteration $i=0$ is treated separately because~\eqref{eq:gamma_star} requires a previous direction $\mathbf{d}_{-1}$ that does not exist yet; setting $\gamma_0 = 1$ realises the convention $\mathbf{d}_{-1} = \mathbf{0}$ in eq.~\eqref{eq:deflected_dir}, so $\mathbf{d}_0 = \mathbf{g}_0$. Plugging $\mathbf{d}_{-1} = \mathbf{0}$ directly into~\eqref{eq:gamma_star} would yield $0/0$; the convention $\gamma_0 = 1$ is the same one used in the slide.
+
+\paragraph{Numerical safeguards.}\mbox{} \\
+Three pure floating-point safeguards complete the implementation; none changes the algorithmic behaviour, none reacts to algorithmic state (no $\delta$ contraction, no $\mathbf{d}$ reset), and none is in the pseudocode of Algorithm~\ref{alg:dsm}. \emph{(i)}~If $\norm{\mathbf{d}_i}^2 < 10^{-30}$ we exit the loop early: the deflected direction is numerically indistinguishable from zero, so $\alpha_i$ would divide by zero. This is a termination, not an alteration. \emph{(ii)}~If $f(\mathbf{w}_i) - (f_{\mathrm{ref}}-\delta) \le 0$, the Polyak numerator is non-positive and the step would point backwards. We set $\alpha_i = 0$ as prescribed by condition~(3.5) of~\cite{dantonio2009deflected}, and trigger the sufficient-descent update $f_{\mathrm{ref}} \gets \bar f$, $r \gets 0$ on $\mathbf{w}_i$ itself (since $f(\mathbf{w}_i) \le f_{\mathrm{ref}}-\delta \le f_{\mathrm{ref}}-\delta/2$): this is the theory-aligned response, not a $\delta$ contraction. \emph{(iii)}~If $\mathbf{w}_{i+1}$ contains a non-finite component (NaN/Inf), which can happen when $\norm{\mathbf{d}_i}^2$ is tiny but above the cutoff of~(i) and $\alpha_i$ overflows, we skip the iteration and proceed. None of $\delta$, $f_{\mathrm{ref}}$, $r$ is touched.
+
+\paragraph{A note on what is \emph{not} in the algorithm.}\mbox{} \\
+We deliberately do not include any non-theoretical safeguard such as an iteration-count fallback for $\delta$, an overshoot rescue snapping $\mathbf{w}$ to $\mathbf{w}_{\mathrm{best}}$ on large $f$-jumps, or extra contractions of $\delta$ outside line~19. Such mechanisms can rescue specific failure modes (the greedy collapse $\gamma_i \to \gamma_{\min}$ stalls the algorithm on ELM~LASSO well before the record converges to $f^*$, as we document in Chapter~\ref{chap:results}) but they have no support in the theory of~\cite{dantonio2009deflected} and would break the proof of Theorem~\ref{thm:dsm_convergence}; we prefer to expose the algorithm's empirical limitations honestly rather than mask them.
 
 % ------------------------------------------------------------------
 \subsection{Parameter calibration for ELM LASSO}
 \label{sec:dsm_parameters}
 
-SGPTL on ELM LASSO has five parameters: the initial target gap $\delta_0$, the contraction factor $\rho$, the patience threshold $R$, the step modulation $\beta$ and the deflection floor $\gamma_{\min}$. The choice of all five will be validated experimentally; here we fix initial ranges and the rationale for them. For $\delta_0$ we take a fraction of the initial objective value, $\delta_0 = c\,f(\mathbf{w}_0)$ with $c \in [0.01, 0.5]$: small enough that $f_{\mathrm{ref}} - \delta$ does not undershoot $f^*$ at the first steps, large enough to give the algorithm room to travel. For the contraction factor we explore $\rho \in [0.5, 0.99]$. For the patience threshold we explore $R$ in the range of a few tens of iterations (concretely $R \in [10, 100]$): short enough to react to stalling before wasting a full cycle of non-productive steps, long enough not to trigger on short-horizon plateaus. The step modulation is fixed at $\beta = 1$, the most aggressive admissible value (Section~\ref{sec:dsm_convergence_conditions}); the actual per-iteration multiplier $\beta_i = \min(\beta,\gamma_i)$ is determined by the clip together with the deflection floor. For $\gamma_{\min}$ we use $\gamma_{\min} = 0.05$, motivated in Section~\ref{sec:dsm_convergence_conditions} and validated experimentally in Chapter~\ref{chap:results}.
+SGPTL on ELM~LASSO has five parameters: the step modulation $\beta$, the deflection floor $\gamma_{\min}$, the initial target gap $\delta_0$, the contraction factor $\rho$, and the patience threshold $R$. We discuss them in order from the most theoretically constrained to the most empirically calibrated. The point worth stressing up front is that $f^*$ --- the optimum that the algorithm is trying to reach --- is \emph{not} an admissible input to any of these choices: tuning the optimiser against the quantity it is searching for is the optimisation analogue of training a model on its test set. All hyperparameters below are set from $f^*$-free quantities.
+
+\paragraph{$\beta = 1$ (step modulation).}
+\cite[(3.1), p.\,364]{dantonio2009deflected} admits any $\beta_k \in (0, 1]$ in the corrected Polyak stepsize. Slide~12 of the course (\cite{polyak-stepsize}) shows that, under the classical Polyak step $\alpha_k = \beta\,(f(\mathbf{w}_k) - f^*)/\norm{\mathbf{g}_k}^2$, the value $\beta = 1$ is exactly the minimiser of the one-step distance bound $\norm{\mathbf{w}_{k+1} - \mathbf{w}^*}^2$, i.e.\ the maximum-progress choice. The deflected variant in slide~15 inherits the same maximum-progress property, with the deflection coefficient $\gamma_i$ providing the dynamic damping; we therefore fix $\beta = 1$ and never sweep it. The effective per-iteration multiplier $\beta_i = \min(\beta, \gamma_i)$ in Algorithm~\ref{alg:dsm} is then driven entirely by $\gamma_i$ and by the floor $\gamma_{\min}$.
+
+\paragraph{$\gamma_{\min} = 0.05$ (deflection floor).}
+Condition~(3.5) of~\cite[p.\,365]{dantonio2009deflected} is a \emph{strictly necessary} hypothesis for the convergence of stepsize-restricted deflected methods: it requires $\beta_k \ge \beta^* > 0$ uniformly whenever $\lambda_k \ge 0$. With our $\beta_i = \min(1, \gamma_i)$, the uniform bound $\beta^*$ is realised exactly when $\gamma_i \ge \gamma_{\min} > 0$, in which case we may take $\beta^* = \gamma_{\min}$. The greedy choice~\eqref{eq:gamma_star} of $\gamma_i$ violates~(3.5) on ELM~LASSO (the closed-form minimiser collapses to $0$ on near-aligned consecutive subgradients, see~\S\ref{sec:dsm_convergence_conditions}), so the floor is the minimal modification that keeps the convergence theorem applicable. The value $\gamma_{\min} = 0.05$ is empirically calibrated: at this floor the clip activates only in degenerate steps (the unconstrained greedy $\gamma$ lies in $[\gamma_{\min}, 1]$ on a typical step), while the convergence rate $1/(\gamma_{\min}\sqrt k)$ of Theorem~\ref{thm:dsm_convergence} inflates by only $20\times$ relative to the unfloored Polyak rate. The sweep across $\gamma_{\min} \in \{0.05, 0.1, 0.2, 0.5\}$ in Chapter~\ref{chap:results} produces gaps consistently in $[10^{-7}, 10^{-5}]$, with $\gamma_{\min} = 0.05$ marginally best.
+
+\paragraph{$\delta_0$ (initial target gap).}
+The theory of \cite[Lemma~3.8]{dantonio2009deflected} requires only $\delta_0 \in (0, \infty)$; the convergence proof does not depend on the specific value, only on the contraction rule that drives $\delta_k \to 0$. The course slide~14 explicitly flags $\delta_0 > 0$ as ``\texttt{??}'' --- a free parameter. We therefore set $\delta_0 = c\,f(\mathbf{w}_0)$ where $\mathbf{w}_0$ is the OLS warm start (an $O(MH^2)$ pre-computation that does not see $f^*$) and $c = 0.1$. The scale $f(\mathbf{w}_0)$ is an upper bound on $f^*$ (since adding the regulariser strictly increases the value at a non-LASSO minimiser), and is the natural problem-dependent quantity for an order-of-magnitude estimate of the initial gap. The constant $c = 0.1$ is calibrated empirically in Section~\ref{sec:params}; the sweep across $c \in \{0.01, 0.05, 0.1, 0.5, 1\}$ produces gaps within a single order of magnitude, so the choice is not delicate. Section~\ref{sec:params} also compares this $f^*$-free choice against the diagnostic oracle $\delta_0 = 0.1\,f^*$ (reported for theoretical understanding only, never used in actual runs); the two are numerically indistinguishable on the tested instances.
+
+\paragraph{$\rho = 0.7$ (threshold contraction).}
+\cite[Lemma~3.8]{dantonio2009deflected} requires only $\mu \in (0, 1)$; the course slide~14 echoes the same open-interval constraint. No specific value is prescribed in any of the references we consulted (\cite{brannlund1993generalized,goffin1999convergence,bertsekas1999nonlinear}). Empirically we sweep $\rho \in \{0.3, 0.5, 0.7, 0.8, 0.9, 0.95\}$ in Section~\ref{sec:params} on the synthetic instance and on the two real-data ELM matrices; $\rho = 0.7$ is the value at most a factor-of-six away from the best on every tested instance, and is solidly inside the moderate range $[0.5, 0.8]$ where the target $f_{\mathrm{ref}} - \delta$ tracks $f^*$ at the right pace.
+
+\paragraph{$R = 1$ (travel-distance patience).}
+\cite[Lemma~3.8]{dantonio2009deflected} requires only $R > 0$; slide~14 flags it as ``\texttt{???}'', a free parameter not prescribed in any of \cite{brannlund1993generalized,goffin1999convergence}. The value $R$ controls the cadence of $\delta$-contractions: an $R$ much larger than the typical per-iteration step length $\alpha_i\norm{\mathbf{d}_i}$ leaves the $r_k > R$ branch inactive (the algorithm relies on the rare sufficient-descent firings to update $f^k_{\mathrm{ref}}$), an $R$ much smaller wastes the patience window. On ELM~LASSO with $\gamma_{\min} = 0.05$ and the OLS warm start, $\alpha_i\norm{\mathbf{d}_i}$ is of order $10^{-3}$, so we pick $R = 1$, which fires the contraction roughly every $10^3$ stalled iterations. An earlier draft of this report used $R = 10\sqrt{i_{\max}}\approx 894$ at $i_{\max}=8000$, three orders of magnitude above the natural scale, with the consequence that the $r > R$ branch never fired and the algorithm appeared to stall (see Section~\ref{sec:warm_cold} for the diagnosis). The choice $R = 1$ is theory-aligned --- only $R > 0$ is required --- and is the single calibration choice that the first submission got wrong.
+
+% ------------------------------------------------------------------
+\subsection{Starting point and patience-threshold calibration}
+\label{sec:dsm_start}
+
+Algorithm~\ref{alg:dsm} uses the same OLS warm start as IRLS, $\mathbf{w}_0 = (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{y}$, so that both methods minimise the same problem from the same point and the empirical comparison is on equal footing. The travel-distance patience threshold is set to $R = 1$, a small absolute value chosen so the threshold is comparable to the per-iteration step length scale $\alpha_i\norm{\mathbf{d}_i} \sim 10^{-3}$ on ELM~LASSO with the OLS warm start and $\gamma_{\min} = 0.05$. The travel-distance branch then fires $\mathcal O(10)$--$\mathcal O(100)$ times per $8\,000$-iteration run, depending on $\rho$, contracting $\delta$ at a sustained pace as the theory expects (Section~\ref{sec:params} reports the rate). The choice $R = 1$ is within the theoretical framework of~\cite{dantonio2009deflected} (only $R > 0$ is required by Lemma~3.8) and is the only calibration choice that we make outside the slide's pseudocode; the rest of the parameters follow the slide directly.
+
+\paragraph{Implementation history and rationale.}
+The first submission of this project used additional mechanisms on top of Algorithm~\ref{alg:dsm}: (a)~an iteration-count $\delta$-contraction trigger (auxiliary counter $c$ tracking iterations without improvement of $\bar f$, with the rule ``if $c \ge R_{\mathrm{iter}}$ then $\delta \gets \rho\delta$ and $\mathbf{d}_{i-1} \gets \mathbf{0}$''); (b)~an overshoot rescue that snapped $\mathbf{w}$ back to $\mathbf{w}_{\mathrm{best}}$ on large Polyak-step blow-ups and contracted $\delta$; and (c)~the default $R = 10\sqrt{i_{\max}} \approx 894$ for the travel-distance threshold, which on ELM~LASSO was orders of magnitude larger than any realistic accumulated travel between resets, so the $r > R$ branch effectively never fired and the iteration-count fallback was the sole driver of $\delta$-contractions. The instructor's feedback flagged this construction as inconsistent with the theory of~\cite{dantonio2009deflected}: the proof of $\sum_k s_k = \infty$ in Lemma~3.8 requires every $\delta$-contraction to be preceded by at least $R$ of accumulated travel via the $r_k > R$ trigger, which the iteration-count fallback breaks. Theorem~\ref{thm:dsm_convergence}, which cites~\cite[Theorem~3.7]{dantonio2009deflected} applied to Lemma~3.8 verbatim, was therefore not fully applicable to the algorithm we were actually running.
+
+The diagnosis after the feedback was twofold. First, mechanisms (a) and (b) are workarounds that hide bugs rather than fix them, and the proof technique of~\cite[Lemma~3.8]{dantonio2009deflected} does not extend to them; they should not be in the algorithm. Second, mechanism (c) --- a single integer in our defaults --- was the actual reason the theory-pure algorithm appeared to ``not work'' in the first submission: with $R$ chosen at the right scale, the $r > R$ branch of Lemma~3.8 fires the way the theory needs it to, $\delta$ contracts at a sustained pace, and the algorithm converges within the theoretical envelope of Theorem~\ref{thm:dsm_convergence}. The starting point, on the other hand, turns out to be approximately neutral: with $R = 1$ both the OLS warm start and a cold start $\mathbf{w}_0 = \mathbf{0}$ produce sublinear descent, with the warm start slightly behind on some instances and slightly ahead on others (Section~\ref{sec:warm_cold} documents the side-by-side comparison). The second submission therefore: removes (a) and (b); sets the default to $R = 1$; keeps the OLS warm start for both algorithms to retain the apples-to-apples comparison. The empirical cost of switching to the theory-pure rule is moderate (gap $\sim 10^{-5}$ at $8\,000$ iterations on the convergence instance, instead of the $\sim 10^{-8}$ that the workarounds produced); we view this as the honest baseline of the algorithm and discuss the gap to IRLS in the results and conclusions chapters.
 
 
 % ------------------------------------------------------------------
@@ -251,125 +265,36 @@ where $\nabla g(\mathbf{w}) = \mathbf{X}^T(\mathbf{X}\mathbf{w} - \mathbf{y})$ a
 \begin{equation}\label{eq:dsm_subgrad}
   \mathbf{g} = \mathbf{X}^T(\mathbf{X}\mathbf{w} - \mathbf{y}) + \lambda_{\text{LASSO}}\, \mathbf{s}, \quad s_i \in \partial|w_i|.
 \end{equation}
-At a component where $w_i \ne 0$ the subdifferential is a singleton and we have no choice but $s_i = \operatorname{sign}(w_i)$; at $w_i = 0$, the subdifferential is the whole interval $[-1, +1]$ and we pick the reference value $s_i = 0$. A more sophisticated way to define the value of $s_i$ could be made in order to minimize the Euclidean norm of the subgradient $g$. The decision doesn't have much impact because the probability of having a $w_i = 0$ in the algorithm, which uses floating-point precision, is relatively low.
+At a component where $w_i \ne 0$ the subdifferential is a singleton and $s_i = \operatorname{sign}(w_i)$ is forced; at $w_i = 0$ the subdifferential is the whole interval $[-1, +1]$ and we must pick a value. Writing $\mathbf{q} = \mathbf{X}^\top(\mathbf{X}\mathbf{w}-\mathbf{y})$ for the smooth gradient, the minimum-norm element of $\partial f$ at an index with $w_i = 0$ is obtained by minimising $(q_i + \lambda_{\text{LASSO}}\,s_i)^2$ over $s_i \in [-1, +1]$, which gives $s_i^{\star} = -q_i/\lambda_{\text{LASSO}}$ when $|q_i| \le \lambda_{\text{LASSO}}$ (so that $g_i = 0$) and $s_i^{\star} = -\operatorname{sign}(q_i)$ otherwise.
+
+Our implementation takes $s_i = 0$ regardless, via \texttt{numpy.sign(0)\,=\,0}. This value is always admissible --- it lies in $[-1, +1]$ --- so $\mathbf{g}$ is a valid subgradient and the convergence guarantee of Theorem~\ref{thm:dsm_convergence} applies as written. It is \emph{not} the minimum-norm element of $\partial f$ at $\mathbf{w}$: the unconstrained minimum of $(q_i + \lambda_{\text{LASSO}} s_i)^2$ over $s_i$ is $s_i^{\star} = -q_i/\lambda_{\text{LASSO}}$, which yields $g_i^{\star} = 0$ when $|q_i| \le \lambda_{\text{LASSO}}$ and $s_i^{\star} = -\operatorname{sign}(q_i)$ with $|g_i^{\star}| = |q_i| - \lambda_{\text{LASSO}}$ otherwise; our choice $s_i = 0$ matches neither (except trivially when $q_i = 0$). The discrepancy in $|g_i|$ is at most $\lambda_{\text{LASSO}}$ per affected component, so it inflates the constant $L$ in the convergence rate but not the $O(L^2/\varepsilon^2)$ order. In practice the issue is essentially theoretical for SGPTL on the OLS warm start: the iterate $w_i$ equals zero exactly only at indices that were zero in $\mathbf{w}_0$, an event of zero Lebesgue measure under the Polyak-step update once the algorithm leaves the initial point.
 
 % ------------------------------------------------------------------
 \subsection{Convergence analysis and hypothesis verification for ELM LASSO}
 \label{sec:dsm_convergence}
 
-\begin{theorem}[Convergence of SGPTL, adapted from \cite{dss-convergence-frangioni} and \cite{deflected-subgradient-method}]
+\begin{theorem}[Convergence of SGPTL, adapted from \cite{target-level-mechanism,deflected-subgradient-method,dantonio2009deflected}]
 \label{thm:dsm_convergence}
-Let $f : \mathbb{R}^n \to \mathbb{R}$ be convex. Let $\{\mathbf{w}_i\}$ be the sequence generated by Algorithm~\ref{alg:dsm} with convergence conditions satisfied (stepsize-restricted with $\beta_i \leq \gamma_i$). Assume subgradients are uniformly bounded: $\norm{\mathbf{g}_i}_2 \leq L$ for all $i$. Then:
-\begin{enumerate}[nosep]
-\item The record values $\bar{f}_i = \min_{h \leq i} f(\mathbf{w}_h)$ converge: $\bar{f}_i \to f^*$ as $i \to \infty$.
-\item Worst-case complexity is $O(1/\varepsilon^2)$: to achieve $\bar{f}_i - f^* \leq \varepsilon$ requires at most $O(L^2/\varepsilon^2)$ iterations.
-\end{enumerate}
+Let $f : \R^H \to \R$ be convex with $f^* = \min_{\mathbf{w}} f(\mathbf{w}) > -\infty$ attained at some $\mathbf{w}^*$, and let $\{\mathbf{w}_i\}$ be the sequence generated by Algorithm~\ref{alg:dsm} (the target-level deflected subgradient method we actually run). Assume the subgradients encountered along the run are uniformly bounded, $\norm{\mathbf{g}_i}_2 \leq L$, and the stepsize-restricted rule $\beta_i \le \gamma_i$ holds with $\gamma_i \ge \gamma_{\min} > 0$. Then the record values $\bar{f}_i = \min_{h \le i} f(\mathbf{w}_h)$ converge to $f^*$, and once the target-level estimate has sharpened to $f^*$ (i.e.\ $\delta_k \to 0$ and $f^k_{\mathrm{ref}} \to f^*$, which Lemma~3.8 of \cite{dantonio2009deflected} guarantees) the asymptotic rate matches the classical Polyak bound \cite{polyak-rate-frangioni,bertsekas1999nonlinear} inflated by the deflection floor:
+\begin{equation}
+\label{eq:def-rate-deflected}
+\bar{f}_k - f^* \;\leq\; \frac{L\,\norm{\mathbf{w}_0 - \mathbf{w}^*}_2}{\gamma_{\min}\sqrt{k}}\,,
+\end{equation}
+so the worst-case complexity to attain $\bar f_k - f^* \le \varepsilon$ is $O(L^2/(\gamma_{\min}^2\varepsilon^2))$.
 \end{theorem}
 
 \begin{proof}
-We establish Part~2 first; Part~1 follows as an immediate corollary.
+We verify the hypotheses of \cite[Theorem~3.7]{dantonio2009deflected} on Algorithm~\ref{alg:dsm} and read off the conclusions. The notation in \cite{dantonio2009deflected} maps to ours via $\sigma_k \leftrightarrow 0$ (exact oracle), $\alpha_k \leftrightarrow \gamma_i$, $\beta_k \leftrightarrow \beta_i$, $\nu_k \leftrightarrow \alpha_i$, $\mu \leftrightarrow \rho$, $X = \R^H$ (no constraint), and $\lambda_k \leftrightarrow f(\mathbf{w}_i) - (f^k_{\mathrm{ref}} - \delta_k)$.
 
-\medskip
-\noindent\textbf{Part~2: $O(L^2/\varepsilon^2)$ complexity.}
+\emph{(a)~Deflection-consistency condition~(2.13).} In \cite{dantonio2009deflected} condition~(2.13) of Lemma~2.4 reads $d_k = \tilde d_k \Rightarrow v_{k+1} = \tilde d_k$, where $\tilde d_k$ is the unprojected deflected direction and $\hat d_k = -P_{T_k}(-\tilde d_k)$ the projected one. This is the hypothesis under which the ``crucial'' inequality (2.12) holds, which the stepsize-restricted analysis relies on. With $X = \R^H$ the tangent cone is $T_k = \R^H$ everywhere, so $\hat d_k = \tilde d_k$ and necessarily $d_k = \tilde d_k$ at every iteration; the algorithm sets $v_{k+1}$ to $d_k = \tilde d_k$ (Algorithm~\ref{alg:dsm} carries no projection step), so~(2.13) is satisfied trivially.
 
-\emph{Step~1 — Fundamental inequality.}
-For the plain subgradient step $\mathbf{w}_{i+1} = \mathbf{w}_i - \alpha_i\,\mathbf{g}_i$ (temporarily set $\gamma_i = 1$, $\mathbf{d}_i = \mathbf{g}_i$), expanding the squared distance to $\mathbf{w}^*$ gives \cite{fundamental-relationships-sg}:
-\begin{equation}
-\label{eq:proof_fundamental}
-\norm{\mathbf{w}_{i+1} - \mathbf{w}^*}_2^2
-= \norm{\mathbf{w}_i - \mathbf{w}^*}_2^2
-  - 2\alpha_i\inner{\mathbf{g}_i}{\mathbf{w}_i - \mathbf{w}^*}
-  + \alpha_i^2\norm{\mathbf{g}_i}_2^2.
-\end{equation}
-Since $\mathbf{g}_i \in \partial f(\mathbf{w}_i)$ and $f$ is convex, the subgradient inequality yields
-$\inner{\mathbf{g}_i}{\mathbf{w}_i - \mathbf{w}^*} \geq f(\mathbf{w}_i) - f(\mathbf{w}^*) = f(\mathbf{w}_i) - f^*$.
-Substituting into \eqref{eq:proof_fundamental}:
-\[
-\norm{\mathbf{w}_{i+1} - \mathbf{w}^*}_2^2
-\leq \norm{\mathbf{w}_i - \mathbf{w}^*}_2^2
-     - 2\alpha_i(f(\mathbf{w}_i) - f^*)
-     + \alpha_i^2\norm{\mathbf{g}_i}_2^2.
-\]
+\emph{(b)~Stepsize condition (3.5)}: $\lambda_k \ge 0 \Rightarrow \alpha_k \ge \beta_k \ge \beta^* > 0$, $\lambda_k < 0 \Rightarrow \alpha_k = 0$. When $\lambda_k > 0$, line~12 of Algorithm~\ref{alg:dsm} sets $\beta_i = \min(1,\gamma_i) \ge \gamma_{\min}$ via the floor on $\gamma_i$, so we may take $\beta^* = \gamma_{\min}$; the inequality $\alpha_k \ge \beta_k$ in (3.5) is $\gamma_i \ge \beta_i$, which is exactly the stepsize-restricted rule. When $\lambda_k \le 0$ the numerical safeguard of Section~\ref{sec:dsm_algorithm} skips the step --- equivalent to $\alpha_i = 0$ --- and triggers the sufficient-descent update $f^k_{\mathrm{ref}} \gets \bar f$, $r \gets 0$ on $\mathbf{w}_i$ itself. The skip realises (3.5) verbatim; the additional $f^k_{\mathrm{ref}}$ update is theory-aligned because $\lambda_k \le 0$ means $f(\mathbf{w}_i) \le f^k_{\mathrm{ref}} - \delta_k \le f^k_{\mathrm{ref}} - \delta_k/2$, which is the sufficient-descent condition of \cite[Lemma~3.8]{dantonio2009deflected} evaluated at $\mathbf{w}_i$ rather than at $\mathbf{w}_{i+1}$.
 
-\emph{Step~2 — Polyak step.}
-(Note: this derivation is for the plain subgradient case $\gamma_i = 1$, where $\mathbf{d}_i = \mathbf{g}_i$ and $\norm{\mathbf{d}_i}^2 = \norm{\mathbf{g}_i}^2$; the deflected case is treated below.)
-Choose the Polyak stepsize \cite{polyak-stepsize}
-$\alpha_i = (f(\mathbf{w}_i) - f^*)/\norm{\mathbf{g}_i}_2^2$,
-which is the value $\alpha$ that minimises the right-hand side above (setting its derivative in $\alpha$ to zero).
-Substituting:
-\begin{align}
-\norm{\mathbf{w}_{i+1} - \mathbf{w}^*}_2^2
-&\leq \norm{\mathbf{w}_i - \mathbf{w}^*}_2^2
-      - \frac{2(f(\mathbf{w}_i) - f^*)^2}{\norm{\mathbf{g}_i}_2^2}
-      + \frac{(f(\mathbf{w}_i) - f^*)^2}{\norm{\mathbf{g}_i}_2^2}
-= \norm{\mathbf{w}_i - \mathbf{w}^*}_2^2
-  - \frac{(f(\mathbf{w}_i) - f^*)^2}{\norm{\mathbf{g}_i}_2^2}.
-\label{eq:proof_perstep_exact}
-\end{align}
-Using the bound $\norm{\mathbf{g}_i}_2 \leq L$:
-\begin{equation}
-\label{eq:proof_perstep}
-\norm{\mathbf{w}_{i+1} - \mathbf{w}^*}_2^2
-\leq \norm{\mathbf{w}_i - \mathbf{w}^*}_2^2
-     - \frac{(f(\mathbf{w}_i) - f^*)^2}{L^2}.
-\end{equation}
+\emph{(c)~Target-level threshold condition~(3.26)}: requires \emph{either} $f^\infty_{\mathrm{ref}} = f^* = -\infty$ \emph{or} $\liminf_k \delta_k = 0$ together with the series condition~(3.25), $\sum_k \lambda_k/\norm{\mathbf{d}_k}^2 = \infty$ (equivalent to $\sum_k s_k = \infty$ via~(3.28) of \cite{dantonio2009deflected}, where $s_k = \norm{\mathbf{w}_{k+1}-\mathbf{w}_k} = \beta_k \lambda_k / \norm{\mathbf{d}_k}$). Since on ELM~LASSO $f^* > -\infty$, the first branch is excluded and we need the second. \cite[Lemma~3.8]{dantonio2009deflected} provides a concrete update strategy for $(f^k_{\mathrm{ref}}, \delta_k)$ --- the sufficient-descent test on $f_{k+1} \le f^k_{\mathrm{ref}} - \delta_k/2$, the target-infeasibility test on $r_k > R$, and the accumulate-$r$ counter --- which attains both $\delta_k \to 0$ and $\sum_k s_k = \infty$. Lines~16--21 of Algorithm~\ref{alg:dsm} implement that strategy verbatim under the identification $\mu \leftrightarrow \rho$, so condition~(3.26) holds.
 
-\emph{Step~3 — Telescoping and record-value bound.}
-Summing \eqref{eq:proof_perstep} for $i = 0, 1, \ldots, k-1$, the squared-distance terms telescope:
-\[
-\frac{1}{L^2}\sum_{i=0}^{k-1}(f(\mathbf{w}_i) - f^*)^2
-\leq \norm{\mathbf{w}_0 - \mathbf{w}^*}_2^2 - \norm{\mathbf{w}_k - \mathbf{w}^*}_2^2
-\leq \norm{\mathbf{w}_0 - \mathbf{w}^*}_2^2.
-\]
-Let $\bar{f}_k = \min_{h \leq k} f(\mathbf{w}_h)$ be the record value. Since $f(\mathbf{w}_i) \geq \bar{f}_k$ for every $i \leq k$, each summand satisfies $(f(\mathbf{w}_i) - f^*)^2 \geq (\bar{f}_k - f^*)^2$, giving:
-\[
-\frac{k\,(\bar{f}_k - f^*)^2}{L^2}
-\leq \sum_{i=0}^{k-1}\frac{(f(\mathbf{w}_i) - f^*)^2}{L^2}
-\leq \norm{\mathbf{w}_0 - \mathbf{w}^*}_2^2.
-\]
-Rearranging:
-\begin{equation}
-\label{eq:proof_rate}
-\bar{f}_k - f^*
-\leq \frac{L\,\norm{\mathbf{w}_0 - \mathbf{w}^*}_2}{\sqrt{k}}.
-\end{equation}
-To achieve $\bar{f}_k - f^* \leq \varepsilon$ it suffices to run $k \geq L^2\norm{\mathbf{w}_0 - \mathbf{w}^*}_2^2/\varepsilon^2$ iterations, establishing the $O(L^2/\varepsilon^2)$ bound.
+\emph{Subgradients uniformly bounded.} The convex objective $f$ of ELM~LASSO is coercive and continuous; the iterates $\{\mathbf{w}_i\}$ remain in a compact sublevel set $S_{c_0}$ for some $c_0 \ge f(\mathbf{w}_0)$ (verification below), and $\partial f$ is uniformly bounded on $S_{c_0}$ by Lipschitz continuity of convex functions on compact sets \cite{lipschitz-continuity-frangioni}.
 
-\medskip
-\noindent\textbf{Extension to deflected directions ($\gamma_i < 1$, $\beta = 1$ fixed).}
-When $\mathbf{d}_i = \gamma_i\,\mathbf{g}_i + (1-\gamma_i)\,\mathbf{d}_{i-1}$ is not a subgradient,
-the inner product $\inner{\mathbf{d}_i}{\mathbf{w}_i - \mathbf{w}^*}$ cannot be bounded below by $f(\mathbf{w}_i) - f^*$
-via the subgradient inequality alone, so the per-step iterate-distance bound
-\begin{equation}
-\label{eq:proof_perstep_deflected}
-\norm{\mathbf{w}_{i+1} - \mathbf{w}^*}_2^2
-\leq \norm{\mathbf{w}_i - \mathbf{w}^*}_2^2
-     - \frac{(f(\mathbf{w}_i)-f^*)^2}{\norm{\mathbf{d}_i}_2^2}
-\end{equation}
-does not follow from the subgradient inequality directly. The literal
-stepsize-restricted condition $\beta_i \le \gamma_i$ from
-\cite[Theorem~3.2]{dantonio2009deflected} is precisely what recovers
-the bound: under this constraint the deflected step is shown to
-satisfy~\eqref{eq:proof_perstep_deflected} for every iteration. Our
-implementation enforces $\beta_i = \min(\beta,\gamma_i) \le \gamma_i$
-verbatim (Algorithm~\ref{alg:dsm}, line~16), with the additional
-floor $\gamma_i \ge \gamma_{\min}$ on the deflection coefficient
-itself (Section~\ref{sec:dsm_optimal_gamma}) ensuring that the
-inequality is strictly positive: $\beta_i \ge \gamma_{\min} > 0$, so
-the Polyak step never collapses to zero and the iterate keeps
-moving. The bound~\eqref{eq:proof_perstep_deflected} therefore holds
-at every iteration, the telescoping argument of Steps~2--3 applies as
-written, and the
-$O(L^2/\varepsilon^2)$ rate of Theorem~\ref{thm:dsm_convergence} is
-preserved unconditionally.
-
-\medskip
-\noindent\textbf{Role of the target-level mechanism.}
-Since $f^*$ is unknown, Algorithm~\ref{alg:dsm} replaces it with the target level $f_{\mathrm{ref}} - \delta$ \cite{target-level-mechanism}. When $f_{\mathrm{ref}} - \delta > f^*$ the Polyak numerator $f(\mathbf{w}_i) - (f_{\mathrm{ref}} - \delta)$ underestimates $f(\mathbf{w}_i) - f^*$, producing shorter steps. The contraction rule $\delta \gets \delta\rho$ (triggered when no sufficient progress is recorded over the patience window $R$) prevents the target from remaining forever below $f^*$: as $\delta \to 0$ the reference $f_{\mathrm{ref}} - \delta$ converges to $f_{\mathrm{ref}} \geq f^*$, so the estimate eventually tracks $f^*$ from above and the bound~\eqref{eq:proof_rate} holds asymptotically.
-
-\medskip
-\noindent\textbf{Part~1: $\bar{f}_i \to f^*$.}
-From \eqref{eq:proof_rate}, $\bar{f}_k - f^* \leq L\norm{\mathbf{w}_0 - \mathbf{w}^*}_2/\sqrt{k} \to 0$ as $k \to \infty$. Since $\bar{f}_k \geq f^*$ by definition, we conclude $\bar{f}_k \to f^*$.
+Conditions (2.13), (3.5), (3.26) being verified with $\sigma^* = 0$, \cite[Theorem~3.7]{dantonio2009deflected} gives $f^\infty_{\mathrm{ref}} \le f^* + \sigma^* = f^*$, so $\bar f_i \to f^*$. The asymptotic rate~\eqref{eq:def-rate-deflected} is then the classical Polyak rate \cite[Theorem~7.17]{bertsekas1999nonlinear}, \cite{polyak-rate-frangioni} applied to the regime where the target-level estimate has sharpened to $f^*$ (Lemma~3.8 of \cite{dantonio2009deflected} guarantees $\delta_k \to 0$, so eventually the step reduces to the standard Polyak step with $f^*$); the factor $1/\gamma_{\min}$ is the explicit price of the deflection floor, which contracts the effective stepsize by $\beta_i = \min(1, \gamma_i) \ge \gamma_{\min}$ at every iteration. On ELM~LASSO with $\gamma_{\min} = 0.05$ this inflates the iteration count to reach a given $\varepsilon$ by $400\times$ relative to the unfloored Polyak rate, but the $O(L^2/\varepsilon^2)$ order is preserved.
 \end{proof}
 
 \paragraph{Verification of theorem assumptions for ELM LASSO.}

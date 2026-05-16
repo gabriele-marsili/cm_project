@@ -1,0 +1,18 @@
+> abbiamo proseguito con il lavoro, implementando il codice, ottenendo e analizzando i risultati, e completando la stesura degli ultimi due capitoli del report.
+> In allegato trovate il file “CM_Project_25ML_Group63.zip”, contenente il codice sorgente
+
+Le istruzioni sono chiare: avreste dovuto aspettare l'OK al report prima di mandare il codice sorgente.
+
+Non sono del tutto sicuro della vostra affermazione alla fine della §3.5.1, ma la possibilità che w_i sia 0 tende ad essere bassa (se ne potrebbe parlare) quindi non mi pare critico.
+
+Trovo molto interessante il vostro Theorem 3.1, ma non sono affatto convinto. Il punto critico è
+
+The literal stepsize-restricted condition βi ≤γi from [5, Theorem 3.2] is precisely what recovers the bound: under this constraint the deflected step is shown to satisfy (3.14) for every iteration.
+
+A me la dimostrazione di questa affermazione non pare affatto ovvia, quindi vi prego di dettagliarla: detto fuori dai denti mi pare allucinazione da LLM, ma potrei sbagliarmi. In generale tutto il vostro report puzza parecchio di LLM, in particolare con questa insistenza a dire due, tre o più volte le stesse cose che non è particolarmente benvenuta. Tenete presente che a voi potrà costare poco farle scrivere ma a noi costa leggerle. Sarebbe quindi apprezzato uno stile più asciutto.
+
+Potrei anche avere da ridire sul vostro warm-start w_0, quantomeno non mi pare che discutiate quanto vi costa calcolarlo nel contesto del costo totale dell'approccio, e quindi se abbia senso come scelta (a meno che il punto di sinistra in Figure 5.3 non indichi questo, nel qual caso ditelo esplicitamente).
+
+Non mi è chiara la vostra scelta di \delta_0 nella §5.3.3: sembrerebbe fare uso di f^*, che non conoscete. Mi può stare bene in un'analisi "astratta" per capire come funziona, ma mi stona se l'avete usata nel contesto degli esperimenti "veri". OK che alla fine un numero è un numero ed avreste potuto ottenerlo da una GS che non fa riferimento a f^*, ma usare il valore ottimo per determinare i parametri algoritmici per un ottimizzatore è come usare il test set per fare training in ML: semplicemente non si fa. Chiarite questo punto, quantomeno discutetelo. A proposito di questo, le performances dei metodi in termini di test MSE non sono rilevanti qui, ma ormai che le avete scritte tenetele. Il comportamento di SGPTL nella §5.7 mi farebbe pensare che sia stato molto mal configurato, ma magari se ne parla all'orale.
+
+Vi chiederei di fare un ultimo passaggio considerando i punti di cui sopra, comunque (se la Prof.ssa Cortinovis è d'accordo) vi autorizzerei fin da adesso a mandare anche il codice con la prossima consegna.
