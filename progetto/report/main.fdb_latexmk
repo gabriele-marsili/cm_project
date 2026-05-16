@@ -1,13 +1,13 @@
 # Fdb version 4
-["biber main"] 1778837358.32937 "main.bcf" "main.bbl" "main" 1778853939.81801 0
-  "main.bcf" 1778853939.41503 113196 b1897e5d1a5926df9d6bd285fa365877 "pdflatex"
+["biber main"] 1778948349.51743 "main.bcf" "main.bbl" "main" 1778949396.76795 0
+  "main.bcf" 1778949396.32436 113118 b24f039b5a2a72cbe489d4074dc7ebc6 "pdflatex"
   "references.bib" 1778836728.21959 8059 fa7f6135d3b081f840dfffec52eda9bc ""
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1778853934.48256 "/Users/matt/Desktop/UniPi AI/Semester 1/Computational Mathematics for Learning and Data Analysis/Project/progetto/report/main.tex" "main.pdf" "main" 1778853939.8186 0
-  "/Users/matt/Desktop/UniPi AI/Semester 1/Computational Mathematics for Learning and Data Analysis/Project/progetto/report/main.tex" 1778836728.21903 3574 75bb4783c81366b6b2f9096d15bdc5f9 ""
+["pdflatex"] 1778949390.74987 "/Users/matt/Desktop/UniPi AI/Semester 1/Computational Mathematics for Learning and Data Analysis/Project/progetto/report/main.tex" "main.pdf" "main" 1778949396.76858 0
+  "/Users/matt/Desktop/UniPi AI/Semester 1/Computational Mathematics for Learning and Data Analysis/Project/progetto/report/main.tex" 1778946082.56232 3563 225357a095fb6fc0b4176a727275e7ac ""
   "/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm" 1136768653 1536 e07581a4bb3136ece9eeb4c3ffab8233 ""
@@ -184,7 +184,7 @@
   "/usr/local/texlive/2026/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1778837267 5573038 b99aad5e4898a9034e953632f940512b ""
   "/usr/local/texlive/2026/texmf-var/web2c/pdftex/pdflatex.fmt" 1778837223 3636769 30e12bd181d42a0fc8fae9d39b5eef1d ""
   "/usr/local/texlive/2026/texmf.cnf" 1774209515 577 648cd9f92f9c0eac486f4c71c85cfbbe ""
-  "1_introduction/report.tex" 1778836728.19071 11127 279195e5668d78c7489b68b6c6dc3ef4 ""
+  "1_introduction/report.tex" 1778949390.13577 9773 6c74681cc279dc14c389890c4c5758c6 ""
   "2_algo_1_IRLS/algo1.tex" 1778836728.1916 21233 20849cde79e622083dc73a38cbc4a98f ""
   "3_algo_2_DSM/chapter3.tex" 1778853931.96544 38467 453428003778ade1bbe479207a6d3b4c ""
   "4_algo_comparison/comparison.tex" 1778836728.19377 12267 2c9eb6bd5364059c55cfe80c7940f811 ""
@@ -202,12 +202,12 @@
   "images/scalability.pdf" 1778836728.20497 27971 457601191ccbc762c16b3200e073a28b ""
   "images/solver_comparison.pdf" 1778836728.2055 42433 e6088dcd735dfd9864040ec16ced1927 ""
   "images/warm_vs_cold.pdf" 1778836728.20603 40503 3bdf2b18d6233bc2dd1ba19c79f7d362 ""
-  "main.aux" 1778853939.39549 45049 916d39b83262153bad53c1e05241135d "pdflatex"
-  "main.bbl" 1778837375.89183 33271 9b08d8c968fd00661591c56daff02129 "biber main"
-  "main.out" 1778853939.41262 11137 85322c20a748f67d7b10eb930f221a46 "pdflatex"
-  "main.run.xml" 1778853939.4166 2305 52095dfad395b381e9a32937e764a41c "pdflatex"
-  "main.tex" 1778836728.21903 3574 75bb4783c81366b6b2f9096d15bdc5f9 ""
-  "main.toc" 1778853939.41683 7985 9c09d17a78094acb5afdfb13e3729a4d "pdflatex"
+  "main.aux" 1778949396.30303 44843 2e7763a6ebac11181ec1a5e37f926c26 "pdflatex"
+  "main.bbl" 1778948367.0079 33271 9b08d8c968fd00661591c56daff02129 "biber main"
+  "main.out" 1778949396.32146 11011 8a786be619739b80d351ea21594b6d99 "pdflatex"
+  "main.run.xml" 1778949396.32658 2305 52095dfad395b381e9a32937e764a41c "pdflatex"
+  "main.tex" 1778946082.56232 3563 225357a095fb6fc0b4176a727275e7ac ""
+  "main.toc" 1778949396.32685 7908 e1d8ba6cf9ddb161c65779609bec2770 "pdflatex"
   (generated)
   "main.aux"
   "main.bcf"
