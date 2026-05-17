@@ -2445,14 +2445,16 @@
     <bcf:citekey order="67" intorder="1">bubeck2015convex</bcf:citekey>
     <bcf:citekey order="68" intorder="1">frangioni-slides-smooth</bcf:citekey>
     <bcf:citekey order="69" intorder="1">hastie2009elements</bcf:citekey>
-    <bcf:citekey order="70" intorder="1">dantonio2009deflected</bcf:citekey>
-    <bcf:citekey order="71" intorder="1">brannlund1993generalized</bcf:citekey>
-    <bcf:citekey order="71" intorder="2">goffin1999convergence</bcf:citekey>
-    <bcf:citekey order="71" intorder="3">bertsekas1999nonlinear</bcf:citekey>
-    <bcf:citekey order="72" intorder="1">frangioni-slides-nonsmooth</bcf:citekey>
-    <bcf:citekey order="73" intorder="1">efron2004least</bcf:citekey>
-    <bcf:citekey order="74" intorder="1">pace1997sparse</bcf:citekey>
-    <bcf:citekey order="75" intorder="1">dantonio2009deflected</bcf:citekey>
+    <bcf:citekey order="70" intorder="1">efron2004least</bcf:citekey>
+    <bcf:citekey order="71" intorder="1">pace1997sparse</bcf:citekey>
+    <bcf:citekey order="72" intorder="1">dantonio2009deflected</bcf:citekey>
+    <bcf:citekey order="73" intorder="1">brannlund1993generalized</bcf:citekey>
+    <bcf:citekey order="73" intorder="2">goffin1999convergence</bcf:citekey>
+    <bcf:citekey order="73" intorder="3">bertsekas1999nonlinear</bcf:citekey>
+    <bcf:citekey order="74" intorder="1">frangioni-slides-nonsmooth</bcf:citekey>
+    <bcf:citekey order="75" intorder="1">efron2004least</bcf:citekey>
+    <bcf:citekey order="76" intorder="1">pace1997sparse</bcf:citekey>
+    <bcf:citekey order="77" intorder="1">dantonio2009deflected</bcf:citekey>
   </bcf:section>
   <!-- SORTING TEMPLATES -->
   <bcf:sortingtemplate name="nty">

@@ -1,12 +1,12 @@
 # Fdb version 4
-["biber main"] 1779033215.28725 "main.bcf" "main.bbl" "main" 1779034654.91877 0
-  "main.bcf" 1779034654.80453 114944 a9c37c1709bc8ae34929113c2288efdf "pdflatex"
+["biber main"] 1779035725.46829 "main.bcf" "main.bbl" "main" 1779035729.06012 0
+  "main.bcf" 1779035728.94454 115084 5a593468c933a1a519c09d2855d8befa "pdflatex"
   "references.bib" 1779014473.7708 5716 44f2972d1c679b28fa7910a6187879a6 ""
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1779034653.05347 "main.tex" "main.pdf" "main" 1779034654.91904 0
+["pdflatex"] 1779035727.34809 "main.tex" "main.pdf" "main" 1779035729.06039 0
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm" 1136768653 1536 e07581a4bb3136ece9eeb4c3ffab8233 ""
@@ -191,15 +191,15 @@
   "/usr/local/texlive/2025/texmf.cnf" 1741450484 577 418a7058ec8e006d8704f60ecd22c938 ""
   "1_introduction/report.tex" 1779014495.39233 9795 7df8358ed4fe2d238b9c12f8271fd678 ""
   "2_algo_1_IRLS/algo1.tex" 1779014495.40208 21246 8b41448e4cf18e1030432f3edbe8e788 ""
-  "3_algo_2_DSM/chapter3.tex" 1779034641.68188 26884 86e053fb0f5106c8d143ed20d821f87e ""
+  "3_algo_2_DSM/chapter3.tex" 1779035721.20909 26933 725aba5d3f26476f01f42d843d777a79 ""
   "4_algo_comparison/comparison.tex" 1779014495.4164 7487 4a8621bc51821107720a5757c68dde76 ""
-  "5_results/results.tex" 1779034634.89991 34451 f855d3c255b8eecf6e5bee710301ee4f ""
+  "5_results/results.tex" 1779035711.75786 37208 051d5001534f73471a7743839f11b3ff ""
   "6_conclusions/conclusions.tex" 1779014495.4304 5364 7a3c805467f9475aef2c09770c5fb57c ""
   "images/cherubino_pant541.png" 1777368345.91363 164399 35acb288a44c404ffd063bc22487e4be ""
   "images/comparison_irls_dsm.pdf" 1778948715.94223 44363 d5f8219054cf0fedeb73f89ea4cac6a8 ""
   "images/convergence_vs_iter.pdf" 1778948715.94259 41049 090094f31f588026c31f23a2fbd1be46 ""
   "images/convergence_vs_time.pdf" 1778948715.94278 34338 348d188284d78d3942cef5e2e64160b4 ""
-  "images/delta0_families.pdf" 1779034578.65377 101319 4ffc644dc3dfaa2ab5b3c4646cf7a449 ""
+  "images/delta0_families.pdf" 1779035620.01208 173105 b5aa2bfd458573c9ccc669eff3c78d93 ""
   "images/dsm_nonmonotone.pdf" 1778256193.76222 43428 12ad1acb6f84ee4d5b7b51994c827c88 ""
   "images/elm.png" 1777368348.88819 160307 9dd0f263efc9c47247044aa98e35de94 ""
   "images/gamma_floor_test.pdf" 1779025401.87997 38836 fefb90990cb7a98426e277c09d3557e2 ""
@@ -209,12 +209,12 @@
   "images/scalability.pdf" 1778948715.94395 27956 df5251d2f646dd0966389ef436dc0050 ""
   "images/solver_comparison.pdf" 1778256200.19873 42433 e6088dcd735dfd9864040ec16ced1927 ""
   "images/warm_vs_cold.pdf" 1778948715.94417 37582 fa5a5b0ab7a27a1c54071ccaa04bc098 ""
-  "main.aux" 1779034654.79799 47370 e8bf1dd4aa476728c4342eaabe4fb435 "pdflatex"
-  "main.bbl" 1779033217.10275 26056 345aabe8f822368db1cea1371ca5571e "biber main"
-  "main.out" 1779034654.80359 11769 9e36e73a45780a3e5600101b88a52b6a "pdflatex"
-  "main.run.xml" 1779034654.80506 2305 52095dfad395b381e9a32937e764a41c "pdflatex"
+  "main.aux" 1779035728.93837 47787 e8e745614851c29701d72e542b86f109 "pdflatex"
+  "main.bbl" 1779035727.33511 26056 345aabe8f822368db1cea1371ca5571e "biber main"
+  "main.out" 1779035728.94371 11871 2647a83d255abddebbfa86b116bc9389 "pdflatex"
+  "main.run.xml" 1779035728.94505 2305 52095dfad395b381e9a32937e764a41c "pdflatex"
   "main.tex" 1779007906.61092 3563 225357a095fb6fc0b4176a727275e7ac ""
-  "main.toc" 1779034654.80512 8133 cbc971f7a703a9ead20a5500e7523ec2 "pdflatex"
+  "main.toc" 1779035728.9451 8151 c99e27b40ac289f7597b12ae5c8a897d "pdflatex"
   (generated)
   "main.aux"
   "main.bcf"
