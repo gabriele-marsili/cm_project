@@ -48,7 +48,7 @@ is quadratic in $\gamma$; expanding $\norm{\gamma\mathbf{g}_i + (1-\gamma)\mathb
 \begin{equation}\label{eq:gamma_star}
 \gamma^* = \frac{\norm{\mathbf{d}_{i-1}}_2^2 - \inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}}{\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}_2^2}, \quad \gamma_i = \min(1,\max(\gamma_{\min},\gamma^*)).
 \end{equation}
-The clip onto $[\gamma_{\min}, 1]$ instead of $[0, 1]$ is our addition (Section~\ref{sec:dsm_convergence_conditions}); the degenerate case $\mathbf{g}_i = \mathbf{d}_{i-1}$ has vanishing leading coefficient and gives $\mathbf{d}_i = \mathbf{d}_{i-1}$ for any $\gamma$, so we set $\gamma_i = 1$ by convention. In the zig-zag regime $\mathbf{g}_i \approx -\mathbf{d}_{i-1}$ with $\norm{\mathbf{g}_i} \approx \norm{\mathbf{d}_{i-1}}$, the formula gives $\gamma^* \approx 1/2$ and $\mathbf{d}_i$ halves the oscillation.
+The clip onto $[\gamma_{\min}, 1]$ instead of $[0, 1]$ is our addition (Section~\ref{sec:dsm_convergence_conditions}); the degenerate case $\mathbf{g}_i = \mathbf{d}_{i-1}$ has vanishing leading coefficient and gives $\mathbf{d}_i = \mathbf{d}_{i-1}$ for any $\gamma$, so we set $\gamma_i = 1$ by convention. The first iteration is handled analogously: with $\mathbf{d}_{-1} = \mathbf{0}$ the formula~\eqref{eq:gamma_star} returns $\gamma^* = 0$, which would make $\mathbf{d}_0 = \mathbf{0}$; we set $\gamma_0 = 1$ so that $\mathbf{d}_0 = \mathbf{g}_0$, the plain subgradient first step. In the zig-zag regime $\mathbf{g}_i \approx -\mathbf{d}_{i-1}$ with $\norm{\mathbf{g}_i} \approx \norm{\mathbf{d}_{i-1}}$, the formula gives $\gamma^* \approx 1/2$ and the oscillatory component of $\mathbf{d}_i$ cancels.
 
 % ------------------------------------------------------------------
 \section{The target-level mechanism}
@@ -98,9 +98,6 @@ Algorithm~\ref{alg:dsm} presents the full Deflected Subgradient Method with targ
 \State \Return $\mathbf{w}_{\mathrm{best}}$ (iterate achieving $\bar{f}$)
 \end{algorithmic}
 \end{algorithm}
-
-\paragraph{Correspondence with the theory.}
-Algorithm~\ref{alg:dsm} implements the SGPTL rule of~\cite[Slides 14--15]{frangioni-slides-nonsmooth} and Lemma~3.8 of~\cite{dantonio2009deflected}: lines~12--13 are the stepsize-restricted Polyak step, lines~16--21 the three-branch update of $(f_{\mathrm{ref}}, \delta, r)$. The only deviation from the pseudocode is the clip on $\gamma_i$ at line~9 onto $[\gamma_{\min}, 1]$, which realises condition~(3.5) of~\cite{dantonio2009deflected} with $\beta^* = \gamma_{\min}$. Setting $\gamma_0 = 1$ realises the convention $\mathbf{d}_{-1} = \mathbf{0}$ in~\eqref{eq:deflected_dir}, since~\eqref{eq:gamma_star} is $0/0$ at $i=0$.
 
 \paragraph{Numerical safeguards.}
 Three pure floating-point guards lie outside the pseudocode. \emph{(i)}~If $\norm{\mathbf{d}_i}^2 < 10^{-30}$ we terminate. \emph{(ii)}~If $f(\mathbf{w}_i) - (f_{\mathrm{ref}}-\delta) \le 0$ we set $\alpha_i = 0$ (condition~(3.5) of~\cite{dantonio2009deflected}) and trigger the sufficient-descent update at $\mathbf{w}_i$, since $f(\mathbf{w}_i) \le f_{\mathrm{ref}}-\delta/2$. \emph{(iii)}~If $\mathbf{w}_{i+1}$ has a non-finite component we skip the iteration without touching $(\delta, f_{\mathrm{ref}}, r)$. No non-theoretical $\delta$-contraction or overshoot rescue is added: such mechanisms have no support in~\cite{dantonio2009deflected} and would break Theorem~\ref{thm:dsm_convergence}.
