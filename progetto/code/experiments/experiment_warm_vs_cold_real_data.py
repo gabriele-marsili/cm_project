@@ -30,11 +30,15 @@ apply_style()
 
 SEED          = 42
 H             = 200
-LAMBDA        = 0.1
+LAMBDA_DIABETES = 0.1
+LAMBDA_CALIFORNIA = 0.1
 TEST_FRACTION = 0.2
-DSM_IMAX      = 8000
-DSM_DELTA0    = 0.1
-DSM_RHO       = 0.9
+DSM_IMAX_DIABETES = 2000
+DSM_IMAX_CALIFORNIA = 5000
+DSM_DELTA0_DIABETES = 0.1
+DSM_DELTA0_CALIFORNIA = 0.8
+DSM_RHO_DIABETES = 0.9
+DSM_RHO_CALIFORNIA = 0.6
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
 TAB_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "tables")
@@ -74,9 +78,9 @@ def load_dataset(name):
     return _split_scale(X, y)
 
 
-def build_hidden(X_tr_raw, X_te_raw, d_in, H=H, seed=SEED):
+def build_hidden(X_tr_raw, X_te_raw, d_in, H=H, seed=SEED, name="california"):
     """Apply the ELM projection to both splits using the same fixed W_1."""
-    elm = ELM(d=d_in, p=H, activation="sigmoid", lam=LAMBDA, random_state=seed)
+    elm = ELM(d=d_in, p=H, activation="sigmoid", lam=LAMBDA_CALIFORNIA if name == "california" else LAMBDA_DIABETES, random_state=seed)
     return elm.transform(X_tr_raw), elm.transform(X_te_raw)
 
 
@@ -103,7 +107,7 @@ def run_one(name):
     M = X_tr_raw.shape[0]
     print(f"  n_train={M}, n_test={X_te_raw.shape[0]}, d={d_in}, H={H}")
 
-    X_tr, X_te = build_hidden(X_tr_raw, X_te_raw, d_in)
+    X_tr, X_te = build_hidden(X_tr_raw, X_te_raw, d_in, name=name)
     print(f"  hidden activations: shape={X_tr.shape}, "
           f"cond(X^T X) ≈ {np.linalg.cond(X_tr.T @ X_tr):.2e}")
 
@@ -111,10 +115,16 @@ def run_one(name):
     # does not converge there within a reasonable iteration budget).
     if name == "california":
         print("  sklearn skipped on this dataset; using OLS f as placeholder for f_star.")
-        f_star = float(f_lasso(X_tr, y_tr, ols_warm_start(X_tr, y_tr), LAMBDA))
+        f_star = float(f_lasso(X_tr, y_tr, ols_warm_start(X_tr, y_tr), LAMBDA_CALIFORNIA))
     else:
-        _, f_star = reference_solution(X_tr, y_tr, LAMBDA)
+        _, f_star = reference_solution(X_tr, y_tr, LAMBDA_DIABETES)
         print(f"  f* (sklearn baseline) = {f_star:.6f}")
+
+    lambda_ = LAMBDA_CALIFORNIA if name == "california" else LAMBDA_DIABETES
+    i_max = DSM_IMAX_CALIFORNIA if name == "california" else DSM_IMAX_DIABETES
+    delta0 = (DSM_DELTA0_CALIFORNIA if name == "california" else DSM_DELTA0_DIABETES) * f_star
+    rho = DSM_RHO_CALIFORNIA if name == "california" else DSM_RHO_DIABETES
+
 
     # ------------------------------------------------------------------
     # WARM START (OLS)
@@ -122,15 +132,16 @@ def run_one(name):
     t0    = time.time()
     w_ols = ols_warm_start(X_tr, y_tr)
     res_warm = deflected_subgradient(
-        X_tr, y_tr, LAMBDA,
-        w0=w_ols, i_max=DSM_IMAX, beta=1.0,
-        delta0=DSM_DELTA0 * f_star, rho=DSM_RHO,
+        X_tr, y_tr, lam=lambda_,
+        w0=w_ols, i_max=i_max, beta=1.0,
+        delta0=delta0, rho=rho,
         f_star=f_star,
     )
     time_warm = time.time() - t0
-    f_w = f_lasso(X_tr, y_tr, res_warm["w"], LAMBDA)
+    f_w = f_lasso(X_tr, y_tr, res_warm["w"], LAMBDA_CALIFORNIA if name == "california" else LAMBDA_DIABETES)
     print(f"  SGPTL (Warm) : {res_warm['n_iter']} iter, "
           f"gap = {res_warm['gaps'][-1]:.3e}, f = {f_w:.6f}, time = {time_warm:.4f}s")
+    
 
     # ------------------------------------------------------------------
     # COLD START (w = 0)
@@ -138,13 +149,13 @@ def run_one(name):
     t0     = time.time()
     w_cold = np.zeros(H)
     res_cold = deflected_subgradient(
-        X_tr, y_tr, LAMBDA,
-        w0=w_cold, i_max=DSM_IMAX, beta=1.0,
-        delta0=DSM_DELTA0 * f_star, rho=DSM_RHO,
+        X_tr, y_tr, lam=lambda_,
+        w0=w_cold, i_max=i_max, beta=1.0,
+        delta0=delta0, rho=rho,
         f_star=f_star,
     )
     time_cold = time.time() - t0
-    f_c = f_lasso(X_tr, y_tr, res_cold["w"], LAMBDA)
+    f_c = f_lasso(X_tr, y_tr, res_cold["w"], lambda_)
     print(f"  SGPTL (Cold) : {res_cold['n_iter']} iter, "
           f"gap = {res_cold['gaps'][-1]:.3e}, f = {f_c:.6f}, time = {time_cold:.4f}s")
 
