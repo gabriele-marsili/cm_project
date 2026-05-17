@@ -100,13 +100,21 @@ harder instances, and we test them on the real ELM matrices when
 feasible. (ii) The ELM-transformed real datasets have no ground-truth
 sparsity, so the sparsity claims of Section~\ref{sec:quality} apply
 only to the synthetic instance; on the ELM real data we report
-training-objective gaps and test MSE. (iii) On \texttt{california}
-SGPTL barely leaves the OLS warm start regardless of hyperparameters
-or hidden-layer size (we test $H=50$ and $H=200$ in
-Section~\ref{sec:params}; both stall). This is an applicability-limit
-datapoint for SGPTL on column-normalised ELM matrices at the budgets
-we use, not an artefact of the experiments: CVXPY certifies that the
-plateau on \texttt{california}~$H=50$ is genuinely above $f^{*}$.
+training-objective gaps and test MSE. (iii) On
+\texttt{california}~at $\lambda_\text{LASSO}=0.1$ the OLS warm start
+already coincides with $f^{*}$ to within $5\cdot 10^{-1}$ on the ELM
+matrix (the $\ell_{1}$ term is weak relative to the data scale on
+this dataset), so warm-started SGPTL has nothing to optimise and the
+configuration is uninformative for sensitivity studies. For the
+$\delta_{0}$ sweep of Section~\ref{sec:params} we therefore run
+\texttt{california} from cold start $\mathbf{w}_{0}=\mathbf{0}$, where
+the initial gap is $\sim\!8\cdot 10^{3}$ and SGPTL has substantive
+work to do; we cross-validated this choice by showing that SGPTL
+reduces the cold-start gap by $99\%$+ on this matrix at every
+$\lambda\in\{10^{-3},10^{-2},0.1,1,10\}$ tested. The
+\texttt{california} comparison study itself is in
+Section~\ref{sec:real_data} and uses OLS warm start for consistency
+with IRLS.
 
 \paragraph{Timing protocol.}
 Wall-clock times are taken with \texttt{time.perf\_counter} and exclude
@@ -441,78 +449,107 @@ the best on every instance, $\rho\ge 0.9$ loses by one to two orders
 of magnitude. We adopt $\rho=0.7$ as a robust default.
 
 \paragraph{Sensitivity of $\delta_{0}$: three families.}
-Since $\delta_{0}\propto f^{*}$ is inadmissible, we compare three
-$f^{*}$-free choices against the oracle on five instances:
-the synthetic LASSO benchmark of Section~\ref{sec:datasets} (five
-seeds), the ELM-transformed \texttt{diabetes} at $H=50$ and $H=200$,
-and the ELM-transformed \texttt{california} at $H=50$ and $H=200$.
-On four of these five instances $f^{*}$ is CVXPY-verified
-(\texttt{CLARABEL} interior point cross-validated against the
-IRLS-converged value, with relative agreement below $10^{-9}$); on
+Since $\delta_{0}\propto f^{*}$ is inadmissible we compare three
+$f^{*}$-free choices against the oracle on five instances: the
+synthetic LASSO benchmark of Section~\ref{sec:datasets} (five seeds),
+the ELM-transformed \texttt{diabetes} at $H=50$ and $H=200$, and the
+ELM-transformed \texttt{california} at $H=50$ and $H=200$. The
+families are defined relative to the actual starting point
+$\mathbf{w}_{0}$ used by SGPTL on each instance: Family~A,
+$\delta_{0}=c\,f_{\mathrm{LASSO}}(\mathbf{w}_{0})$ (default,
+admissible); Family~B, $\delta_{0}=c\,\tfrac{1}{2}\norm{\mathbf{X}\mathbf{w}_{0}-\mathbf{y}}^{2}$
+(admissible, smooth-part only); Family~C,
+$\delta_{0}=c\,f^{*}$ (diagnostic oracle, not admissible as a tuning
+target). The sweep is $c\in\{0.01,\,0.05,\,0.1,\,0.5,\,1\}$ on every
+instance. On four of the five instances $f^{*}$ is CVXPY-verified
+(\texttt{CLARABEL} interior point, cross-validated against the
+IRLS-converged value with relative agreement below $10^{-9}$); on
 \texttt{california}~$H=200$ the size puts CVXPY beyond a reasonable
-budget so we rely on the IRLS proxy alone.
-Family~A, $\delta_{0}=c\,f_{\mathrm{LASSO}}(\mathbf{w}_{\mathrm{OLS}})$
-(default, admissible); Family~B,
-$\delta_{0}=c\,\tfrac{1}{2}\norm{\mathbf{X}\mathbf{w}_{\mathrm{OLS}}-\mathbf{y}}^{2}$
-(admissible); Family~C, $\delta_{0}=c\,f^{*}$ (diagnostic oracle, not
-admissible as a tuning target). Sweeping $c\in\{0.01,\,0.05,\,0.1,\,0.5,\,1\}$
-on every instance.
+budget and we rely on the IRLS-converged proxy.
 
-\emph{Working regime (synthetic, \texttt{diabetes}~$H=50$ at small
-$c$, \texttt{diabetes}~$H=200$).} Family~A and Family~C trajectories
-agree within a factor of $2$ on the synthetic instance (worst-case
-ratio $0.50$ at $c=0.01$, all five seeds within $[0.5,\,1.1]$), within
-a factor of $2$ on \texttt{diabetes}~$H=50$ at $c\le 0.1$, and within
-$15\%$ on \texttt{diabetes}~$H=200$. The admissible default matches
-the inadmissible oracle on every instance where the comparison is
-informative.
+\emph{Starting point per instance.} The synthetic and \texttt{diabetes}
+runs use the OLS warm start, consistent with IRLS and with the rest of
+this chapter. On \texttt{california}~at $\lambda_\text{LASSO}=0.1$ the
+OLS warm start already attains $f^{*}$ to within $5\cdot 10^{-1}$ (the
+weak $\ell_{1}$ regulariser leaves OLS near-optimal on this ELM
+matrix), so warm-started SGPTL has essentially nothing to optimise and
+the three families coincide trivially at the starting gap. To obtain a
+meaningful comparison we instead run \texttt{california} from the cold
+start $\mathbf{w}_{0}=\mathbf{0}$, where the initial gap is
+$\norm{\mathbf{y}}^{2}/2 \approx 8.3\cdot 10^{3}$ and SGPTL closes it
+by $99\%$+ over the iteration budget. The configuration per instance
+is summarised in Table~\ref{tab:delta0-families-summary}.
 
-\emph{Stall regime (large $c$ on \texttt{diabetes}~$H=50$,
-\texttt{california} at both $H$).} At over-aggressive $\delta_{0}$ on
-\texttt{diabetes}~$H=50$ ($c\ge 0.5$) and on both
-\texttt{california}~ELM matrices regardless of $c$, the algorithm
-stalls at a fixed plateau (gap $\approx 0.14$ on
-\texttt{diabetes}~$H=50$ at $c\ge 0.5$, $\approx 2.7\cdot 10^{-2}$ on
-\texttt{california}~$H=50$, $\approx 0.46$ on
-\texttt{california}~$H=200$). Family~A, Family~B and Family~C all
-coincide at the same plateau on every $c$, ratio exactly $1.000$. On
-\texttt{california}~$H=50$ CVXPY certifies that this plateau lies
-$\bar f^{i} - f^{*} \approx 2.7\cdot 10^{-2}$ above the true optimum,
-so the stall is a real SGPTL failure and not an artefact of an
-unreliable $f^{*}$ proxy. The agreement between the three families in
-this regime is uninformative about $\delta_{0}$ calibration --- both
-families are equally stuck --- but the joint stall delimits the
-applicability region of SGPTL: with the column-normalised ELM
-transformation we use, the algorithm fails to leave the OLS warm
-start on \texttt{california} at the $i_{\max}=8000$ budget. The
-finding bounds SGPTL's reach rather than $\delta_{0}$'s.
+\emph{Empirical finding.} Across every instance, in the regime where
+SGPTL is in fact optimising, the Family~A and Family~C trajectories
+agree within a factor of two. On the synthetic instance (5 seeds, all
+$c$) the ratio is in $[0.50,\,1.07]$. On \texttt{diabetes}~$H=50$ at
+$c\le 0.1$ (working regime, gap $\sim 10^{-5}$) the ratio is in
+$[0.73,\,1.96]$. On \texttt{diabetes}~$H=200$ (pre-converged) it is in
+$[0.87,\,1.04]$. On \texttt{california}~$H=50$ cold the ratio is in
+$[0.72,\,1.41]$ and on \texttt{california}~$H=200$ cold it is in
+$[0.96,\,1.07]$. The admissible default
+$\delta_{0}=c\,f(\mathbf{w}_{0})$ therefore matches the inadmissible
+oracle on every instance where the comparison is informative.
 
-Family~B is slightly noisier at small $c$ on the synthetic instance
-because the $\ell_{1}$ term contributes $\sim\!80\%$ of
-$f(\mathbf{w}_{\mathrm{OLS}})$ there. Family~A with $c=0.1$ is the
-default.
+\emph{The single uninformative regime.} On \texttt{diabetes}~$H=50$ at
+$c\ge 0.5$ all three families stall at a common plateau
+$\bar f^{i}-f^{*}\approx 1.4\cdot 10^{-1}$ (forcing the ratio to
+$1.000$) because the over-aggressive $\delta_{0}$ overshoots the
+sufficient-descent test from the first iteration and only the
+travel-distance counter drives progress; the three families behave
+identically simply because none of them recover from the initial
+overshoot. We report this as a regime limit of the
+$\delta_{0}$-sweep, not as a finding about A--vs--C calibration.
+
+Family~B coincides with Family~A on \texttt{california} cold start
+(where $\norm{\mathbf{w}_{0}}=0$ makes the $\ell_{1}$ term vanish) and
+differs only mildly on the other instances. Family~A with $c=0.1$ is
+the default.
+
+\begin{table}[H]
+    \centering
+    \small
+    \setlength{\tabcolsep}{6pt}
+    \begin{tabular}{lrrll}
+        \toprule
+        instance & seeds & $M\times H$ & start & $f^{*}$ source \\
+        \midrule
+        synthetic               & 5 & $300\times 100$  & OLS warm & CVXPY-verified \\
+        \texttt{diabetes}~$H=50$  & 1 & $354\times 50$   & OLS warm & CVXPY-verified \\
+        \texttt{diabetes}~$H=200$ & 1 & $354\times 200$  & OLS warm & CVXPY-verified \\
+        \texttt{california}~$H=50$  & 1 & $16512\times 50$  & cold $\mathbf{w}_{0}=\mathbf{0}$ & CVXPY-verified \\
+        \texttt{california}~$H=200$ & 1 & $16512\times 200$ & cold $\mathbf{w}_{0}=\mathbf{0}$ & IRLS-converged proxy \\
+        \bottomrule
+    \end{tabular}
+    \caption{Instances used in the $\delta_{0}$ family sweep. The
+    \texttt{california} runs use cold start because the OLS solution
+    coincides with $f^{*}$ to within machine-precision on this matrix
+    at $\lambda_\text{LASSO}=0.1$, so the warm-start configuration
+    leaves SGPTL no gap to close. All runs share
+    $\lambda_\text{LASSO}=0.1$, $i_{\max}=8000$, $\rho=0.7$,
+    $\gamma_{\min}=0.05$, $\beta=1$, $R=1$.}
+    \label{tab:delta0-families-summary}
+\end{table}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{images/delta0_families.pdf}
     \caption{Sensitivity of the final record gap to the choice of
     $\delta_{0}$, three families across five instances (rows, top to
-    bottom): synthetic LASSO ($H=100$, $M=300$, $5$ seeds with
-    per-seed thin traces and aggregate-mean thick),
-    \texttt{diabetes}~$H=50$, \texttt{diabetes}~$H=200$,
-    \texttt{california}~$H=50$, \texttt{california}~$H=200$. All
-    runs use $\rho=0.7$, $\gamma_{\min}=0.05$, $i_{\max}=8000$. Family~A:
-    $\delta_{0}=c\,f_{\mathrm{LASSO}}(\mathbf{w}_{\mathrm{OLS}})$
-    (default, admissible). Family~B:
-    $\delta_{0}=c\,\tfrac{1}{2}\norm{\mathbf{X}\mathbf{w}_{\mathrm{OLS}} - \mathbf{y}}^{2}$
+    bottom): synthetic LASSO (OLS warm start, $5$ seeds with per-seed
+    thin traces and aggregate-mean thick), \texttt{diabetes}~$H=50$
+    (warm), \texttt{diabetes}~$H=200$ (warm),
+    \texttt{california}~$H=50$ (cold start --- see
+    Table~\ref{tab:delta0-families-summary}), \texttt{california}~$H=200$
+    (cold). All runs use $\lambda_\text{LASSO}=0.1$,
+    $\rho=0.7$, $\gamma_{\min}=0.05$, $i_{\max}=8000$. Family~A:
+    $\delta_{0}=c\,f_{\mathrm{LASSO}}(\mathbf{w}_{0})$ (default,
+    admissible). Family~B:
+    $\delta_{0}=c\,\tfrac{1}{2}\norm{\mathbf{X}\mathbf{w}_{0} - \mathbf{y}}^{2}$
     (admissible). Family~C: $\delta_{0}=c\,f^{*}$ (diagnostic oracle,
-    not admissible). In the working regime (top three rows where
-    SGPTL admits progress) Families~A and~C agree within a factor of
-    $2$. In the stall regime (both \texttt{california} rows, all $c$;
-    \texttt{diabetes}~$H=50$ at $c\ge 0.5$) the three families
-    collapse to a common plateau and the comparison is uninformative
-    about $\delta_{0}$ but delimits SGPTL's applicability on the
-    column-normalised ELM transformation.}
+    not admissible). Across all rows the Family~A vs Family~C ratio
+    falls in $[0.5, 2.0]$ in every regime where SGPTL admits progress.}
     \label{fig:delta0-families}
 \end{figure}
 

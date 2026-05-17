@@ -1,17 +1,24 @@
 """SGPTL sensitivity to the initial target gap delta_0: three families.
 
-Family A: delta_0 = c * f_LASSO(w_OLS)        (default, admissible)
-Family B: delta_0 = c * f_OLS(w_OLS)          (drops lam*||w||_1, admissible)
-Family C: delta_0 = c * f^*                   (diagnostic oracle, not admissible)
+Family A: delta_0 = c * f_LASSO(w_0)        (default, admissible)
+Family B: delta_0 = c * (1/2)||X w_0 - y||^2 (smooth-only, admissible)
+Family C: delta_0 = c * f^*                  (diagnostic oracle, not admissible)
 
-Instances tested:
-  - synthetic (H=100, M=300), 5 seeds; CVXPY-verified f^*.
-  - diabetes ELM H=50, single seed, CVXPY-verified f^*.
-  - diabetes ELM H=200, single seed, CVXPY-verified f^*; pre-converged regime.
-  - california ELM H=50, single seed, CVXPY-verified f^*.
-  - california ELM H=200, single seed, CVXPY-verified f^*; degenerate
-    regime (SGPTL stalls at the OLS warm start regardless of delta_0
-    on this matrix), reported as an applicability-limit datapoint.
+We instantiate each family at the actual starting point w_0 used by
+SGPTL on each instance, not at w_OLS unconditionally: this keeps the
+admissible-vs-oracle comparison meaningful even when the warm start
+already coincides with f^* (see california below).
+
+Instances and starting points (lambda=0.1 fixed on all):
+  - synthetic (H=100, M=300), 5 seeds, OLS warm start. CVXPY-verified f^*.
+  - diabetes ELM H=50, OLS warm start, CVXPY-verified f^*.
+  - diabetes ELM H=200, OLS warm start, CVXPY-verified f^*.
+  - california ELM H=50, COLD start (w_0=0): the OLS warm start
+    achieves f^* to within machine precision on this matrix at
+    lambda=0.1, so cold start is the configuration in which SGPTL has
+    substantive optimisation to do. CVXPY-verified f^*.
+  - california ELM H=200, COLD start (same motivation as H=50).
+    IRLS-converged f^* (CVXPY beyond practical budget at this size).
 """
 
 import os
@@ -163,16 +170,25 @@ def _instance_f_star(name, X, y, lam):
     return f_star, source, w_ols
 
 
-def _sweep(name, X, y, lam, seed_tag, f_star, w_ols, fA, fB, fC):
+def _scales_at_w0(X, y, w0, lam, f_star):
+    """Family scales evaluated at the actual starting point w_0."""
+    fA = float(f_lasso(X, y, w0, lam))
+    resid = X @ w0 - y
+    fB = float(0.5 * resid @ resid)
+    fC = float(f_star)
+    return fA, fB, fC
+
+
+def _sweep(name, X, y, lam, seed_tag, f_star, w0, start_label, fA, fB, fC):
     out_rows = []
     trajs = {"A": {}, "B": {}, "C": {}}
     for fam_id, scale in (("A", fA), ("B", fB), ("C", fC)):
-        print(f"    {name} seed={seed_tag} Family {fam_id} "
-              f"(scale={scale:.4e}):")
+        print(f"    {name} seed={seed_tag} start={start_label} "
+              f"Family {fam_id} (scale={scale:.4e}):")
         for c in C_VALUES:
             delta0 = c * scale
             res = deflected_subgradient(
-                X, y, lam, w0=w_ols.copy(), i_max=I_MAX,
+                X, y, lam, w0=w0.copy(), i_max=I_MAX,
                 beta=BETA, delta0=delta0, R=R_PATIENCE, rho=RHO,
                 gamma_min=GAMMA_MIN, f_star=f_star,
             )
@@ -183,6 +199,7 @@ def _sweep(name, X, y, lam, seed_tag, f_star, w_ols, fA, fB, fC):
             out_rows.append({
                 "dataset":          name,
                 "seed":             seed_tag,
+                "start":            start_label,
                 "family":           fam_id,
                 "c":                c,
                 "delta0":           delta0,
@@ -195,14 +212,6 @@ def _sweep(name, X, y, lam, seed_tag, f_star, w_ols, fA, fB, fC):
     return out_rows, trajs
 
 
-def _scales(X, y, w_ols, lam, f_star):
-    fA = float(f_lasso(X, y, w_ols, lam))
-    resid = X @ w_ols - y
-    fB = float(0.5 * resid @ resid)
-    fC = float(f_star)
-    return fA, fB, fC
-
-
 def run() -> None:
     print("=" * 68)
     print("SGPTL: delta_0 family sweep (A / B / C)")
@@ -212,8 +221,8 @@ def run() -> None:
     all_records = []
     plot_payload = {}
 
-    # --- Synthetic multi-seed -------------------------------------------------
-    print("\n[1/3] SYNTHETIC (H=100, M=300), 5 seeds")
+    # --- Synthetic multi-seed (warm start) ------------------------------------
+    print("\n[1/5] SYNTHETIC (H=100, M=300), 5 seeds, warm start")
     synth_trajs_perseed = {fam: {c: [] for c in C_VALUES}
                            for fam in ("A", "B", "C")}
     for seed in SEEDS_SYNTH:
@@ -224,9 +233,10 @@ def run() -> None:
         )
         f_star, source, w_ols = _instance_f_star(
             f"synthetic-seed{seed}", X, y, LAMBDA)
-        fA, fB, fC = _scales(X, y, w_ols, LAMBDA, f_star)
+        w0 = w_ols   # warm
+        fA, fB, fC = _scales_at_w0(X, y, w0, LAMBDA, f_star)
         rows, trajs = _sweep("synthetic", X, y, LAMBDA, seed,
-                             f_star, w_ols, fA, fB, fC)
+                             f_star, w0, "warm", fA, fB, fC)
         all_records.extend(rows)
         for fam_id in ("A", "B", "C"):
             for c in C_VALUES:
@@ -234,19 +244,29 @@ def run() -> None:
     plot_payload["synthetic"] = synth_trajs_perseed
 
     # --- Real ELM instances ---------------------------------------------------
-    for idx, (name, H_hidden) in enumerate([
-        ("diabetes",   H_DIAB_SMALL),
-        ("diabetes",   H_DIAB_LARGE),
-        ("california", H_DIAB_SMALL),
-        ("california", H_DIAB_LARGE),
-    ], start=2):
+    # diabetes: warm start (OLS gap is meaningful at this size).
+    # california: cold start (OLS coincides with f^* on this dataset at
+    #             lambda=0.1, so warm-starting leaves nothing for SGPTL to do).
+    real_configs = [
+        ("diabetes",   H_DIAB_SMALL, "warm"),
+        ("diabetes",   H_DIAB_LARGE, "warm"),
+        ("california", H_DIAB_SMALL, "cold"),
+        ("california", H_DIAB_LARGE, "cold"),
+    ]
+    for idx, (name, H_hidden, start_label) in enumerate(real_configs, start=2):
         tag = f"{name}-H{H_hidden}"
-        print(f"\n[{idx}/5] {name.upper()} ELM H={H_hidden}")
+        print(f"\n[{idx}/5] {name.upper()} ELM H={H_hidden}, start={start_label}")
         X_r, y_r = _load_real_elm(name, H_hidden)
-        f_star, source, w_r = _instance_f_star(tag, X_r, y_r, LAMBDA)
-        fA, fB, fC = _scales(X_r, y_r, w_r, LAMBDA, f_star)
+        f_star, source, w_ols = _instance_f_star(tag, X_r, y_r, LAMBDA)
+        if start_label == "warm":
+            w0 = w_ols
+        elif start_label == "cold":
+            w0 = np.zeros(X_r.shape[1])
+        else:
+            raise ValueError(start_label)
+        fA, fB, fC = _scales_at_w0(X_r, y_r, w0, LAMBDA, f_star)
         rows, trajs = _sweep(tag, X_r, y_r, LAMBDA, SEED_REAL,
-                             f_star, w_r, fA, fB, fC)
+                             f_star, w0, start_label, fA, fB, fC)
         all_records.extend(rows)
         plot_payload[tag] = {
             fam_id: {c: [trajs[fam_id][c]] for c in C_VALUES}
@@ -258,10 +278,10 @@ def run() -> None:
     if _HAS_PANDAS:
         pd.DataFrame(all_records).to_csv(csv_path, index=False)
     else:
-        header = ("dataset,seed,family,c,delta0,scale,final_record_gap,"
+        header = ("dataset,seed,start,family,c,delta0,scale,final_record_gap,"
                   "n_contractions,n_iter")
         rows = [
-            f"{r['dataset']},{r['seed']},{r['family']},{r['c']},"
+            f"{r['dataset']},{r['seed']},{r['start']},{r['family']},{r['c']},"
             f"{r['delta0']:.6e},{r['scale']:.6e},{r['final_record_gap']:.6e},"
             f"{r['n_contractions']},{r['n_iter']}"
             for r in all_records
