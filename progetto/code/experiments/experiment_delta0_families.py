@@ -5,18 +5,13 @@ Family B: delta_0 = c * f_OLS(w_OLS)          (drops lam*||w||_1, admissible)
 Family C: delta_0 = c * f^*                   (diagnostic oracle, not admissible)
 
 Instances tested:
-  - synthetic (H=100, M=300), 5 seeds, true f^* via IRLS cross-validated
-    with CVXPY interior-point.
-  - diabetes ELM H=50, single seed, f^* cross-validated with CVXPY
-    interior-point (small enough to certify).
-  - diabetes ELM H=200, single seed, f^* via IRLS-converged proxy only
-    (size too large for CVXPY to reach machine precision in budget);
-    reported with a pre-converged-regime disclaimer.
-
-california ELM H=200 was previously included but produced identical final
-gaps across all (family, c) combinations because the algorithm stalls at
-a fixed plateau regardless of delta_0; the comparison was uninformative
-and is omitted here.
+  - synthetic (H=100, M=300), 5 seeds; CVXPY-verified f^*.
+  - diabetes ELM H=50, single seed, CVXPY-verified f^*.
+  - diabetes ELM H=200, single seed, CVXPY-verified f^*; pre-converged regime.
+  - california ELM H=50, single seed, CVXPY-verified f^*.
+  - california ELM H=200, single seed, CVXPY-verified f^*; degenerate
+    regime (SGPTL stalls at the OLS warm start regardless of delta_0
+    on this matrix), reported as an applicability-limit datapoint.
 """
 
 import os
@@ -49,7 +44,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from sklearn.datasets import load_diabetes
+from sklearn.datasets import load_diabetes, fetch_california_housing
 from sklearn.preprocessing import StandardScaler
 
 from src import deflected_subgradient, irls, make_lasso_problem
@@ -117,8 +112,13 @@ def _f_star_cvxpy(X, y, lam):
         return None
 
 
-def _load_diabetes_elm(H_hidden, seed=SEED_REAL):
-    d = load_diabetes()
+def _load_real_elm(name, H_hidden, seed=SEED_REAL):
+    if name == "diabetes":
+        d = load_diabetes()
+    elif name == "california":
+        d = fetch_california_housing()
+    else:
+        raise ValueError(name)
     X = np.asarray(d.data, dtype=float)
     y = np.asarray(d.target, dtype=float)
 
@@ -145,7 +145,7 @@ def _instance_f_star(name, X, y, lam):
     f_irls = float(np.min(irls_res["f_vals"]))
 
     f_cvxpy, t_cvxpy, valid_cvxpy = None, None, False
-    if H * M <= 200_000:
+    if H * M <= 1_500_000:
         print(f"  CVXPY validation (M={M}, H={H}): ", end="", flush=True)
         out = _f_star_cvxpy(X, y, lam)
         if out is not None:
@@ -233,33 +233,25 @@ def run() -> None:
                 synth_trajs_perseed[fam_id][c].append(trajs[fam_id][c])
     plot_payload["synthetic"] = synth_trajs_perseed
 
-    # --- Diabetes H=50, CVXPY-verified ---------------------------------------
-    print(f"\n[2/3] DIABETES ELM H={H_DIAB_SMALL} (CVXPY-verified f^*)")
-    Xd_s, yd_s = _load_diabetes_elm(H_DIAB_SMALL)
-    fs_s, src_s, w_s = _instance_f_star(
-        f"diabetes-H{H_DIAB_SMALL}", Xd_s, yd_s, LAMBDA)
-    fA, fB, fC = _scales(Xd_s, yd_s, w_s, LAMBDA, fs_s)
-    rows, trajs = _sweep(f"diabetes-H{H_DIAB_SMALL}", Xd_s, yd_s, LAMBDA,
-                         SEED_REAL, fs_s, w_s, fA, fB, fC)
-    all_records.extend(rows)
-    plot_payload[f"diabetes-H{H_DIAB_SMALL}"] = {
-        fam_id: {c: [trajs[fam_id][c]] for c in C_VALUES}
-        for fam_id in ("A", "B", "C")
-    }
-
-    # --- Diabetes H=200, IRLS proxy (pre-converged disclaimer) ----------------
-    print(f"\n[3/3] DIABETES ELM H={H_DIAB_LARGE} (IRLS-proxy f^*)")
-    Xd_l, yd_l = _load_diabetes_elm(H_DIAB_LARGE)
-    fs_l, src_l, w_l = _instance_f_star(
-        f"diabetes-H{H_DIAB_LARGE}", Xd_l, yd_l, LAMBDA)
-    fA, fB, fC = _scales(Xd_l, yd_l, w_l, LAMBDA, fs_l)
-    rows, trajs = _sweep(f"diabetes-H{H_DIAB_LARGE}", Xd_l, yd_l, LAMBDA,
-                         SEED_REAL, fs_l, w_l, fA, fB, fC)
-    all_records.extend(rows)
-    plot_payload[f"diabetes-H{H_DIAB_LARGE}"] = {
-        fam_id: {c: [trajs[fam_id][c]] for c in C_VALUES}
-        for fam_id in ("A", "B", "C")
-    }
+    # --- Real ELM instances ---------------------------------------------------
+    for idx, (name, H_hidden) in enumerate([
+        ("diabetes",   H_DIAB_SMALL),
+        ("diabetes",   H_DIAB_LARGE),
+        ("california", H_DIAB_SMALL),
+        ("california", H_DIAB_LARGE),
+    ], start=2):
+        tag = f"{name}-H{H_hidden}"
+        print(f"\n[{idx}/5] {name.upper()} ELM H={H_hidden}")
+        X_r, y_r = _load_real_elm(name, H_hidden)
+        f_star, source, w_r = _instance_f_star(tag, X_r, y_r, LAMBDA)
+        fA, fB, fC = _scales(X_r, y_r, w_r, LAMBDA, f_star)
+        rows, trajs = _sweep(tag, X_r, y_r, LAMBDA, SEED_REAL,
+                             f_star, w_r, fA, fB, fC)
+        all_records.extend(rows)
+        plot_payload[tag] = {
+            fam_id: {c: [trajs[fam_id][c]] for c in C_VALUES}
+            for fam_id in ("A", "B", "C")
+        }
 
     # --- CSV ------------------------------------------------------------------
     csv_path = os.path.join(TAB_DIR, "delta0_families.csv")
@@ -278,10 +270,11 @@ def run() -> None:
             fh.write(header + "\n" + "\n".join(rows) + "\n")
     print(f"\nSaved CSV: {csv_path}")
 
-    # --- Figure: 3 instances x 3 families -------------------------------------
-    instances = ["synthetic", f"diabetes-H{H_DIAB_SMALL}",
-                 f"diabetes-H{H_DIAB_LARGE}"]
-    fig, axes = plt.subplots(3, 3, figsize=(16.0, 12.0))
+    # --- Figure: 5 instances x 3 families -------------------------------------
+    instances = ["synthetic",
+                 f"diabetes-H{H_DIAB_SMALL}", f"diabetes-H{H_DIAB_LARGE}",
+                 f"california-H{H_DIAB_SMALL}", f"california-H{H_DIAB_LARGE}"]
+    fig, axes = plt.subplots(5, 3, figsize=(16.0, 18.0))
     ramps = {"A": RAMP_BLUES, "B": RAMP_ORANGES, "C": RAMP_PURPLES}
     fam_labels = {
         "A": r"$\delta_{0}=c\,f_{\mathrm{LASSO}}(w_{\mathrm{OLS}})$",
@@ -314,7 +307,7 @@ def run() -> None:
             style_axes(ax)
             if col_idx == 0:
                 ax.set_ylabel(r"$\bar f^{i}-f^{*}$")
-            if row_idx == 2:
+            if row_idx == len(instances) - 1:
                 ax.set_xlabel(r"Iteration $i$  (log)")
     fig.suptitle(rf"SGPTL: $\delta_{{0}}$ family sweep "
                  rf"($\rho={RHO}$, $\gamma_{{\min}}={GAMMA_MIN}$, "
