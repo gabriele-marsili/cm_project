@@ -106,7 +106,7 @@ Three pure floating-point guards lie outside the pseudocode. \emph{(i)}~If $\nor
 \subsection{Parameter calibration for ELM LASSO}
 \label{sec:dsm_parameters}
 
-SGPTL has five parameters: $\beta$, $\gamma_{\min}$, $\delta_0$, $\rho$, $R$. None is tuned against $f^*$.
+SGPTL has five parameters: $\beta$, $\gamma_{\min}$, $\delta_0$, $\rho$, $R$. Each is discussed below with the choice we adopt for ELM~LASSO and its rationale.
 
 \paragraph{$\beta = 1$.}
 \cite[(3.1)]{dantonio2009deflected} admits $\beta_k \in (0, 1]$; the value $\beta = 1$ minimises the one-step distance bound~\cite[Slide 12]{frangioni-slides-nonsmooth} and the deflected variant of~\cite[Slide 15]{frangioni-slides-nonsmooth} inherits the property. We fix $\beta = 1$ so that $\beta_i = \min(\beta, \gamma_i)$ is driven by $\gamma_i$.
