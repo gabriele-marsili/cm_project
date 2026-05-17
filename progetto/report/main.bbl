@@ -347,7 +347,7 @@
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{howpublished}{\url{https://elearning.di.unipi.it/pluginfile.php/90522/mod_resource/content/5/5-nonsmooth\%20unconstrained\%20optimization.pdf}}
-      \field{note}{Computational Mathematics for Learning and Data Analysis, Optimization Set 5, Slide 8 -- lower-bound complexity table for convex nondifferentiable optimization}
+      \field{note}{Computational Mathematics for Learning and Data Analysis, University of Pisa -- lower-bound complexity for convex nondifferentiable optimization}
       \field{title}{(Convex) Nondifferentiable optimization is hard(er)}
       \field{year}{2026}
     \endentry
@@ -373,7 +373,6 @@
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{howpublished}{Lecture notes: Unconstrained Multivariate Optimality and Convexity, CM 646AA, Università di Pisa \url{https://elearning.di.unipi.it/pluginfile.php/90520/mod_resource/content/8/3-unconstrained\%20optimality.pdf}}
-      \field{note}{Slides 21--24}
       \field{title}{Convex Functions}
       \field{year}{2025}
     \endentry
@@ -399,11 +398,11 @@
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{howpublished}{\url{https://elearning.di.unipi.it/pluginfile.php/90522/mod_resource/content/5/5-nonsmooth\%20unconstrained\%20optimization.pdf}}
-      \field{note}{University of Pisa, Slide 15}
+      \field{note}{University of Pisa}
       \field{title}{Deflected subgradient}
       \field{year}{2026}
     \endentry
-    \entry{subdifferential-introduction-frangioni}{misc}{}{}
+    \entry{polyak-rate-frangioni}{misc}{}{}
       \name{author}{1}{}{%
         {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
            family={Frangioni},
@@ -424,12 +423,12 @@
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{howpublished}{Lecture notes: Nonsmooth Unconstrained Optimization, CM 646AA, Università di Pisa}
-      \field{note}{Slides 5--6}
-      \field{title}{Introduction to subgradients and subdifferentials}
-      \field{year}{2025}
+      \field{howpublished}{\url{https://elearning.di.unipi.it/pluginfile.php/90522/mod_resource/content/5/5-nonsmooth\%20unconstrained\%20optimization.pdf}}
+      \field{note}{Computational Mathematics for Learning and Data Analysis, University of Pisa}
+      \field{title}{Efficiency of Polyak stepsize: $O(L^2/\varepsilon^2)$ rate with known $f^*$}
+      \field{year}{2026}
     \endentry
-    \entry{lipschitz-continuity-frangioni}{misc}{}{}
+    \entry{subdifferential-introduction-frangioni}{misc}{}{}
       \name{author}{1}{}{%
         {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
            family={Frangioni},
@@ -450,12 +449,11 @@
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{howpublished}{\url{https://elearning.di.unipi.it/pluginfile.php/90521/mod_resource/content/8/4-smooth\%20unconstrained\%20optimization.pdf}}
-      \field{note}{Lecture notes: Smooth Unconstrained Multivariate Optimization, CM 646AA, Università di Pisa, Slide 9}
-      \field{title}{Lipschitz continuity, L-smoothness}
+      \field{howpublished}{Lecture notes: Nonsmooth Unconstrained Optimization, CM 646AA, Università di Pisa}
+      \field{title}{Introduction to subgradients and subdifferentials}
       \field{year}{2025}
     \endentry
-    \entry{polyak-rate-frangioni}{misc}{}{}
+    \entry{lipschitz-continuity-frangioni}{misc}{}{}
       \name{author}{1}{}{%
         {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
            family={Frangioni},
@@ -476,10 +474,10 @@
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{howpublished}{\url{https://elearning.di.unipi.it/pluginfile.php/90522/mod_resource/content/5/5-nonsmooth\%20unconstrained\%20optimization.pdf}}
-      \field{note}{Computational Mathematics for Learning and Data Analysis, Optimization Set 5, Slide 13 -- proof of $O(L^2/\varepsilon^2)$ rate for Polyak stepsize with known $f^*$}
-      \field{title}{Mathematically speaking: Efficiency of Polyak stepsize}
-      \field{year}{2026}
+      \field{howpublished}{\url{https://elearning.di.unipi.it/pluginfile.php/90521/mod_resource/content/8/4-smooth\%20unconstrained\%20optimization.pdf}}
+      \field{note}{Lecture notes: Smooth Unconstrained Multivariate Optimization, CM 646AA, Università di Pisa}
+      \field{title}{Lipschitz continuity, L-smoothness}
+      \field{year}{2025}
     \endentry
     \entry{polyak-stepsize}{misc}{}{}
       \name{author}{1}{}{%
@@ -503,7 +501,7 @@
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{howpublished}{\url{https://elearning.di.unipi.it/pluginfile.php/90522/mod_resource/content/5/5-nonsmooth\%20unconstrained\%20optimization.pdf}}
-      \field{note}{University of Pisa, Slide 12}
+      \field{note}{University of Pisa}
       \field{title}{Polyak stepsize}
       \field{year}{2026}
     \endentry
@@ -529,7 +527,6 @@
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{howpublished}{Lecture notes: Nonsmooth Unconstrained Optimization, CM 646AA, Università di Pisa}
-      \field{note}{Slide 4}
       \field{title}{Smooth methods fail on nonsmooth functions: nondifferentiability of L1 norm}
       \field{year}{2025}
     \endentry
@@ -555,7 +552,6 @@
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{howpublished}{Lecture notes: Smooth Unconstrained Multivariate Optimization, CM 646AA, Università di Pisa}
-      \field{note}{Slide 12}
       \field{title}{Stronger forms of convexity (strongly convex, strictly convex)}
       \field{year}{2025}
     \endentry
@@ -581,7 +577,7 @@
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{howpublished}{\url{https://elearning.di.unipi.it/pluginfile.php/90522/mod_resource/content/5/5-nonsmooth\%20unconstrained\%20optimization.pdf}}
-      \field{note}{University of Pisa, Slide 7}
+      \field{note}{University of Pisa}
       \field{title}{Subdifferential calculus: sum rule for subdifferentials}
       \field{year}{2026}
     \endentry
@@ -607,7 +603,7 @@
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{howpublished}{\url{https://elearning.di.unipi.it/pluginfile.php/90522/mod_resource/content/5/5-nonsmooth\%20unconstrained\%20optimization.pdf}}
-      \field{note}{University of Pisa, Slide 10}
+      \field{note}{University of Pisa}
       \field{title}{Subgradient methods: fundamental relationships}
       \field{year}{2026}
     \endentry
@@ -633,7 +629,7 @@
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{howpublished}{\url{https://elearning.di.unipi.it/pluginfile.php/90522/mod_resource/content/5/5-nonsmooth\%20unconstrained\%20optimization.pdf}}
-      \field{note}{University of Pisa, Slide 14}
+      \field{note}{University of Pisa}
       \field{title}{Target level stepsize (vanishing)}
       \field{year}{2026}
     \endentry

@@ -138,7 +138,7 @@ Algorithm~\ref{alg:dsm} presents the full Deflected Subgradient Method with targ
 \end{algorithm}
 
 \paragraph{Correspondence with the theory.}
-Algorithm~\ref{alg:dsm} implements the SGPTL rule of slide~14 (Lessons~Optimization) and Lemma~3.8 of~\cite{dantonio2009deflected}: lines~12--13 are the stepsize-restricted Polyak step, lines~16--21 the three-branch update of $(f_{\mathrm{ref}}, \delta, r)$. The only deviation from the slide is the clip on $\gamma_i$ at line~9 onto $[\gamma_{\min}, 1]$, which realises condition~(3.5) of~\cite{dantonio2009deflected} with $\beta^* = \gamma_{\min}$. Setting $\gamma_0 = 1$ realises the convention $\mathbf{d}_{-1} = \mathbf{0}$ in~\eqref{eq:deflected_dir}, since~\eqref{eq:gamma_star} is $0/0$ at $i=0$.
+Algorithm~\ref{alg:dsm} implements the SGPTL rule of~\cite{target-level-mechanism,deflected-subgradient-method} and Lemma~3.8 of~\cite{dantonio2009deflected}: lines~12--13 are the stepsize-restricted Polyak step, lines~16--21 the three-branch update of $(f_{\mathrm{ref}}, \delta, r)$. The only deviation from the pseudocode is the clip on $\gamma_i$ at line~9 onto $[\gamma_{\min}, 1]$, which realises condition~(3.5) of~\cite{dantonio2009deflected} with $\beta^* = \gamma_{\min}$. Setting $\gamma_0 = 1$ realises the convention $\mathbf{d}_{-1} = \mathbf{0}$ in~\eqref{eq:deflected_dir}, since~\eqref{eq:gamma_star} is $0/0$ at $i=0$.
 
 \paragraph{Numerical safeguards.}
 Three pure floating-point guards lie outside the pseudocode. \emph{(i)}~If $\norm{\mathbf{d}_i}^2 < 10^{-30}$ we terminate. \emph{(ii)}~If $f(\mathbf{w}_i) - (f_{\mathrm{ref}}-\delta) \le 0$ we set $\alpha_i = 0$ (condition~(3.5) of~\cite{dantonio2009deflected}) and trigger the sufficient-descent update at $\mathbf{w}_i$, since $f(\mathbf{w}_i) \le f_{\mathrm{ref}}-\delta/2$. \emph{(iii)}~If $\mathbf{w}_{i+1}$ has a non-finite component we skip the iteration without touching $(\delta, f_{\mathrm{ref}}, r)$. No non-theoretical $\delta$-contraction or overshoot rescue is added: such mechanisms have no support in~\cite{dantonio2009deflected} and would break Theorem~\ref{thm:dsm_convergence}.
@@ -150,7 +150,7 @@ Three pure floating-point guards lie outside the pseudocode. \emph{(i)}~If $\nor
 SGPTL has five parameters: $\beta$, $\gamma_{\min}$, $\delta_0$, $\rho$, $R$. None is tuned against $f^*$.
 
 \paragraph{$\beta = 1$.}
-\cite[(3.1)]{dantonio2009deflected} admits $\beta_k \in (0, 1]$; the value $\beta = 1$ minimises the one-step distance bound \cite{polyak-stepsize} (slide~12), and the deflected variant of slide~15 inherits the property. We fix $\beta = 1$ so that $\beta_i = \min(\beta, \gamma_i)$ is driven by $\gamma_i$.
+\cite[(3.1)]{dantonio2009deflected} admits $\beta_k \in (0, 1]$; the value $\beta = 1$ minimises the one-step distance bound~\cite{polyak-stepsize} and the deflected variant of~\cite{deflected-subgradient-method} inherits the property. We fix $\beta = 1$ so that $\beta_i = \min(\beta, \gamma_i)$ is driven by $\gamma_i$.
 
 \paragraph{$\gamma_{\min} = 0.05$.}
 Condition~(3.5) of~\cite[p.\,365]{dantonio2009deflected} requires $\beta_k \ge \beta^* > 0$ uniformly; the floor realises this with $\beta^* = \gamma_{\min}$. At $\gamma_{\min} = 0.05$ the clip activates only on degenerate steps and the rate $1/(\gamma_{\min}\sqrt k)$ of Theorem~\ref{thm:dsm_convergence} inflates by $20\times$ over the unfloored bound. The sweep $\gamma_{\min} \in \{0.05, 0.1, 0.2, 0.5\}$ in Chapter~\ref{chap:results} gives gaps in $[10^{-7}, 10^{-5}]$, $\gamma_{\min} = 0.05$ marginally best.

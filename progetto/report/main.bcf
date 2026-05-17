@@ -2406,51 +2406,54 @@
     <bcf:citekey order="30" intorder="1">polyak-stepsize</bcf:citekey>
     <bcf:citekey order="31" intorder="1">target-level-mechanism</bcf:citekey>
     <bcf:citekey order="32" intorder="1">deflected-subgradient-method</bcf:citekey>
-    <bcf:citekey order="33" intorder="1">dantonio2009deflected</bcf:citekey>
+    <bcf:citekey order="33" intorder="1">target-level-mechanism</bcf:citekey>
+    <bcf:citekey order="33" intorder="2">deflected-subgradient-method</bcf:citekey>
     <bcf:citekey order="34" intorder="1">dantonio2009deflected</bcf:citekey>
     <bcf:citekey order="35" intorder="1">dantonio2009deflected</bcf:citekey>
     <bcf:citekey order="36" intorder="1">dantonio2009deflected</bcf:citekey>
     <bcf:citekey order="37" intorder="1">dantonio2009deflected</bcf:citekey>
-    <bcf:citekey order="38" intorder="1">polyak-stepsize</bcf:citekey>
-    <bcf:citekey order="39" intorder="1">dantonio2009deflected</bcf:citekey>
-    <bcf:citekey order="40" intorder="1">dantonio2009deflected</bcf:citekey>
+    <bcf:citekey order="38" intorder="1">dantonio2009deflected</bcf:citekey>
+    <bcf:citekey order="39" intorder="1">polyak-stepsize</bcf:citekey>
+    <bcf:citekey order="40" intorder="1">deflected-subgradient-method</bcf:citekey>
     <bcf:citekey order="41" intorder="1">dantonio2009deflected</bcf:citekey>
     <bcf:citekey order="42" intorder="1">dantonio2009deflected</bcf:citekey>
-    <bcf:citekey order="43" intorder="1">subdifferential-sum-rule</bcf:citekey>
-    <bcf:citekey order="44" intorder="1">target-level-mechanism</bcf:citekey>
-    <bcf:citekey order="44" intorder="2">deflected-subgradient-method</bcf:citekey>
-    <bcf:citekey order="44" intorder="3">dantonio2009deflected</bcf:citekey>
-    <bcf:citekey order="45" intorder="1">dantonio2009deflected</bcf:citekey>
-    <bcf:citekey order="46" intorder="1">polyak-rate-frangioni</bcf:citekey>
-    <bcf:citekey order="46" intorder="2">bertsekas1999nonlinear</bcf:citekey>
+    <bcf:citekey order="43" intorder="1">dantonio2009deflected</bcf:citekey>
+    <bcf:citekey order="44" intorder="1">dantonio2009deflected</bcf:citekey>
+    <bcf:citekey order="45" intorder="1">subdifferential-sum-rule</bcf:citekey>
+    <bcf:citekey order="46" intorder="1">target-level-mechanism</bcf:citekey>
+    <bcf:citekey order="46" intorder="2">deflected-subgradient-method</bcf:citekey>
+    <bcf:citekey order="46" intorder="3">dantonio2009deflected</bcf:citekey>
     <bcf:citekey order="47" intorder="1">dantonio2009deflected</bcf:citekey>
-    <bcf:citekey order="48" intorder="1">dantonio2009deflected</bcf:citekey>
+    <bcf:citekey order="48" intorder="1">polyak-rate-frangioni</bcf:citekey>
+    <bcf:citekey order="48" intorder="2">bertsekas1999nonlinear</bcf:citekey>
     <bcf:citekey order="49" intorder="1">dantonio2009deflected</bcf:citekey>
     <bcf:citekey order="50" intorder="1">dantonio2009deflected</bcf:citekey>
     <bcf:citekey order="51" intorder="1">dantonio2009deflected</bcf:citekey>
     <bcf:citekey order="52" intorder="1">dantonio2009deflected</bcf:citekey>
-    <bcf:citekey order="53" intorder="1">lipschitz-continuity-frangioni</bcf:citekey>
+    <bcf:citekey order="53" intorder="1">dantonio2009deflected</bcf:citekey>
     <bcf:citekey order="54" intorder="1">dantonio2009deflected</bcf:citekey>
-    <bcf:citekey order="55" intorder="1">bertsekas1999nonlinear</bcf:citekey>
-    <bcf:citekey order="56" intorder="1">polyak-rate-frangioni</bcf:citekey>
-    <bcf:citekey order="57" intorder="1">dantonio2009deflected</bcf:citekey>
-    <bcf:citekey order="58" intorder="1">convex-functions-frangioni</bcf:citekey>
-    <bcf:citekey order="59" intorder="1">HUANG2006489</bcf:citekey>
-    <bcf:citekey order="60" intorder="1">strongly-convex-frangioni</bcf:citekey>
-    <bcf:citekey order="60" intorder="2">convex-functions-frangioni</bcf:citekey>
-    <bcf:citekey order="61" intorder="1">lipschitz-continuity-frangioni</bcf:citekey>
-    <bcf:citekey order="62" intorder="1">nonsmooth-lower-bounds-frangioni</bcf:citekey>
-    <bcf:citekey order="62" intorder="2">bubeck2015convex</bcf:citekey>
-    <bcf:citekey order="63" intorder="1">strongly-convex-frangioni</bcf:citekey>
-    <bcf:citekey order="64" intorder="1">hastie2009elements</bcf:citekey>
-    <bcf:citekey order="65" intorder="1">dantonio2009deflected</bcf:citekey>
-    <bcf:citekey order="66" intorder="1">brannlund1993generalized</bcf:citekey>
-    <bcf:citekey order="66" intorder="2">goffin1999convergence</bcf:citekey>
-    <bcf:citekey order="66" intorder="3">bertsekas1999nonlinear</bcf:citekey>
-    <bcf:citekey order="66" intorder="4">target-level-mechanism</bcf:citekey>
-    <bcf:citekey order="67" intorder="1">efron2004least</bcf:citekey>
-    <bcf:citekey order="68" intorder="1">pace1997sparse</bcf:citekey>
-    <bcf:citekey order="69" intorder="1">dantonio2009deflected</bcf:citekey>
+    <bcf:citekey order="55" intorder="1">lipschitz-continuity-frangioni</bcf:citekey>
+    <bcf:citekey order="56" intorder="1">dantonio2009deflected</bcf:citekey>
+    <bcf:citekey order="57" intorder="1">bertsekas1999nonlinear</bcf:citekey>
+    <bcf:citekey order="58" intorder="1">polyak-rate-frangioni</bcf:citekey>
+    <bcf:citekey order="59" intorder="1">dantonio2009deflected</bcf:citekey>
+    <bcf:citekey order="60" intorder="1">convex-functions-frangioni</bcf:citekey>
+    <bcf:citekey order="61" intorder="1">HUANG2006489</bcf:citekey>
+    <bcf:citekey order="62" intorder="1">strongly-convex-frangioni</bcf:citekey>
+    <bcf:citekey order="62" intorder="2">convex-functions-frangioni</bcf:citekey>
+    <bcf:citekey order="63" intorder="1">lipschitz-continuity-frangioni</bcf:citekey>
+    <bcf:citekey order="64" intorder="1">nonsmooth-lower-bounds-frangioni</bcf:citekey>
+    <bcf:citekey order="64" intorder="2">bubeck2015convex</bcf:citekey>
+    <bcf:citekey order="65" intorder="1">strongly-convex-frangioni</bcf:citekey>
+    <bcf:citekey order="66" intorder="1">hastie2009elements</bcf:citekey>
+    <bcf:citekey order="67" intorder="1">dantonio2009deflected</bcf:citekey>
+    <bcf:citekey order="68" intorder="1">brannlund1993generalized</bcf:citekey>
+    <bcf:citekey order="68" intorder="2">goffin1999convergence</bcf:citekey>
+    <bcf:citekey order="68" intorder="3">bertsekas1999nonlinear</bcf:citekey>
+    <bcf:citekey order="68" intorder="4">target-level-mechanism</bcf:citekey>
+    <bcf:citekey order="69" intorder="1">efron2004least</bcf:citekey>
+    <bcf:citekey order="70" intorder="1">pace1997sparse</bcf:citekey>
+    <bcf:citekey order="71" intorder="1">dantonio2009deflected</bcf:citekey>
   </bcf:section>
   <!-- SORTING TEMPLATES -->
   <bcf:sortingtemplate name="nty">
