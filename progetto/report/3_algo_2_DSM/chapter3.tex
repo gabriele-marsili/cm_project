@@ -109,7 +109,7 @@ Three pure floating-point guards lie outside the pseudocode. \emph{(i)}~If $\nor
 SGPTL has five parameters: $\beta$, $\gamma_{\min}$, $\delta_0$, $\rho$, $R$. Each is discussed below with the choice we adopt for ELM~LASSO and its rationale.
 
 \paragraph{$\beta = 1$.}
-\cite[(3.1)]{dantonio2009deflected} admits $\beta_k \in (0, 1]$; the value $\beta = 1$ minimises the one-step distance bound~\cite[Slide 12]{frangioni-slides-nonsmooth} and the deflected variant of~\cite[Slide 15]{frangioni-slides-nonsmooth} inherits the property. We fix $\beta = 1$ so that $\beta_i = \min(\beta, \gamma_i)$ is driven by $\gamma_i$.
+\cite[(3.1)]{dantonio2009deflected} admits $\beta_k \in (0, 1]$. Substituting the Polyak step into the fundamental inequality~\eqref{eq:fundamental} gives a per-iteration reduction in $\norm{\mathbf{w}_i - \mathbf{w}^*}_2^2$ proportional to $\beta(2 - \beta)$~\cite[Slide 12]{frangioni-slides-nonsmooth}, which is maximised at $\beta = 1$; the deflected variant of~\cite[Slide 15]{frangioni-slides-nonsmooth} inherits the property. We fix $\beta = 1$ so that $\beta_i = \min(\beta, \gamma_i)$ is driven by $\gamma_i$.
 
 \paragraph{$\gamma_{\min} = 0.05$.}
 Condition~(3.5) of~\cite[p.\,365]{dantonio2009deflected} requires $\beta_k \ge \beta^* > 0$ uniformly; the floor realises this with $\beta^* = \gamma_{\min}$. At $\gamma_{\min} = 0.05$ the clip activates only on degenerate steps and the rate $1/(\gamma_{\min}\sqrt k)$ of Theorem~\ref{thm:dsm_convergence} inflates by $20\times$ over the unfloored bound. The sweep $\gamma_{\min} \in \{0.05, 0.1, 0.2, 0.5\}$ in Chapter~\ref{chap:results} gives gaps in $[10^{-7}, 10^{-5}]$, $\gamma_{\min} = 0.05$ marginally best.
