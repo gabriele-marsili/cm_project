@@ -325,7 +325,7 @@
       \verb 10.1214/009053604000000067
       \endverb
     \endentry
-    \entry{nonsmooth-lower-bounds-frangioni}{misc}{}{}
+    \entry{frangioni-slides-nonsmooth}{misc}{}{}
       \name{author}{1}{}{%
         {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
            family={Frangioni},
@@ -346,12 +346,11 @@
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{howpublished}{\url{https://elearning.di.unipi.it/pluginfile.php/90522/mod_resource/content/5/5-nonsmooth\%20unconstrained\%20optimization.pdf}}
-      \field{note}{Lecture notes, CM 646AA, Università di Pisa, Slide 8 -- lower-bound complexity table for convex nondifferentiable optimization}
-      \field{title}{(Convex) Nondifferentiable optimization is hard(er)}
+      \field{howpublished}{Lecture notes, CM 646AA, Università di Pisa, \url{https://elearning.di.unipi.it/pluginfile.php/90522/mod_resource/content/5/5-nonsmooth\%20unconstrained\%20optimization.pdf}}
+      \field{title}{Nonsmooth Unconstrained Optimization}
       \field{year}{2026}
     \endentry
-    \entry{convex-functions-frangioni}{misc}{}{}
+    \entry{frangioni-slides-smooth}{misc}{}{}
       \name{author}{1}{}{%
         {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
            family={Frangioni},
@@ -372,12 +371,11 @@
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{howpublished}{Lecture notes, CM 646AA, Università di Pisa, \url{https://elearning.di.unipi.it/pluginfile.php/90520/mod_resource/content/8/3-unconstrained\%20optimality.pdf}}
-      \field{note}{Slides 21--24}
-      \field{title}{Convex Functions}
+      \field{howpublished}{Lecture notes, CM 646AA, Università di Pisa, \url{https://elearning.di.unipi.it/pluginfile.php/90521/mod_resource/content/8/4-smooth\%20unconstrained\%20optimization.pdf}}
+      \field{title}{Smooth Unconstrained Optimization}
       \field{year}{2025}
     \endentry
-    \entry{deflected-subgradient-method}{misc}{}{}
+    \entry{frangioni-slides-unconstrained}{misc}{}{}
       \name{author}{1}{}{%
         {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
            family={Frangioni},
@@ -398,244 +396,9 @@
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{howpublished}{\url{https://elearning.di.unipi.it/pluginfile.php/90522/mod_resource/content/5/5-nonsmooth\%20unconstrained\%20optimization.pdf}}
-      \field{note}{Lecture notes, CM 646AA, Università di Pisa, Slide 15}
-      \field{title}{Deflected subgradient}
-      \field{year}{2026}
-    \endentry
-    \entry{polyak-rate-frangioni}{misc}{}{}
-      \name{author}{1}{}{%
-        {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
-           family={Frangioni},
-           familyi={F\bibinitperiod},
-           given={Antonio},
-           giveni={A\bibinitperiod}}}%
-      }
-      \strng{namehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{bibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorbibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{4}
-      \field{sortinit}{F}
-      \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{howpublished}{\url{https://elearning.di.unipi.it/pluginfile.php/90522/mod_resource/content/5/5-nonsmooth\%20unconstrained\%20optimization.pdf}}
-      \field{note}{Lecture notes, CM 646AA, Università di Pisa, Slide 13}
-      \field{title}{Efficiency of Polyak stepsize: $O(L^2/\varepsilon^2)$ rate with known $f^*$}
-      \field{year}{2026}
-    \endentry
-    \entry{subdifferential-introduction-frangioni}{misc}{}{}
-      \name{author}{1}{}{%
-        {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
-           family={Frangioni},
-           familyi={F\bibinitperiod},
-           given={Antonio},
-           giveni={A\bibinitperiod}}}%
-      }
-      \strng{namehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{bibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorbibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{5}
-      \field{sortinit}{F}
-      \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{howpublished}{Lecture notes, CM 646AA, Università di Pisa}
-      \field{note}{Slides 5--6}
-      \field{title}{Introduction to subgradients and subdifferentials}
+      \field{howpublished}{Lecture notes, CM 646AA, Università di Pisa, \url{https://elearning.di.unipi.it/pluginfile.php/90520/mod_resource/content/8/3-unconstrained\%20optimality.pdf}}
+      \field{title}{Unconstrained Multivariate Optimality and Convexity}
       \field{year}{2025}
-    \endentry
-    \entry{lipschitz-continuity-frangioni}{misc}{}{}
-      \name{author}{1}{}{%
-        {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
-           family={Frangioni},
-           familyi={F\bibinitperiod},
-           given={Antonio},
-           giveni={A\bibinitperiod}}}%
-      }
-      \strng{namehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{bibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorbibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{6}
-      \field{sortinit}{F}
-      \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{howpublished}{\url{https://elearning.di.unipi.it/pluginfile.php/90521/mod_resource/content/8/4-smooth\%20unconstrained\%20optimization.pdf}}
-      \field{note}{Lecture notes, CM 646AA, Università di Pisa, Slide 9}
-      \field{title}{Lipschitz continuity, L-smoothness}
-      \field{year}{2025}
-    \endentry
-    \entry{polyak-stepsize}{misc}{}{}
-      \name{author}{1}{}{%
-        {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
-           family={Frangioni},
-           familyi={F\bibinitperiod},
-           given={Antonio},
-           giveni={A\bibinitperiod}}}%
-      }
-      \strng{namehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{bibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorbibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{7}
-      \field{sortinit}{F}
-      \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{howpublished}{\url{https://elearning.di.unipi.it/pluginfile.php/90522/mod_resource/content/5/5-nonsmooth\%20unconstrained\%20optimization.pdf}}
-      \field{note}{Lecture notes, CM 646AA, Università di Pisa, Slide 12}
-      \field{title}{Polyak stepsize}
-      \field{year}{2026}
-    \endentry
-    \entry{nondifferentiability-l1-frangioni}{misc}{}{}
-      \name{author}{1}{}{%
-        {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
-           family={Frangioni},
-           familyi={F\bibinitperiod},
-           given={Antonio},
-           giveni={A\bibinitperiod}}}%
-      }
-      \strng{namehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{bibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorbibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{8}
-      \field{sortinit}{F}
-      \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{howpublished}{Lecture notes, CM 646AA, Università di Pisa}
-      \field{note}{Slide 4}
-      \field{title}{Smooth methods fail on nonsmooth functions: nondifferentiability of L1 norm}
-      \field{year}{2025}
-    \endentry
-    \entry{strongly-convex-frangioni}{misc}{}{}
-      \name{author}{1}{}{%
-        {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
-           family={Frangioni},
-           familyi={F\bibinitperiod},
-           given={Antonio},
-           giveni={A\bibinitperiod}}}%
-      }
-      \strng{namehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{bibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorbibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{9}
-      \field{sortinit}{F}
-      \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{howpublished}{Lecture notes, CM 646AA, Università di Pisa}
-      \field{note}{Slide 12}
-      \field{title}{Stronger forms of convexity (strongly convex, strictly convex)}
-      \field{year}{2025}
-    \endentry
-    \entry{subdifferential-sum-rule}{misc}{}{}
-      \name{author}{1}{}{%
-        {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
-           family={Frangioni},
-           familyi={F\bibinitperiod},
-           given={Antonio},
-           giveni={A\bibinitperiod}}}%
-      }
-      \strng{namehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{bibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorbibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{10}
-      \field{sortinit}{F}
-      \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{howpublished}{\url{https://elearning.di.unipi.it/pluginfile.php/90522/mod_resource/content/5/5-nonsmooth\%20unconstrained\%20optimization.pdf}}
-      \field{note}{Lecture notes, CM 646AA, Università di Pisa, Slide 7}
-      \field{title}{Subdifferential calculus: sum rule for subdifferentials}
-      \field{year}{2026}
-    \endentry
-    \entry{fundamental-relationships-sg}{misc}{}{}
-      \name{author}{1}{}{%
-        {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
-           family={Frangioni},
-           familyi={F\bibinitperiod},
-           given={Antonio},
-           giveni={A\bibinitperiod}}}%
-      }
-      \strng{namehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{bibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorbibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{11}
-      \field{sortinit}{F}
-      \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{howpublished}{\url{https://elearning.di.unipi.it/pluginfile.php/90522/mod_resource/content/5/5-nonsmooth\%20unconstrained\%20optimization.pdf}}
-      \field{note}{Lecture notes, CM 646AA, Università di Pisa, Slide 10}
-      \field{title}{Subgradient methods: fundamental relationships}
-      \field{year}{2026}
-    \endentry
-    \entry{target-level-mechanism}{misc}{}{}
-      \name{author}{1}{}{%
-        {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
-           family={Frangioni},
-           familyi={F\bibinitperiod},
-           given={Antonio},
-           giveni={A\bibinitperiod}}}%
-      }
-      \strng{namehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{bibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorbibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{12}
-      \field{sortinit}{F}
-      \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{howpublished}{\url{https://elearning.di.unipi.it/pluginfile.php/90522/mod_resource/content/5/5-nonsmooth\%20unconstrained\%20optimization.pdf}}
-      \field{note}{Lecture notes, CM 646AA, Università di Pisa, Slide 14}
-      \field{title}{Target level stepsize (vanishing)}
-      \field{year}{2026}
     \endentry
     \entry{goffin1999convergence}{article}{}{}
       \name{author}{2}{}{%

@@ -107,7 +107,7 @@ $\mathbf{Xv} \neq \mathbf{0}$, so $\mathbf{v}^T(\mathbf{X}^T\mathbf{X})\mathbf{v
 = \|\mathbf{Xv}\|_2^2 > 0$. Hence the Hessian of $g$ is
 $\nabla^2 g = \mathbf{X}^T\mathbf{X} \succ 0$, making $g$ strictly convex.
 $h$ is convex as a non-negative multiple of a norm. The sum of a strictly convex
-function and a convex function is strictly convex \cite{convex-functions-frangioni}, so $f$ is strictly convex.
+function and a convex function is strictly convex \cite[Slides 21--24]{frangioni-slides-unconstrained}, so $f$ is strictly convex.
  
 \textbf{Existence and uniqueness of the minimizer.}
 Since $\mathbf{X}^T\mathbf{X} \succ 0$, $g$ is coercive:
@@ -121,7 +121,7 @@ a strictly smaller value, a contradiction.
 \end{proof}
 
 \subsection{Non-smoothness}
-Unlike the quadratic term, the $L_1$ penalty is \textbf{not differentiable} \cite{nondifferentiability-l1-frangioni} at any point where some component $w_i = 0$, so $f$ is non-smooth.
+Unlike the quadratic term, the $L_1$ penalty is \textbf{not differentiable} \cite[Slide 4]{frangioni-slides-nonsmooth} at any point where some component $w_i = 0$, so $f$ is non-smooth.
 At points where all $w_i \neq 0$, the gradient exists and is:
 $$
 \nabla f(\mathbf{w}) = \mathbf{X}^T(\mathbf{Xw} - \mathbf{y}) + \lambda_{\text{LASSO}} \operatorname{sign}(\mathbf{w})
@@ -133,7 +133,7 @@ At points where some $w_i = 0$, one must reason in terms of
 \subsection{Optimality conditions}
 \label{sec:intro_optimality}
 The optimality condition is expressed
-via the \textbf{subdifferential} \cite{subdifferential-introduction-frangioni}: $\mathbf{w}^*$ is a global minimizer for the problem if and
+via the \textbf{subdifferential} \cite[Slides 5--6]{frangioni-slides-nonsmooth}: $\mathbf{w}^*$ is a global minimizer for the problem if and
 only if:
 $$
 0 \in \partial f(\mathbf{w}^*) = \mathbf{X}^T(\mathbf{Xw}^* - \mathbf{y})

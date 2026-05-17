@@ -54,7 +54,7 @@ a constant for IRLS.
 
 \subsection{Convergence on the ELM problem}
 
-For the ELM problem $\mathbf{X} = \sigma(\mathbf{X}_{\text{origin}}\mathbf{W}_1^T)$ has full column rank (standard ELM condition when $M \ge H$ with random $\mathbf{W}_1$ and nonlinear $\sigma$), so $f$ is $\mu$-strongly convex with unique minimizer $\mathbf{w}^*$. IRLS iterates $\mathbf{w}_k \to \mathbf{w}^*$ at a linear rate governed by the weighted normal-equation conditioning (Theorem~\ref{thm:irls_convergence}); Theorem~\ref{thm:dsm_convergence} only guarantees $\bar{f}_i \to f^*$, with iterates that may oscillate. Strong convexity would allow $O(L^2/(\mu\varepsilon))$ \cite{strongly-convex-frangioni}, but SGPTL does not exploit it (Section~\ref{sec:dsm_convergence}).
+For the ELM problem $\mathbf{X} = \sigma(\mathbf{X}_{\text{origin}}\mathbf{W}_1^T)$ has full column rank (standard ELM condition when $M \ge H$ with random $\mathbf{W}_1$ and nonlinear $\sigma$), so $f$ is $\mu$-strongly convex with unique minimizer $\mathbf{w}^*$. IRLS iterates $\mathbf{w}_k \to \mathbf{w}^*$ at a linear rate governed by the weighted normal-equation conditioning (Theorem~\ref{thm:irls_convergence}); Theorem~\ref{thm:dsm_convergence} only guarantees $\bar{f}_i \to f^*$, with iterates that may oscillate. Strong convexity would allow $O(L^2/(\mu\varepsilon))$ \cite[Slide 12]{frangioni-slides-smooth}, but SGPTL does not exploit it (Section~\ref{sec:dsm_convergence}).
 
 % ------------------------------------------------------------------
 \section{Computational cost}
