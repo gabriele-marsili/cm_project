@@ -60,6 +60,7 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0,
     times      = [0.0]
     delta_hist = [delta]
     gamma_hist = []
+    skip_hist  = []
     t0 = time.perf_counter()
     i = -1
 
@@ -90,7 +91,9 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0,
             if f_star is not None:
                 gaps.append(max(0.0, f_bar - f_star))
             times.append(time.perf_counter() - t0)
+            skip_hist.append(1)
             continue
+        skip_hist.append(0)
 
         alpha = num / d_sq
         w_new = w - alpha * d
@@ -142,6 +145,7 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0,
         'f_bar':      f_bar_list,
         'gaps':       gaps,
         'gamma_hist': gamma_hist,
+        'skip_hist':  skip_hist,
         'times':      times,
         'n_iter':     i + 1,
         'delta_hist': delta_hist,

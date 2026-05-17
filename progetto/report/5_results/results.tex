@@ -81,16 +81,48 @@ without explicit BLAS-thread tuning.
 \paragraph{The deflection floor in practice.}
 Section~\ref{sec:dsm_convergence_conditions} motivates the lower
 bound $\gamma_{i}\ge\gamma_{\min}$ as a structural ingredient for the
-clip $\beta_{i}=\min(\beta,\gamma_{i})$. Empirically, on the
-convergence instance ($H=100$, $M=300$, $\lambda_\text{LASSO}=0.1$,
-$i_\text{max}=4000$) the unfloored variant ($\gamma_{\min}=0$) spends
-$97\%$ of iterations in the numerator-skip branch, $\delta$ underflows
-and the record gap stalls at $3.9\cdot 10^{-2}$; a full
-$(\delta_{0},\rho)$ sweep does not recover the loss. With
-$\gamma_{\min}=0.05$ the gap descends to $3\cdot 10^{-5}$ in the same
-budget. The sweep $\gamma_{\min}\in\{0.05, 0.1, 0.2, 0.5\}$ keeps the
-final gap in $10^{-7}$--$10^{-5}$, with $\gamma_{\min}=0.05$
+clip $\beta_{i}=\min(\beta,\gamma_{i})$. We test the prediction
+empirically across a $3\times 5\times 2$ grid: three sizes
+$(H,M)\in\{(50,150),(100,300),(200,600)\}$, five seeds, two
+configurations $\gamma_{\min}\in\{0,\,0.05\}$
+(\texttt{experiments/experiment\_gamma\_floor.py}). The pattern is
+uniform across the $30$ runs. With $\gamma_{\min}=0$ the
+greedy~\eqref{eq:gamma_star} drives $\gamma_i$ below $0.01$ for $\sim
+99\%$ of iterations; $\beta_i=\min(1, \gamma_i)$ collapses with it,
+$f(\mathbf{w}_i) - (f_{\mathrm{ref}}-\delta)$ becomes non-positive,
+the numerator-skip branch fires for $\sim 98\%$ of iterations,
+$\delta$ contracts only once or twice over $4000$~steps, and the
+record gap stalls in $[2\cdot 10^{-2},\,1\cdot 10^{-1}]$. With
+$\gamma_{\min}=0.05$ the floor binds where the greedy would otherwise
+hit zero, the numerator-skip branch never fires, $\delta$ contracts
+$\sim\!19$ times over the same budget, and the gap descends to $[6\cdot
+10^{-5},\,3\cdot 10^{-4}]$. The $20$--$50\times$ gap separation and the
+$\sim 99\%$ vs $0\%$ splits in skip-fire rate and $\gamma_i\le 0.01$
+rate hold uniformly across sizes and seeds, so the failure mode is
+structural to ELM~LASSO with the greedy~$\gamma$, not an artefact of
+one instance. Figure~\ref{fig:gamma-floor-test} shows the $\gamma_i$
+histogram, the $\delta$ staircase and the gap trajectory for the
+medium size.
+
+The calibration of $\gamma_{\min}$ within the floored range is the
+secondary question. A sweep $\gamma_{\min}\in\{0.05, 0.1, 0.2, 0.5\}$
+keeps the final gap in $10^{-7}$--$10^{-5}$, with $\gamma_{\min}=0.05$
 marginally best (Figure~\ref{fig:warm-vs-cold}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/gamma_floor_test.pdf}
+    \caption{Floor test on ELM~LASSO ($H=100$, $M=300$,
+    $\lambda_\text{LASSO}=0.1$, $i_{\max}=4000$, $\rho=0.7$). Left:
+    $\gamma_i$ distribution over iterations --- the unfloored run piles
+    $\sim 99\%$ of its mass at $\gamma_i\approx 0$, the floored run
+    lives in $[\gamma_{\min},1]$. Centre: $\delta$ over iterations ---
+    the unfloored $\delta$ contracts twice and then drifts as the skip
+    branch keeps firing, the floored $\delta$ descends in the staircase
+    the theory expects. Right: record gap --- two orders of magnitude
+    separation, stable across the $15$ seeds tested per configuration.}
+    \label{fig:gamma-floor-test}
+\end{figure}
 
 \subsection{Implementation note: from the first submission to the theory-pure rule}
 \label{sec:warm_cold}

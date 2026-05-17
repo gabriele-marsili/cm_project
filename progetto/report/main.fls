@@ -345,6 +345,11 @@ INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmmib
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmbsy10.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmbsy7.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmbsy5.tfm
+INPUT ./images/gamma_floor_test.pdf
+INPUT ./images/gamma_floor_test.pdf
+INPUT ./images/gamma_floor_test.pdf
+INPUT ./images/gamma_floor_test.pdf
+INPUT ./images/gamma_floor_test.pdf
 INPUT ./images/warm_vs_cold.pdf
 INPUT ./images/warm_vs_cold.pdf
 INPUT ./images/warm_vs_cold.pdf
