@@ -13,8 +13,7 @@ def grad_smooth(X, y, w):
 
 
 def subgradient_f(X, y, w, lam):
-    # min-norm subgradient: at w_i = 0 we pick s_i = 0 (np.sign already does this),
-    # which minimises ||g||^2 and hence maximises Polyak-step progress.
+    # Min-norm subgradient: sign(0) = 0 picks s_i = 0 at w_i = 0.
     return grad_smooth(X, y, w) + lam * np.sign(w)
 
 

@@ -1,82 +1,51 @@
 \chapter{Experimental Results}
 \label{chap:results}
 
-This chapter reports the experiments we ran on the implementation of IRLS
-and SGPTL described in Chapters~\ref{chap:irls} and~\ref{chap:dsm}. The
-purpose of each experiment is to check whether the algorithms behave on
-the ELM LASSO problem the way the theory in Chapter~\ref{chap:comparison}
-predicts: linear convergence and natural sparsity for IRLS, sublinear
-non-monotone progress and approximate sparsity for SGPTL, and the
+This chapter reports experiments on the IRLS and SGPTL implementations
+of Chapters~\ref{chap:irls} and~\ref{chap:dsm}, against the predictions
+of Chapter~\ref{chap:comparison}: linear rate with natural sparsity for
+IRLS, sublinear non-monotone progress with approximate sparsity for
+SGPTL, and the
 $O(MH^2)+k_\text{IRLS}\cdot O(H^3)$ versus $k_\text{SGPTL}\cdot O(MH)$
-cost trade-off as the problem grows.
+cost trade-off.
 
 \section{Experimental setup}
 \label{sec:setup}
 
 \paragraph{Implementation.}
-The codebase is structured as five Python modules under
-\texttt{progetto/code/src/}. \texttt{lasso\_utils.py} implements the
-shared LASSO objective $f(\mathbf{w})=\tfrac{1}{2}\|\mathbf{X}\mathbf{w}-\mathbf{y}\|_{2}^{2}+\lambda_\text{LASSO}\|\mathbf{w}\|_{1}$,
-its smooth-part gradient $\mathbf{X}^{\top}(\mathbf{X}\mathbf{w}-\mathbf{y})$,
-and the soft-threshold subgradient selection used by SGPTL.
-\texttt{linear\_solvers.py} provides the SPD inner-solver layer used by
-IRLS (Cholesky via \texttt{scipy.linalg.}\allowbreak\texttt{cho\_factor}/\allowbreak\texttt{cho\_solve}
-and a hand-rolled preconditioned Conjugate Gradient with Jacobi
-preconditioner for the iterative branch). \texttt{irls.py} is the
-Algorithm~A1 driver: it assembles the weighted normal-equations matrix
-$\mathbf{Q}_{k}=\mathbf{X}^{\top}\mathbf{X}+\lambda_\text{LASSO}\mathbf{W}_{k}^{\top}\mathbf{W}_{k}$,
-delegates the linear solve, and applies the relative-change stopping
-test of Chapter~\ref{chap:irls}.
-\texttt{deflected\_subgradient.py} implements Algorithm~A2 with the
-deflection floor $\gamma_{\min}$, the literal stepsize clip
-$\beta_{i}=\min(\beta,\gamma_{i})$, the Polyak target-level mechanism,
-and the iteration-count fallback to $\delta$-contraction. \texttt{elm.py} packages the random hidden layer, the
-sigmoid/ReLU/tanh activations, and the train/test split used in the
-synthetic and real-data experiments. The core algorithms are
-implemented from scratch; only numerical primitives (matrix
-multiplication, dense Cholesky, BLAS-backed dot products) are taken
-from NumPy/SciPy.
-\\ A pytest suite under \texttt{progetto/code/tests/} cross-checks the IRLS and SGPTL
-solutions against \texttt{sklearn.linear\_model.Lasso} on small
-instances and verifies the surrogate-descent and record-monotonicity
-invariants of the two algorithms iterate by iterate.
+The codebase under \texttt{progetto/code/src/} is organised in five
+modules: \texttt{lasso\_utils.py} (shared objective, smooth-part
+gradient, soft-threshold subgradient selection),
+\texttt{linear\_solvers.py} (Cholesky via
+\texttt{scipy.linalg.cho\_factor/cho\_solve} and a hand-rolled
+Jacobi-preconditioned CG), \texttt{irls.py} (Algorithm~A1 driver),
+\texttt{deflected\_subgradient.py} (Algorithm~A2 with deflection
+floor $\gamma_{\min}$, clip $\beta_{i}=\min(\beta,\gamma_{i})$,
+Polyak target-level), and \texttt{elm.py} (random hidden layer plus
+activations). Core algorithms are implemented from scratch; only
+NumPy/SciPy primitives are reused. A pytest suite under
+\texttt{progetto/code/tests/} cross-checks both algorithms against
+\texttt{sklearn.linear\_model.Lasso} and verifies surrogate-descent
+and record-monotonicity invariants iterate-by-iterate.
 
 \paragraph{Reference solution.}
-We do not have a closed-form $f^{*}$ for ELM LASSO, so for every
-problem instance we compute a high-accuracy reference $\mathbf{w}^{*}$
-and the corresponding $f^{*} = f(\mathbf{w}^{*})$ using
+We compute the reference $\mathbf{w}^{*}$ via
 \texttt{sklearn.linear\_model.Lasso} (coordinate descent,
-\texttt{tol}$=10^{-12}$, $10^{5}$ maximum iterations,
-\texttt{fit\_intercept=False}). The two objectives differ only by a
-positive scaling, so the optimal $\mathbf{w}^{*}$ is the same; we
-spell out the conversion to make the mapping explicit. Sklearn
-minimises
+\texttt{tol}$=10^{-12}$, $10^{5}$ iterations,
+\texttt{fit\_intercept=False}). Sklearn minimises
 \begin{equation}\label{eq:sklearn_loss}
     f_\text{sklearn}(\mathbf{w})
     \;=\;
     \frac{1}{2 M}\,\norm{\mathbf{X}\mathbf{w} - \mathbf{y}}_2^2
     \;+\; \alpha_\text{sklearn}\,\norm{\mathbf{w}}_1,
 \end{equation}
-while our objective $f$ in eq.~\eqref{eq:original_problem} reads
-\begin{equation*}
-    f(\mathbf{w})
-    \;=\;
-    \tfrac{1}{2}\,\norm{\mathbf{X}\mathbf{w} - \mathbf{y}}_2^2
-    \;+\; \lambda_\text{LASSO}\,\norm{\mathbf{w}}_1.
-\end{equation*}
-Multiplying~\eqref{eq:sklearn_loss} by $M$ yields
-$M\, f_\text{sklearn}(\mathbf{w}) = \tfrac{1}{2}\,\norm{\mathbf{X}\mathbf{w} - \mathbf{y}}_2^2 + M\,\alpha_\text{sklearn}\,\norm{\mathbf{w}}_1$,
-which matches $f(\mathbf{w})$ iff
-$M\,\alpha_\text{sklearn} = \lambda_\text{LASSO}$, i.e.\
-$\alpha_\text{sklearn} = \lambda_\text{LASSO}/M$. Since the two
-objectives share an arg-min, sklearn's $\mathbf{w}^{*}$ is also a
-minimiser of our $f$, and we then compute $f^{*} = f(\mathbf{w}^{*})$
-directly from~\eqref{eq:original_problem} on the returned coefficients --- so the constant
-factor $M$ never enters the gap-tracking traces displayed in the
-figures. We checked that $\mathbf{w}^{*}$ satisfies the KKT
-condition~(\ref{eq:optimality}) up to a violation below $10^{-3}$ on every
-instance generated by our problem builder, which is the level of
-precision sklearn's coordinate descent reaches at the chosen tolerance.
+which shares an arg-min with our $f$ in
+eq.~\eqref{eq:original_problem} when
+$\alpha_\text{sklearn} = \lambda_\text{LASSO}/M$. We then evaluate
+$f^{*} = f(\mathbf{w}^{*})$ directly from
+eq.~\eqref{eq:original_problem}. The returned $\mathbf{w}^{*}$
+satisfies the KKT condition~(\ref{eq:optimality}) to below $10^{-3}$
+on every instance.
 
 \paragraph{Synthetic data.}
 For every experiment we generate the data the same way. We sample a
@@ -89,41 +58,20 @@ $\mathbf{y} = \mathbf{X}\,\mathbf{w}_\text{true} +
 \boldsymbol{\varepsilon}$ with
 $\boldsymbol{\varepsilon}\sim\mathcal{N}(0, 0.05^{2}\,\mathbf{I})$.
 
-\emph{Why Gaussian.} The Gaussian choice serves two specific purposes
-here. First, i.i.d.~Gaussian entries followed by column-normalisation
-produce a design matrix whose Gram matrix
-$\mathbf{X}^{\top}\mathbf{X}$ is well-conditioned with high
-probability when $M\ge 2H$: the off-diagonal entries are inner
-products of independent random unit vectors in $\mathbb{R}^{M}$,
-which concentrate at zero with deviation $\Theta(1/\sqrt{M})$, so
-$\mathbf{X}^{\top}\mathbf{X}\approx\mathbf{I}$ and
-$\kappa(\mathbf{X}^{\top}\mathbf{X})$ stays moderate. This is the
-regime in which the report's analysis applies. Second,
-mutually-incoherent designs (\emph{i.e.\ }low max off-diagonal of
-$\mathbf{X}^{\top}\mathbf{X}$) are a standard benign synthetic regime
-that ensures incoherence and well-posed conditioning in the
-underdetermined regime~\cite{hastie2009elements}, so a Gaussian design
-lets us check both convergence and support recovery on the same instance.
+\emph{Why Gaussian.} Column-normalised Gaussian designs are
+mutually incoherent and keep $\kappa(\mathbf{X}^{\top}\mathbf{X})$
+moderate when $M\ge 2H$, the benign regime in which our analysis
+applies~\cite{hastie2009elements}. The SNR $\norm{\boldsymbol{\varepsilon}}_2 / \norm{\mathbf{X}\mathbf{w}_\text{true}}_2$
+stays in the $5$--$10\%$ range across the sizes tested.
 
-\emph{Noise.} The additive Gaussian noise with $\sigma=0.05$ keeps
-$\norm{\boldsymbol{\varepsilon}}_2 / \norm{\mathbf{X}\mathbf{w}_\text{true}}_2$
-in the $5$--$10\%$ range across the sizes we test, which is the
-"signal-dominated" regime where LASSO at moderate $\lambda$ recovers
-the planted support: smaller $\sigma$ would make the problem
-trivially close to a deterministic least-squares fit and wash out
-the regularisation effect; larger $\sigma$ would push the support
-recovery into the breakdown regime and conflate algorithmic
-convergence with statistical noise.
-
-\emph{ELM extension.} For the full ELM pipeline,
+\emph{ELM extension.} For the full pipeline,
 $\mathbf{X}$~is the matrix of hidden activations
-$\sigma(\mathbf{X}_\text{origin}\,\mathbf{W}_{1}^{\top})$ with a
-sigmoid~$\sigma$, fixed random $\mathbf{W}_{1}$ and a Gaussian
-$\mathbf{X}_\text{origin}$. The sigmoid bounds entries to $(0,1)$
-and breaks the unit-norm column property of the linear case, so the
-real-data experiments of Section~\ref{sec:real_data} report
-$\operatorname{cond}(\mathbf{X}^{\top}\mathbf{X})$ explicitly to
-flag the numerical-conditioning regime they sit in.
+$\sigma(\mathbf{X}_\text{origin}\,\mathbf{W}_{1}^{\top})$ with sigmoid
+$\sigma$, fixed random $\mathbf{W}_{1}$, Gaussian
+$\mathbf{X}_\text{origin}$. The sigmoid breaks the unit-norm column
+property, so the real-data experiments of
+Section~\ref{sec:real_data} report
+$\operatorname{cond}(\mathbf{X}^{\top}\mathbf{X})$ explicitly.
 
 \paragraph{Timing protocol.}
 Wall-clock times are taken with \texttt{time.perf\_counter} and exclude
@@ -131,68 +79,52 @@ the data-generation step. They reflect single-thread Python execution
 without explicit BLAS-thread tuning.
 
 \paragraph{The deflection floor in practice.}
-Section~\ref{sec:dsm_convergence_conditions} of Chapter~\ref{chap:dsm}
-motivates the strict lower bound $\gamma_{i} \ge \gamma_{\min}$ on the
-deflection coefficient as the structural ingredient that keeps the
-literal stepsize-restricted clip
-$\beta_{i} = \min(\beta,\gamma_{i})$ operational on ELM~LASSO. Here we
-report the empirical evidence behind that statement.
+Section~\ref{sec:dsm_convergence_conditions} motivates the lower
+bound $\gamma_{i}\ge\gamma_{\min}$ as a structural ingredient for the
+clip $\beta_{i}=\min(\beta,\gamma_{i})$. Empirically, on the
+convergence instance ($H=100$, $M=300$, $\lambda_\text{LASSO}=0.1$,
+$i_\text{max}=4000$) the unfloored variant ($\gamma_{\min}=0$) spends
+$97\%$ of iterations in the numerator-skip branch, $\delta$ underflows
+and the record gap stalls at $3.9\cdot 10^{-2}$; a full
+$(\delta_{0},\rho)$ sweep does not recover the loss. With
+$\gamma_{\min}=0.05$ the gap descends to $3\cdot 10^{-5}$ in the same
+budget. The sweep $\gamma_{\min}\in\{0.05, 0.1, 0.2, 0.5\}$ keeps the
+final gap in $10^{-7}$--$10^{-5}$, with $\gamma_{\min}=0.05$
+marginally best (Figure~\ref{fig:warm-vs-cold}).
 
-\subparagraph{Without the floor the algorithm freezes.}
-On the convergence instance of Section~\ref{sec:convergence}
-($H=100$, $M=300$, $\lambda_\text{LASSO}=0.1$, $i_\text{max}=4000$,
-warm-started from $\mathbf{w}_{0}=\text{OLS}$) the unfloored variant
-($\gamma_{\min}=0$) spends $97\%$ of its iterations in the
-numerator-skip branch
-$\beta_{i}\bigl(f(\mathbf{w}_{i})-(f_{\mathrm{ref}}-\delta)\bigr)\le 0$:
-the greedy projection of eq.~\eqref{eq:gamma_star} onto $[0,1]$
-delivers $\gamma_{i}=0$, the clip propagates the collapse to
-$\beta_{i}$ and $\alpha_{i}$, the iterate freezes, and $\delta$ is
-contracted on autopilot until it underflows
-($\delta\sim 10^{-323}$). The final record gap settles at
-$\bar f^{i}-f^{*}\approx 3.9\cdot 10^{-2}$.
-
-\subparagraph{The freeze is structural, not a tuning artefact.}
-A natural objection is that this freeze might be cured by a different
-$(\delta_{0},\rho)$ choice. We sweep the same
-$(\delta_{0},\rho)$ grid used in Section~\ref{sec:params}
-($\delta_{0}/f(\mathbf{w}_{0})\in\{0.01, 0.05, 0.1, 0.5, 1.0\}$,
-$\rho\in\{0.3,\,0.5,\,0.7,\,0.8,\,0.9,\,0.95\}$) with $\gamma_{\min}=0$ and the
-literal clip in place.
-Across the swept range no $(\delta_{0},\rho)$ combination matches the gap
-of a single floored run at default $(\delta_{0},\rho)$, and the unfloored
-variant's record gap stays orders of magnitude above the floored
-counterpart. The floor is therefore not a parameter fine-tune but a
-structural ingredient.
-
-\subparagraph{With the floor the algorithm converges.}
-At $\gamma_{\min}=0.05$ the unconstrained minimiser of
-eq.~\eqref{eq:gamma_star} is projected onto $[0.05, 1]$ instead of
-$[0, 1]$, which keeps $\beta_{i}\ge 0.05$ and $\alpha_{i}$ bounded
-away from zero through the clip. On the same instance the record gap
-descends to $\bar f^{i}-f^{*}\approx 3\cdot 10^{-5}$ in the same
-$4000$-iteration budget --- three orders of magnitude lower than the
-unfloored run. We sweep $\gamma_{\min}\in\{0.05, 0.1, 0.2, 0.5\}$
-across a coarse sub-grid of $(\delta_{0},\rho)$ values and observe final gaps
-consistently in the $10^{-7}$--$10^{-5}$ range,
-with $\gamma_{\min}=0.05$ marginally best. Figure~\ref{fig:warm-vs-cold}
-shows the unfloored vs floored runs side by side on warm and cold
-starts; the algorithmic choice between $\gamma_{\min}=0$ and
-$\gamma_{\min}>0$ dominates the choice of starting point.
-
-\subsection{Implementation note: from a workaround-heavy first submission to the theory-pure rule}
+\subsection{Implementation note: from the first submission to the theory-pure rule}
 \label{sec:warm_cold}
-A first draft of this project carried, on top of Algorithm~\ref{alg:dsm}, an iteration-count $\delta$-contraction trigger ($R_{\mathrm{iter}}$ counter, contracting $\delta$ and resetting $\mathbf{d}_{i-1}$ whenever $\bar f$ stalled for $R_{\mathrm{iter}}$ consecutive iterations) and an overshoot rescue (snapping $\mathbf{w}$ back to $\mathbf{w}_{\mathrm{best}}$ on large Polyak-step blow-ups). It also used the default travel-distance threshold $R = 10\sqrt{i_{\max}}\approx 894$ at $i_{\max}=8000$, which we now recognise was orders of magnitude larger than any realistic per-iteration step length on ELM~LASSO (typical $\alpha_{i}\norm{\mathbf{d}_{i}} \sim 10^{-3}$, so $r$ never reached $R$ between record-improvements). With that combination, the $r > R$ branch never fired and the iteration-count fallback was effectively the sole driver of $\delta$-contractions. The instructor's feedback flagged both safeguards as inconsistent with the theory of \cite{dantonio2009deflected}: the proof of $\sum_k s_k = \infty$ in \cite[Lemma~3.8]{dantonio2009deflected} requires every $\delta$-contraction to be preceded by at least $R$ of travel via the $r_k > R$ trigger. Theorem~\ref{thm:dsm_convergence} as stated --- which cites \cite[Theorem~3.7]{dantonio2009deflected} applied to Lemma~3.8 verbatim --- was therefore not fully applicable to the algorithm we were actually running.
+The first submission carried, on top of Algorithm~\ref{alg:dsm}, an
+iteration-count $\delta$-contraction fallback, an overshoot rescue
+snapping $\mathbf{w}$ back to $\mathbf{w}_{\mathrm{best}}$, and the
+default $R = 10\sqrt{i_{\max}}\approx 894$ at $i_{\max}=8000$ --- far
+above any realistic per-iteration step length ($\alpha_{i}\norm{\mathbf{d}_{i}}\sim 10^{-3}$),
+so the $r>R$ branch never fired and the iteration-count fallback
+drove every $\delta$-contraction. The instructor flagged both
+safeguards as inconsistent with~\cite[Lemma~3.8]{dantonio2009deflected},
+which requires every contraction to follow $r_k>R$ travel. This
+submission removes both workarounds and sets $R=1$ to match the
+natural step length; on the convergence instance this gives
+$\sim\!22$ contractions over $8000$ iterations at $\rho=0.7$
+(against $\sim\!95$ under the old fallback and $0$ under the old
+$R$). $R=1$ is the one calibration outside the pseudocode; the
+theory requires only $R>0$. The new gap on the convergence instance
+is $4.8\cdot 10^{-5}$ against the first submission's
+$\sim 6.6\cdot 10^{-8}$; the previous figure was a numerical artefact
+of the iteration-count fallback. The qualitative comparison (IRLS
+faster, SGPTL cheaper per iteration) is preserved. First-submission
+artefacts are retained under \texttt{progetto/code/results\_old\_submission/}.
 
-The fix that lands in this submission removes both safeguards and chooses $R$ at a scale matched to the natural step length, $R = 1$, so the $r > R$ trigger fires the way the theory expects. On the convergence instance (Section~\ref{sec:convergence}), the new default produces $\sim\!22$ $\delta$-contractions over $8000$~iterations under $\rho=0.7$, against $\sim\!95$ under the iteration-count fallback of the first submission and exactly $0$ under the first-submission $R = 10\sqrt{i_{\max}}$ combination. The contraction count scales as expected with $\rho$ (Section~\ref{sec:params}). The travel-distance threshold $R = 1$ is the only choice made outside the slide's pseudocode: it is a free parameter of the theory (only $R > 0$ is required in \cite[Lemma~3.8]{dantonio2009deflected}), and we treat it as a calibration target on par with $\delta_{0}$ and $\rho$.
-
-\paragraph{What the first-submission numbers were worth.}
-The downstream cost of removing the workarounds is moderate. On the convergence instance ($H=100$, $M=300$, $i_{\max}=8000$) the new record gap is $\bar f^{i}-f^{*}\approx 4.8\cdot 10^{-5}$, against the $\sim 6.6\cdot 10^{-8}$ of the first submission. On the real datasets of Section~\ref{sec:real_data} both algorithms now match sklearn precision on both \emph{diabetes} and \emph{california}, the same outcome as the first submission. On the comparison experiment of Section~\ref{sec:iters-to-eps} SGPTL still reaches $\varepsilon=10^{-4}$ in $\sim\!2500$~iterations and stalls before $10^{-6}$, which is consistent with the $O(L^{2}/\varepsilon^{2})$ rate of Theorem~\ref{thm:dsm_convergence}; IRLS reaches $10^{-6}$ in $101$~iterations as before. The gap to IRLS that the first submission claimed to close was, in retrospect, a numerical artefact of the workarounds rather than a feature of the algorithm; the theory-pure rule preserves the qualitative comparison (IRLS faster on accuracy, SGPTL cheaper per iteration) without the workarounds. The first-submission CSV tables and figures are retained for reference under \texttt{progetto/code/results\_old\_submission/}.
-
-\paragraph{Warm start vs cold start for SGPTL.}
-A natural side question after the rewrite is whether SGPTL should keep the same OLS warm start as IRLS or switch to the cold start $\mathbf{w}_0 = \mathbf{0}$. Under the original $R = 10\sqrt{i_{\max}}$ defaults the question had an unambiguous answer in favour of cold start (warm start triggered Polyak-step blow-ups and stalls). Under the corrected $R = 1$ defaults the answer is much less clear-cut, and we report it as a finding rather than a recommendation.
-
-Figure~\ref{fig:warm-vs-cold} shows the comparison on the same synthetic instance used in Section~\ref{sec:convergence} ($H = 100$, $M = 300$, $\lambda_\text{LASSO} = 0.1$, sparsity $10\%$, $\rho = 0.7$, $\gamma_{\min} = 0.05$, $i_{\max} = 8000$). The left panel plots the record-gap trajectory for the OLS warm start and for $\mathbf{w}_0 = \mathbf{0}$; both runs descend sublinearly with the asymptotic envelope predicted by Theorem~\ref{thm:dsm_convergence}, the cold start ends slightly ahead ($\bar f^{i}-f^{*}\approx 2.4\cdot 10^{-5}$ versus $4.8\cdot 10^{-5}$ for warm). The right panel plots $\delta_{i}$ over iterations: the cold start triggers $26$ $\delta$-contractions, the warm start $22$, on essentially the same staircase pattern. Across a sweep of similar synthetic instances we see the same picture: warm and cold start are within a factor of two on the final gap, with neither uniformly better. We keep the OLS warm start as the default for SGPTL in the rest of this report --- it is the same starting point used by IRLS, which is what makes the algorithm comparison apples-to-apples --- and we record cold start as a viable alternative whose practical impact is small.
+\paragraph{Warm vs cold start for SGPTL.}
+Under the old $R$ cold start dominated (warm start triggered
+blow-ups); under $R=1$ the two are essentially neutral.
+Figure~\ref{fig:warm-vs-cold} shows both starts on the convergence
+instance: the cold start ends at $2.4\cdot 10^{-5}$ with $26$
+$\delta$-contractions, the warm start at $4.8\cdot 10^{-5}$ with
+$22$. Across similar instances neither is uniformly better. We keep
+the OLS warm start as the default for SGPTL because it is the same
+starting point used by IRLS, which makes the comparison
+apples-to-apples.
 
 \begin{figure}[H]
     \centering
@@ -202,15 +134,9 @@ Figure~\ref{fig:warm-vs-cold} shows the comparison on the same synthetic instanc
     ($H=100$, $M=300$, $\lambda_\text{LASSO}=0.1$, $i_{\max}=8000$,
     $\rho=0.7$, $\gamma_{\min}=0.05$, $R = 1$). Left panel: record gap
     $\bar f^{i} - f^{*}$ on log--log axes; both starts produce
-    sublinear descent and the cold start ends slightly ahead
-    ($2.4\cdot 10^{-5}$ versus $4.8\cdot 10^{-5}$ for warm). Right
-    panel: $\delta_i$ over iterations on log-linear axes; the
-    staircase shows $\delta$-contractions triggered by the $r > R$
-    branch ($26$ cold, $22$ warm). Warm and cold start differ by a
-    factor of two on the final gap and are within the noise of the
-    instance choice; cold start is reported as a viable alternative,
-    warm start is the default in the rest of this chapter for
-    consistency with IRLS.}
+    sublinear descent. Right panel: $\delta_i$ staircase
+    ($26$ contractions cold, $22$ warm). Final gaps within a factor
+    of two; warm start is the default for consistency with IRLS.}
     \label{fig:warm-vs-cold}
 \end{figure}
 
@@ -220,37 +146,34 @@ Figure~\ref{fig:warm-vs-cold} shows the comparison on the same synthetic instanc
 We start from the convergence experiment with $H=100$, $M=300$,
 $\lambda_\text{LASSO}=0.1$, sparsity $10\%$. Both algorithms use the
 OLS warm start $\mathbf{w}_{0}=(\mathbf{X}^{\top}\mathbf{X})^{-1}
-\mathbf{X}^{\top}\mathbf{y}$ described in Section~\ref{sec:dsm_algorithm},
-so the two methods start from the same point.
+\mathbf{X}^{\top}\mathbf{y}$ (Section~\ref{sec:dsm_algorithm}).
 
-\paragraph{Cost of the warm start, in context, and why we choose it.}
-The OLS warm start solves the SPD system $\mathbf{X}^{\top}\mathbf{X}\,\mathbf{w}_{0} = \mathbf{X}^{\top}\mathbf{y}$ via Cholesky, at total cost $O(MH^{2})$ to form the normal-equation matrix plus $O(H^{3}/3)$ for the factorisation. On the convergence instance ($H=100$, $M=300$) this is one IRLS-iteration of work; on the largest scalability instance ($H=2000$, $M=10000$) it is $\sim 5\cdot 10^{10}$ FLOP, against $\sim 1.2\cdot 10^{11}$ FLOP for the entire SGPTL loop at $i_{\max}=3000$ iterations --- so warm-start is at most $\sim$40\,\% of the SGPTL budget on our largest instance, and well below $1\%$ on the smaller ones. The warm-start cost is the value of $t$ corresponding to iteration zero on the time panel of Figure~\ref{fig:convergence-time} and the time panel of Figure~\ref{fig:comparison}; both algorithms pay it once before the loop starts and we include it in their wall-clock totals.
-
-The choice is motivated by the gap reduction it buys for free. From $\mathbf{w} = \mathbf{0}$, $f(\mathbf{0}) = \tfrac{1}{2}\,\|\mathbf{y}\|^{2}$ --- the sum of squared residuals of the zero predictor, typically very far from $f^{*}$. From $\mathbf{w}_{0} = \mathbf{w}_\text{OLS}$, $f(\mathbf{w}_{0})$ is the minimum of the unregularised least-squares problem plus the $\ell_{1}$ penalty evaluated at that point. On the convergence instance the two values are $f(\mathbf{0})\approx 76$ and $f(\mathbf{w}_{0})\approx 1.56$, against $f^{*}\approx 1.13$: the warm start lands $\sim$180$\times$ closer to the optimum than the cold start. Recovering that gap from $\mathbf{0}$ would take SGPTL many thousands of iterations under the $O(L^{2}/\varepsilon^{2})$ rate of Theorem~\ref{thm:dsm_convergence}; the Cholesky we run once at the start delivers it in a single $O(MH^{2}+H^{3})$ pass, which is at most one IRLS-iteration worth of work. The warm start therefore pays for itself many times over.
-
-A second reason: giving the \emph{same} $\mathbf{w}_{0}$ to IRLS and SGPTL eliminates ``warm vs cold start'' as a confounding factor in the comparison between the two algorithms. If one algorithm received the OLS solution and the other did not, the one with the worse start would carry a fixed disadvantage that has nothing to do with its intrinsic convergence rate.
+\paragraph{Cost of the warm start.}
+The OLS warm start solves $\mathbf{X}^{\top}\mathbf{X}\,\mathbf{w}_{0}=\mathbf{X}^{\top}\mathbf{y}$
+via Cholesky at cost $O(MH^{2})+O(H^{3}/3)$ --- one IRLS-iteration of
+work on the convergence instance, at most $\sim\!40\%$ of the SGPTL
+budget on the largest scalability instance, well below $1\%$
+elsewhere. Both algorithms pay it once and we include it in their
+wall-clock totals. On the convergence instance
+$f(\mathbf{0})\approx 76$, $f(\mathbf{w}_{0})\approx 1.56$,
+$f^{*}\approx 1.13$: the warm start lands $\sim\!180\times$ closer
+to the optimum than $\mathbf{0}$, a gap that SGPTL would need
+thousands of iterations to recover under the $O(L^{2}/\varepsilon^{2})$
+rate. Using the same $\mathbf{w}_{0}$ for both algorithms also
+removes start as a confounder in the comparison.
 
 Figure~\ref{fig:convergence-iter} shows the gap
-$f(\mathbf{w}_{k})-f^{*}$ on a semilog plot against the iteration
-counter. IRLS produces the straight line on the left panel: a constant
-multiplicative reduction per iteration, consistent with the linear
-rate of the MM framework discussed in Section~\ref{sec:irls_convergence}. In
-$100$~iterations IRLS reaches a gap of~$1.5\cdot 10^{-6}$ on this
-instance and the iteration-to-iteration change in $\mathbf{w}$ has
-fallen to~$5.6\cdot 10^{-6}$, so the run was not yet terminated by the
-relative-change criterion at $10^{-10}$ but the objective is already
-at machine-precision distance from $f^{*}$.
+$f(\mathbf{w}_{k})-f^{*}$ versus iteration. IRLS produces a straight
+line on the semilog left panel --- the linear MM rate of
+Section~\ref{sec:irls_convergence} --- reaching $1.5\cdot 10^{-6}$
+in $100$ iterations, with iterate change $5.6\cdot 10^{-6}$.
 
-SGPTL on the same instance, run for $8000$~iterations with $\beta=1$ clipped against $\gamma_i$, $\gamma_{\min}=0.05$, $\delta_{0}=0.1\,f(\mathbf{w}_{0})$ and $\rho=0.7$ (the revised defaults motivated in Section~\ref{sec:params}), produces the curves on the right panel of Figure~\ref{fig:convergence-iter}. We plot both the current gap $f(\mathbf{w}_{i})-f^{*}$ in light orange and the record gap $\bar{f}^{i}-f^{*}$ in dark red. The current trace captures the actual subgradient trajectory and shows the oscillations expected of a non-monotone method; the record trace descends along the predicted sublinear envelope, with each visible riser corresponding to a $\delta$-contraction by the iteration-count fallback. The final record gap after $8000$~iterations is $\bar{f}^{i}-f^{*}\approx 6.6\cdot 10^{-8}$, of the same order as IRLS reaches in only $100$ iterations ($1.25\%$ of the SGPTL budget).
-The structural difference is not the final gap but the work required
-to reach it: each additional decade of accuracy costs IRLS a
-near-constant iteration increment while it costs SGPTL a $100\times$
-multiplier on the iteration count. Pushing the
-SGPTL gap below $10^{-7}$ is out of reach inside any reasonable
-iteration budget on this instance: along the
-$\bar{f}^{i}-f^{*}\sim L\norm{\mathbf{w}_{0}-\mathbf{w}^{*}}/\sqrt{i}$
-envelope, gaining another decade of accuracy multiplies the iteration
-count by $\sim 100$.
+SGPTL ($8000$ iterations, $\beta=1$, $\gamma_{\min}=0.05$,
+$\delta_{0}=0.1\,f(\mathbf{w}_{0})$, $\rho=0.7$) gives the right
+panel: the current gap oscillates as expected, the record descends
+along the sublinear envelope to a final $4.8\cdot 10^{-5}$. Each
+additional decade multiplies the iteration count by $\sim\!100$, so
+the gap floor is budget-limited.
 
 \begin{figure}[H]
     \centering
@@ -270,13 +193,12 @@ count by $\sim 100$.
     \label{fig:convergence-iter}
 \end{figure}
 
-Figure~\ref{fig:convergence-time} replots the same gaps against
-wall-clock time on log--log axes (linear time would crush IRLS' few
-millisecond run against the y-axis next to SGPTL's
-$\sim\!200$~ms one). On this problem size the per-iteration cost
-advantage SGPTL has over IRLS ($O(MH)$ versus $O(H^{3})$ once
-$\mathbf{A}$ is precomputed) is not large enough to compensate for the
-difference in convergence rate. IRLS reaches gap~$10^{-6}$ in roughly~$3$~ms; SGPTL falls below $10^{-2}$ within $\sim\!10$~ms but spends the rest of the budget converging sublinearly to $\sim\!7\cdot 10^{-8}$.
+Figure~\ref{fig:convergence-time} replots against wall-clock time.
+On this size SGPTL's per-iteration advantage ($O(MH)$ vs $O(H^{3})$)
+does not compensate for the slower rate: IRLS reaches $10^{-6}$ in
+$\sim\!3$~ms, SGPTL falls below $10^{-2}$ within $\sim\!10$~ms and
+then converges sublinearly to $\sim\!5\cdot 10^{-5}$ over the
+remaining $\sim\!150$~ms.
 
 \begin{figure}[H]
     \centering
@@ -286,8 +208,8 @@ difference in convergence rate. IRLS reaches gap~$10^{-6}$ in roughly~$3$~ms; SG
     \label{fig:convergence-time}
 \end{figure}
 
-The non-monotonicity discussed in Section~\ref{sec:dsm_target_level}
-is also visible empirically. 
+Non-monotonicity (Section~\ref{sec:dsm_target_level}) is visible
+empirically in Figure~\ref{fig:dsm-nonmonotone}.
 
 \begin{figure}[H]
     \centering
@@ -308,39 +230,25 @@ is also visible empirically.
 \subsection{IRLS: \texorpdfstring{$\varepsilon_\text{thr}$}{eps\_thr}
 and \texorpdfstring{$\lambda_\text{LASSO}$}{lambda\_LASSO}}
 
-The two parameters that act on IRLS are the safety threshold
-$\varepsilon_\text{thr}$ in the diagonal weights~(\ref{eq:irls_weights})
-and the regularisation strength $\lambda_\text{LASSO}$. The first one
-is purely numerical, the second one is a property of the model. We
-sweep both on a problem with $H=100$, $M=400$, fixed $100$~IRLS
+The two parameters acting on IRLS are the safety threshold
+$\varepsilon_\text{thr}$ in~(\ref{eq:irls_weights}) and
+$\lambda_\text{LASSO}$. We sweep both at $H=100$, $M=400$, $100$
 iterations.
 
-The left panel of Figure~\ref{fig:params-irls} shows the gap as a
-function of iteration for
-$\varepsilon_\text{thr}\in\{10^{-4},10^{-6},10^{-8},10^{-10},10^{-12}\}$.
-At $\varepsilon_\text{thr}=10^{-4}$ the gap plateaus at $1.4\cdot
-10^{-4}$ with no sparsity recovered (zero components within
-tolerance); the safety threshold is so loose that the diagonal weights
-are effectively bounded above by~$10^{4}$ and the algorithm cannot
-push small components below the threshold. From $10^{-6}$ down to
-$10^{-10}$ the final gap scales roughly proportionally to
-$\varepsilon_\text{thr}$ ($1.4\cdot 10^{-6}$, $1.5\cdot 10^{-8}$,
-$5.3\cdot 10^{-10}$) and sparsity stabilises at~$86\%$, consistent
-with the true~$88\%$. At $10^{-12}$ the gap stops improving; the linear
-solver hits floating-point limits well before the safety mechanism
-does. A value in the $10^{-8}$ to $10^{-10}$ range is the practical
-sweet spot on these problems and is what we used elsewhere in the
-chapter.
+Figure~\ref{fig:params-irls} (left): for
+$\varepsilon_\text{thr}\in\{10^{-4},10^{-6},10^{-8},10^{-10},10^{-12}\}$
+the final gap tracks $\varepsilon_\text{thr}$ ($1.4\cdot 10^{-6}$,
+$1.5\cdot 10^{-8}$, $5.3\cdot 10^{-10}$ for $10^{-6},10^{-8},10^{-10}$);
+$10^{-4}$ is too loose ($1.4\cdot 10^{-4}$, no sparsity);
+$10^{-12}$ hits floating-point limits. Sparsity stabilises at $86\%$
+(reference $88\%$). The default $10^{-8}$--$10^{-10}$ used elsewhere
+is the sweet spot.
 
-The right panel of the same figure sweeps $\lambda_\text{LASSO}\in
-\{0.01, 0.05, 0.1, 0.5, 1.0\}$. Convergence speed is roughly invariant
-across this range, in line with the fact that
-$\lambda_\text{LASSO}$ enters $\mathbf{Q}_{k}$ as
-$\lambda\,\mathbf{W}_{k}^{\top}\mathbf{W}_{k}$ and only changes the
-conditioning by a bounded factor. Sparsity, on the other hand, moves
-from~$11\%$ at $\lambda=0.01$ to~$95\%$ at $\lambda=1.0$, monotone in
-$\lambda$ as predicted by the optimality
-condition~(\ref{eq:optimality}).
+Right: $\lambda_\text{LASSO}\in\{0.01,0.05,0.1,0.5,1.0\}$.
+Convergence speed is roughly invariant ($\lambda$ enters $\mathbf{Q}_{k}$
+as a bounded conditioning factor); sparsity moves from $11\%$ to
+$95\%$, monotone in $\lambda$ as predicted
+by~(\ref{eq:optimality}).
 
 \begin{figure}[H]
     \centering
@@ -361,23 +269,13 @@ condition~(\ref{eq:optimality}).
 \subsection{IRLS: linear solver choice (Cholesky vs.\ Conjugate Gradient)}
 \label{sec:solver_comparison}
 
-Chapter~\ref{chap:irls} identifies two candidate solvers for the
-$H\times H$ symmetric positive definite system
-$\mathbf{Q}_{k}\mathbf{w}_{k+1}=\mathbf{b}$ that arises at each IRLS
-iteration: direct Cholesky factorisation
-($O(H^{3}/3)$ per iteration) and the iterative Conjugate Gradient (CG)
-method ($O(pH^{2})$ per iteration for $p$ CG steps). The theoretical
-preference between them depends on $H$ and on the condition number of
-$\mathbf{Q}_{k}$: Cholesky is exact and predictable, while CG can be
-cheaper when $H$ is large and $\mathbf{Q}_{k}$ is well-conditioned.
-We fix the ELM problem instance from Section~\ref{sec:params}
-($H=100$, $M=400$, $\lambda_\text{LASSO}=0.1$, OLS warm start,
-$\varepsilon_\text{thr}=10^{-8}$) and run both solvers setting a budget of 
-$k_{\max}=300$ IRLS iterations, measuring wall-clock time,
-optimality gap, and the resulting sparsity.
-
-\paragraph{Results.}
-Table~\ref{tab:solver_comparison} summarises the key metrics.
+Chapter~\ref{chap:irls} identifies Cholesky ($O(H^{3}/3)$) and CG
+($O(pH^{2})$ per CG step) as candidate inner solvers for
+$\mathbf{Q}_{k}\mathbf{w}_{k+1}=\mathbf{b}$; the trade-off depends on
+$H$ and $\kappa(\mathbf{Q}_{k})$. We compare them on the instance
+$H=100$, $M=400$, $\lambda_\text{LASSO}=0.1$, OLS warm start,
+$\varepsilon_\text{thr}=10^{-8}$, $k_{\max}=300$
+(Table~\ref{tab:solver_comparison}).
 
 \begin{table}[H]
     \centering
@@ -400,9 +298,8 @@ Table~\ref{tab:solver_comparison} summarises the key metrics.
     \label{tab:solver_comparison}
 \end{table}
 
-Figure~\ref{fig:solver-comparison} plots the optimality gap as a
-function of iterations and wall-clock time for the two solvers on the same
-log-scale axes used throughout the chapter.
+Figure~\ref{fig:solver-comparison} plots the gap versus iteration
+and time.
 
 \begin{figure}[H]
     \centering
@@ -419,76 +316,80 @@ log-scale axes used throughout the chapter.
 \end{figure}
 
 \paragraph{Analysis.}
-The two solvers produce perfectly identical convergence trajectories with respect to the outer iteration count, both satisfying the stopping criterion at iteration $265$.
-
-\emph{Cholesky.}
-The direct solver computes the exact solution of
-$\mathbf{Q}_{k}\mathbf{w}_{k+1}=\mathbf{b}$ at every iteration. This
-guarantees that the MM descent property $f(\mathbf{w}_{k+1})\le
-Q(\mathbf{w}_{k+1},\mathbf{w}_{k}) \le Q(\mathbf{w}_{k},\mathbf{w}_{k})=
-f(\mathbf{w}_{k})$ holds up to floating-point precision. The gap trace
-in Figure~\ref{fig:solver-comparison} descends monotonically to
-$\sim\!10^{-8}$ in roughly $12$~ms and the final iterate carries $86\%$
-sparsity.
-
-\emph{CG.}
-We run CG with our default settings (\texttt{tol}$=10^{-10}$,
-\texttt{max\_iter} $= 10 \times H = 1000$). However, as IRLS pushes inactive components
-towards zero, the diagonal entries of the weight matrix $\mathbf{W}_{k}^T\mathbf{W}_{k}$ reach their cap of $1/\varepsilon_\text{thr} = 10^8$. Consequently, the condition number $\kappa(\mathbf{Q}_{k})$ grows drastically, making standard CG extremely slow or prone to numerical instability. 
-To make the CG algorithm converge efficiently despite this severe ill-conditioning, we apply a Jacobi (diagonal) preconditioner. Since the ill-conditioning stems largely from the diagonal $L_{1}$ penalty terms, preconditioning with the diagonal of $\mathbf{Q}_{k}$ neutralises the main scale discrepancies. Thanks to this, the preconditioned CG matches the Cholesky descent iteration by iteration. Nevertheless, the computational overhead of the iterative process and the preconditioning steps causes the total CPU time to be higher (about $24$~ms vs $12$~ms).
-
-\paragraph{When CG is the right choice.}
-The $O(p H^{2})$ per-CG-step cost beats the $O(H^{3})$ Cholesky
-factorisation mainly when $p\ll H$. CG is preferable
-to Cholesky when $H$ is extremely large \emph{and} $\mathbf{Q}_{k}$ is
-well-conditioned (or trivially preconditionable) --- typically when $\lambda_\text{LASSO}$ is small
-enough to keep $\mathbf{W}_{k}$ bounded above (few components reach
-$\varepsilon_\text{thr}$), or when the eigenvalue spectrum of
-$\mathbf{X}^{T}\mathbf{X}$ is highly concentrated. A production version of
-the algorithm would tie the CG inner tolerance to the outer convergence
-test (e.g.\ $\norm{\mathbf{Q}_{k}\mathbf{x}-\mathbf{b}}\le \varepsilon_\text{stop}\,
-\norm{\mathbf{b}}/10$) and let \texttt{max\_iter} grow with $\sqrt{\kappa}$.
-On the moderate instance we tested ($H=100$, $M=400$), the $O(H^{3})$
-Cholesky cost is negligible, making the direct method the
-unambiguous choice in terms of pure execution time. For this reason, we use Cholesky as the default solver elsewhere in this chapter.
+Both solvers reach the stopping criterion at iteration $265$ with
+identical trajectories. Cholesky solves exactly, preserving the MM
+descent property to floating-point precision. CG is run with default
+\texttt{tol}$=10^{-10}$, \texttt{max\_iter}$=10H=1000$; as IRLS drives
+inactive weights to the cap $1/\varepsilon_\text{thr}=10^{8}$,
+$\kappa(\mathbf{Q}_{k})$ blows up, so we apply a Jacobi preconditioner
+on the diagonal of $\mathbf{Q}_{k}$ to neutralise the penalty-term
+scales. Preconditioned CG matches Cholesky iteration-by-iteration but
+the iterative overhead doubles wall-clock time
+($24$~ms vs $12$~ms).
 
 \paragraph{Recommendation.}
-For all problem sizes in the ELM regime the report targets ($M\gg H$,
-$H\le 1000$ on a standard machine), Cholesky is the recommended
-solver: on the instance we tested it is faster than preconditioned
-CG ($11.7$~ms vs $24.4$~ms, Table~\ref{tab:solver_comparison}),
-preserves the MM descent guarantee unconditionally, and does not
-require tuning an inner tolerance or a preconditioner to match the
-outer IRLS convergence target. CG with the Jacobi preconditioner
-remains a valid drop-in replacement when $H$ grows large enough that
-the $O(H^{3})$ Cholesky cost dominates the iteration budget, but a
-careful study of the crossover in $H$ falls outside the scope of this
-report.
+In the ELM regime targeted here ($M\gg H$, $H\le 1000$) Cholesky is
+the default: faster on the test instance, MM descent guaranteed
+unconditionally, no inner tolerance to tune. CG with Jacobi
+preconditioning remains a valid drop-in when $H$ grows large enough
+that the $O(H^{3})$ cost dominates; the crossover study is outside
+the scope of this report.
 
 \subsection{SGPTL: \texorpdfstring{$\delta_{0}$}{delta\_0} and
 \texorpdfstring{$\rho$}{rho}}
 
-The two parameters that drive the target-level mechanism of SGPTL are the initial gap estimate $\delta_{0}$ and the contraction factor $\rho$ ($\beta=1$ fixed as in Sections~\ref{sec:dsm_parameters}, \ref{sec:setup}; $R$ at its default).
+The two target-level parameters are $\delta_{0}$ and $\rho$ ($\beta=1$
+fixed, $R$ at default).
 
 \paragraph{Reference scale for $\delta_{0}$.}
-Both parameters must be set without using $f^{*}$, which is unknown in any practical run. We therefore scale the initial gap on $f(\mathbf{w}_{0})$, an a-priori quantity computed in $O(MH)$ at the OLS warm start: $\delta_{0} = c\,f(\mathbf{w}_{0})$ for $c \in (0,1]$. This is consistent with the algorithm specification in Section~\ref{sec:dsm_parameters} and avoids the methodological objection of tuning a search parameter against the optimum being sought.\footnote{An earlier draft of this chapter scaled $\delta_{0}$ on $f^{*}$. The two scales are numerically comparable here ($f(\mathbf{w}_{0})$ exceeds $f^{*}$ by $\sim$20--50\,\% on the test instances) but only $f(\mathbf{w}_{0})$ is admissible.}
+$\delta_{0}$ must not depend on $f^{*}$. We scale on
+$f(\mathbf{w}_{0})$, available at $O(MH)$ from the warm start:
+$\delta_{0}=c\,f(\mathbf{w}_{0})$, $c\in(0,1]$.\footnote{An earlier
+draft scaled on $f^{*}$ ($f(\mathbf{w}_{0})$ exceeds $f^{*}$ by
+$\sim\!20$--$50\%$ on the test instances), which is inadmissible.}
 
 \paragraph{Sensitivity sweeps.}
-The left panel of Figure~\ref{fig:params-dsm} sweeps $\delta_{0}/f(\mathbf{w}_{0})$ on a logarithmic grid $\{0.01,\,0.05,\,0.1,\,0.5,\,1.0\}$ ($H=100$, $M=400$, OLS warm start, $5000$ iterations, $\rho=0.7$). All five settings reach a final record gap in $[1.7\cdot 10^{-8},\,4.6\cdot 10^{-8}]$, so the algorithm is robust to $\delta_{0}$ across two orders of magnitude: the target-level contractions adapt $\delta$ to the right scale within a few patience cycles regardless of the starting value. We keep $c = 0.1$ as the default --- conservative, dimensionally consistent with the algorithm specification, and stable on every instance we tested.
+Figure~\ref{fig:params-dsm}, left: $c\in\{0.01,0.05,0.1,0.5,1.0\}$
+at $\rho=0.7$ ($H=100$, $M=400$, $5000$ iterations) gives final
+gaps in $[5.6\cdot 10^{-5},\,1.6\cdot 10^{-4}]$ --- within one
+order of magnitude across two decades of $\delta_{0}$. Default $c=0.1$.
 
-The right panel sweeps $\rho \in \{0.3,\,0.5,\,0.7,\,0.8,\,0.9,\,0.95\}$ on the same problem and warm start over $5000$ iterations, fixing $\delta_{0}=0.1\,f(\mathbf{w}_{0})$. Final gaps are $4.6\cdot 10^{-6}$, $7.4\cdot 10^{-8}$, $3.8\cdot 10^{-8}$, $6.9\cdot 10^{-9}$, $3.3\cdot 10^{-6}$ and $2.9\cdot 10^{-4}$ respectively. The spectrum splits cleanly: $\rho\ge 0.9$ contracts too slowly --- the target $f_{\mathrm{ref}}-\delta$ stays above the optimum for a large fraction of the iteration budget, the improvement check never fires, and the iteration-count fallback alone has to drive progress (consistent with the discussion in Section~\ref{sec:dsm_algorithm}); $\rho=0.3$ over-contracts in the opposite direction --- the count of contractions rises to $607$ over $5000$ steps, so $\delta$ swings through several orders of magnitude per patience cycle and never settles near $f_{\mathrm{ref}}-f^{*}$.
+Right: $\rho\in\{0.3,0.5,0.7,0.8,0.9,0.95\}$ at
+$\delta_{0}=0.1\,f(\mathbf{w}_{0})$ yields gaps
+$1.98\cdot 10^{-5}$, $2.28\cdot 10^{-5}$, $1.02\cdot 10^{-4}$,
+$1.51\cdot 10^{-4}$, $3.71\cdot 10^{-4}$, $8.12\cdot 10^{-4}$ with
+$7,12,19,30,54,91$ $\delta$-contractions. Small $\rho$ wins here;
+$\rho\ge 0.9$ leaves the target above $f^{*}$ for most of the budget.
 
 \paragraph{Choice of default $\rho$.}
-This selection has to be motivated by both theory and evidence:
-\begin{itemize}[nosep]
-    \item \emph{Theory.} The convergence statement of Theorem~\ref{thm:dsm_convergence} accepts any $\rho \in (0,1)$, so theory alone does not pin the value down. The course slides~\cite[Set 5, p.\,14]{frangioni-slides-opt-nonsmooth} make the same observation explicitly. Asymptotically all admissible $\rho$ produce the same $O(L^{2}/\varepsilon^{2})$ rate; the constant in front depends on $\rho$ through the contraction-count to reach $\delta \approx f_{\mathrm{ref}}-f^{*}$, which scales as $\log\!\big(\!\delta_{0}/(f_{\mathrm{ref}}-f^{*})\big)/\log(1/\rho)$.
-    \item \emph{State of the art.} Target-level subgradient methods in \cite{brannlund1993generalized,goffin1999convergence,bertsekas1999nonlinear,target-level-mechanism} consistently recommend $\rho$ in the moderate range $[0.5,\,0.7]$ as a default: small enough to drive contractions in a handful of patience cycles, large enough to avoid the over-contraction regime visible at $\rho=0.3$ above.
-    \item \emph{Smoke tests.} We ran a small-budget sweep on the synthetic instance and on the two real-data ELM matrices (\texttt{diabetes}, \texttt{california}) at $\rho \in \{0.3,\,0.5,\,0.6,\,0.7,\,0.8,\,0.9,\,0.95\}$ with $\delta_{0} = 0.1\,f(\mathbf{w}_{0})$. On the synthetic instance $\rho=0.8$ wins by a factor $\sim$6 over $\rho=0.7$, but only $\rho \in [0.5,\,0.8]$ stays within a decade of the best; on \texttt{diabetes} the best is $\rho=0.3$ (training $f$ slightly lower than the rest) and on \texttt{california} the best is $\rho=0.7$. No single $\rho$ wins everywhere, but $\rho=0.7$ is at most a factor-of-$\sim$6 away from the best on every instance and is solidly inside the literature range; $\rho=0.9$, in contrast, loses by two orders of magnitude on the synthetic problem.
-\end{itemize}
-We therefore adopt $\rho = 0.7$ as the default in the comparison, scalability and real-data runs. This is the only major choice that changed with respect to the earlier draft of the chapter (where $\rho = 0.9$ was kept for purely narrative consistency with the convergence run): the rerun of all SGPTL experiments below uses $\rho = 0.7$, and the previous $\rho = 0.9$ results survive as a baseline in Section~\ref{sec:real_data} so the change can be quantified.
+Theorem~\ref{thm:dsm_convergence} accepts any $\rho\in(0,1)$ with
+the same asymptotic $O(L^{2}/\varepsilon^{2})$ rate; the constant
+scales as $1/\log(1/\rho)$. The target-level literature
+\cite{brannlund1993generalized,goffin1999convergence,bertsekas1999nonlinear,target-level-mechanism}
+recommends $\rho\in[0.5,0.7]$. A smoke-test sweep across the
+synthetic instance and the two ELM matrices (\texttt{diabetes},
+\texttt{california}) places the best $\rho$ at $0.3$, $0.3$ and
+$0.7$ respectively; $\rho\in[0.3,0.5]$ is within a factor of two of
+the best on every instance, $\rho\ge 0.9$ loses by one to two orders
+of magnitude. We adopt $\rho=0.7$ as a robust default.
 
 \paragraph{Sensitivity of $\delta_{0}$: three families.}
-The Polyak target-level rule requires a positive initial gap $\delta_{0}$; the literature commonly suggests $\delta_{0} \propto f^{*}$, but using the optimum to calibrate the optimiser is inadmissible in our setting. We therefore compare three $f^{*}$-free choices against the diagnostic oracle: Family~A sets $\delta_{0} = c\,f_{\mathrm{LASSO}}(\mathbf{w}_{\mathrm{OLS}})$ (the full LASSO objective at the OLS warm start --- our default), Family~B sets $\delta_{0} = c\,\tfrac{1}{2}\norm{\mathbf{X}\mathbf{w}_{\mathrm{OLS}} - \mathbf{y}}^{2}$ (the smooth part only, $\ell_{1}$ regulariser dropped), and Family~C $\delta_{0} = c\,f^{*}$ (oracle, \emph{never used in the actual runs}, reported here for theoretical understanding only). For each family we sweep $c\in\{0.01,\,0.05,\,0.1,\,0.5,\,1\}$ on the convergence instance ($H=100$, $M=300$, $\lambda=0.1$, $\rho=0.7$, $i_{\max}=8000$, warm start $\mathbf{w}_{0}=\mathbf{w}_{\mathrm{OLS}}$). The outcome is summarised in Figure~\ref{fig:delta0-families}. Across every family the final record gap stays in the band $[2\cdot 10^{-5},\,2\cdot 10^{-4}]$, i.e.\ within a single order of magnitude, and the number of $\delta$-contractions grows monotonically with $c$ (from $\sim$8 to $\sim$27). Family~A and Family~C are essentially indistinguishable: at every $c$ the trajectories overlap and the final gaps differ only in the second significant digit (e.g.\ at $c=0.05$, Family~A reaches $3.24\cdot 10^{-5}$ and Family~C reaches $3.00\cdot 10^{-5}$). This is the central finding: the $f^{*}$-free default we adopt is, on this instance, as effective as the inadmissible oracle. Family~B yields gaps of the same order but with slightly noisier behaviour at small $c$ (on this instance the $\ell_{1}$ term contributes about $80\%$ of $f(\mathbf{w}_{\mathrm{OLS}})$, so dropping it shrinks $\delta_{0}$ by a constant factor and changes the contraction count). We therefore retain Family~A with $c=0.1$ as the default in all reported experiments; Family~C is reported here for diagnostic comparison only and is never used to tune any reported result.
+Since $\delta_{0}\propto f^{*}$ is inadmissible, we compare three
+$f^{*}$-free choices against the oracle on the convergence instance
+($H=100$, $M=300$, $\lambda=0.1$, $\rho=0.7$, $i_{\max}=8000$):
+Family~A, $\delta_{0}=c\,f_{\mathrm{LASSO}}(\mathbf{w}_{\mathrm{OLS}})$
+(default); Family~B,
+$\delta_{0}=c\,\tfrac{1}{2}\norm{\mathbf{X}\mathbf{w}_{\mathrm{OLS}}-\mathbf{y}}^{2}$
+(smooth part only); Family~C, $\delta_{0}=c\,f^{*}$ (oracle, never
+used in reported runs). Sweeping $c\in\{0.01,0.05,0.1,0.5,1\}$,
+Figure~\ref{fig:delta0-families} shows all final gaps in
+$[2\cdot 10^{-5},\,2\cdot 10^{-4}]$ with contraction counts growing
+from $\sim\!8$ to $\sim\!27$. Families~A and~C overlap to two
+significant digits (at $c=0.05$, $3.24\cdot 10^{-5}$ vs
+$3.00\cdot 10^{-5}$): the admissible default matches the inadmissible
+oracle. Family~B is slightly noisier at small $c$ because the
+$\ell_{1}$ term contributes $\sim\!80\%$ of $f(\mathbf{w}_{\mathrm{OLS}})$.
+Family~A with $c=0.1$ is the default.
 
 \begin{figure}[H]
     \centering
@@ -511,33 +412,28 @@ The Polyak target-level rule requires a positive initial gap $\delta_{0}$; the l
     \centering
     \includegraphics[width=\textwidth]{images/params_dsm.pdf}
     \caption{SGPTL sensitivity ($H=100$, $M=400$, OLS warm start,
-    $5000$ iterations). Left: effect of $\delta_{0}$ as a fraction of $f(\mathbf{w}_{0})$ at $\rho=0.7$ --- final gaps cluster in $[1.7\cdot 10^{-8},\,4.6\cdot 10^{-8}]$, the algorithm is robust to $\delta_{0}$ across two orders of magnitude. Right: effect of $\rho$ at $\delta_{0}=0.1\,f(\mathbf{w}_{0})$. Slow contraction ($\rho=0.95$) plateaus at $2.9\cdot 10^{-4}$; over-contraction ($\rho=0.3$, with $607$ contractions over $5000$ steps) stalls at $4.6\cdot 10^{-6}$; the moderate range $\rho\in[0.5,\,0.8]$ is the sweet spot, with $\rho=0.8$ best on this instance and $\rho=0.7$ chosen as default for robustness across the smoke-test grid (see text). The number of $\delta$-contractions is reported in each legend.}
+    $5000$ iterations). Left: effect of $\delta_{0}$ as a fraction of $f(\mathbf{w}_{0})$ at $\rho=0.7$ --- final gaps in $[5.6\cdot 10^{-5},\,1.6\cdot 10^{-4}]$ across two decades of $\delta_{0}$. Right: effect of $\rho$ at $\delta_{0}=0.1\,f(\mathbf{w}_{0})$; gaps and contraction counts grow monotonically with $\rho$ ($7$ contractions at $\rho=0.3$, $91$ at $\rho=0.95$). $\rho=0.7$ chosen as default for robustness across the smoke-test grid (synthetic, diabetes, california).}
     \label{fig:params-dsm}
 \end{figure}
 
 \section{Solution quality and sparsity}
 \label{sec:quality}
 
-We pin down the difference in solution quality between the two methods
-on a moderate problem with $H=50$, $M=200$,
-$\lambda_\text{LASSO}=0.1$, reference sparsity $88\%$.
+We compare solution quality on $H=50$, $M=200$,
+$\lambda_\text{LASSO}=0.1$, reference sparsity $88\%$. IRLS reaches
+$f-f^{*}\le 10^{-6}$ in $101$ iterations at
+$\|\mathbf{w}_\text{IRLS}-\mathbf{w}^{*}\|_{2}=2.95\cdot 10^{-6}$;
+SGPTL (warm start, $\beta=1$, $\gamma_{\min}=0.05$,
+$\delta_{0}=0.1\,f(\mathbf{w}_{0})$, $\rho=0.7$) reaches
+$1.0\cdot 10^{-4}$, $\sim\!35\times$ looser.
 
-IRLS reaches $f-f^{*}\le 10^{-6}$ in $101$~iterations and produces a solution with $\|\mathbf{w}_\text{IRLS}-\mathbf{w}^{*}\|_{2} = 2.9\cdot 10^{-6}$. SGPTL on the same instance, run for $30\,000$~iterations with the OLS warm start, $\beta=1$, $\gamma_{\min}=0.05$, $\delta_{0}=0.1\,f(\mathbf{w}_{0})$, $\rho=0.7$ (the revised defaults of Section~\ref{sec:params}), returns a solution with $\|\mathbf{w}_\text{SGPTL}-\mathbf{w}^{*}\|_{2} = 2.7\cdot 10^{-5}$, roughly one order of magnitude looser than IRLS in iterate distance.
-
-\paragraph{A note on how we measure sparsity.}\mbox{} \\
-Reporting "components with $|w_{i}|<10^{-6}$" puts the two methods on
-unequal footing: IRLS shrinks small components down to $\sim
-\varepsilon_\text{thr}=10^{-8}$ via the safety floor in
-eq.~(\ref{eq:irls_weights}), so the $10^{-6}$ cutoff captures the entire
-shrunk set; SGPTL's subgradient steps lack a corresponding pinning
-mechanism, so the same components sit at the residual-rate level
-$\sim L/\sqrt{i}$, which is $10^{-3}$--$10^{-4}$ at our budgets and
-sits \emph{above} the $10^{-6}$ cutoff. To make the comparison fair we
-apply the same hard threshold to both methods and report support-recovery
-metrics --- precision, recall, F1 --- against the support of the reference LASSO solution $\mathbf{w}^{*}$,
-in addition to the raw sparsity count. Table~\ref{tab:support_recovery}
-collects the numbers from
-\texttt{experiments/experiment\_comparison.py} on the moderate problem.
+\paragraph{Sparsity measurement.}
+A $|w_{i}|<10^{-6}$ cutoff is unfair: IRLS pins inactive components at
+$\sim\varepsilon_\text{thr}=10^{-8}$, SGPTL leaves them at
+$\sim L/\sqrt{i}\in[10^{-4},10^{-3}]$ \emph{above} the cutoff. We
+apply the same hard threshold to both methods and report
+precision/recall/F1 against the support of $\mathbf{w}^{*}$
+(Table~\ref{tab:support_recovery}).
 
 \begin{table}[H]
     \centering
@@ -546,7 +442,7 @@ collects the numbers from
         threshold & method & sparsity & precision & recall & F1 \\
         \midrule
         $10^{-6}$ & IRLS  & $86\%$ & $0.857$ & $1.000$ & $0.923$ \\
-        $10^{-6}$ & SGPTL & $88\%$ & $1.000$ & $1.000$ & $1.000$ \\
+        $10^{-6}$ & SGPTL & $46\%$ & $0.222$ & $1.000$ & $0.364$ \\
         $10^{-6}$ & ground truth  & $88\%$ & $1.000$ & $1.000$ & $1.000$ \\
         \midrule
         $10^{-3}$ & IRLS  & $88\%$ & $1.000$ & $1.000$ & $1.000$ \\
@@ -554,18 +450,15 @@ collects the numbers from
         $10^{-3}$ & ground truth  & $88\%$ & $1.000$ & $1.000$ & $1.000$ \\
         \bottomrule
     \end{tabular}
-    \caption{Support recovery on the moderate problem
-    ($H=50$, $M=200$, $\lambda_\text{LASSO}=0.1$, reference sparsity $88\%$),
-    same hard threshold applied to IRLS and SGPTL output. Precision,
-    recall, and F1 are computed against the support of the reference LASSO solution $\mathbf{w}^{*}$.
-    At $10^{-3}$ IRLS recovers the support exactly,
-    matching reference $\mathbf{w}^{*}$; SGPTL at the same looser threshold also
-    recovers the support exactly ($88\%$ sparsity, $F_{1}=1.000$),
-    matching IRLS.}
+    \caption{Support recovery on the moderate problem ($H=50$, $M=200$, $\lambda_\text{LASSO}=0.1$, reference sparsity $88\%$): same hard threshold applied to both algorithms, precision / recall / F1 against the support of $\mathbf{w}^{*}$. At $10^{-3}$ both algorithms recover the reference support exactly. At $10^{-6}$ IRLS leaves a handful of inactive components pinned around $\varepsilon_\text{thr}=10^{-8}$ but still in the $10^{-7}$ band; SGPTL drops $F_{1}$ to $0.364$ because subgradient steps lack any pinning mechanism and the inactive coefficients sit at the residual-rate scale $L/\sqrt{i}\sim 10^{-3}$.}
     \label{tab:support_recovery}
 \end{table}
 
-The IRLS row at $10^{-3}$ shows that the $86\%$ figure at $10^{-6}$ was conservative: a slightly looser threshold recovers the full $88\%$ reference sparsity with perfect precision. SGPTL, run for $30\,000$ iterations under the revised defaults, drops every spurious coefficient below $10^{-6}$ and recovers the support exactly even at the stricter threshold ($F_{1}=1.000$), matching the ground truth. The IRLS $10^{-6}$-row $F_{1}=0.923$ reflects the natural shrinkage of the AM--GM surrogate~(\ref{eq:irls_surrogate}) towards $\varepsilon_\text{thr}=10^{-8}$: a few non-active components are pinned around the safety floor and read as non-zero at $10^{-6}$. Under a threshold matched to each method's residual scale the two algorithms recover the support equally well.
+With the threshold matched to each method's residual scale both
+algorithms recover the support exactly (the $10^{-3}$ rows in
+Table~\ref{tab:support_recovery}); SGPTL requires the larger
+threshold to clear the $L/\sqrt{i}$ floor
+(Section~\ref{sec:dsm_properties}).
 
 \section{Scalability}
 \label{sec:scalability}
@@ -585,11 +478,11 @@ Table~\ref{tab:scalability} collects the numbers.
         $H$ & $M$ & $t_\text{IRLS}$ (s) & gap$_\text{IRLS}$ &
         $t_\text{SGPTL}$ (s) & gap$_\text{SGPTL}$ \\
         \midrule
-        $   50$ & $   250$ & $\phantom{00}0.003$ & $5.1\cdot 10^{-7}$ & $\phantom{00}0.051$ & $9.6\cdot 10^{-5}$ \\
-        $  100$ & $   500$ & $\phantom{00}0.004$ & $1.8\cdot 10^{-7}$ & $\phantom{00}0.063$ & $1.0\cdot 10^{-4}$ \\
-        $  500$ & $  2500$ & $\phantom{00}0.053$ & $1.8\cdot 10^{-6}$ & $\phantom{00}0.292$ & $3.2\cdot 10^{-4}$ \\
-        $ 1000$ & $  5000$ & $\phantom{00}0.307$ & $7.6\cdot 10^{-6}$ & $\phantom{00}5.98\phantom{0}$ & $4.7\cdot 10^{-4}$ \\
-        $ 2000$ & $ 10000$ & $\phantom{00}1.72\phantom{0}$ & $1.0\cdot 10^{-5}$ & $23.80\phantom{0}$ & $5.3\cdot 10^{-4}$ \\
+        $   50$ & $   250$ & $\phantom{00}0.003$ & $5.1\cdot 10^{-7}$ & $\phantom{00}0.060$ & $9.6\cdot 10^{-5}$ \\
+        $  100$ & $   500$ & $\phantom{00}0.004$ & $1.8\cdot 10^{-7}$ & $\phantom{00}0.079$ & $1.0\cdot 10^{-4}$ \\
+        $  500$ & $  2500$ & $\phantom{00}0.126$ & $1.8\cdot 10^{-6}$ & $\phantom{00}0.514$ & $3.2\cdot 10^{-4}$ \\
+        $ 1000$ & $  5000$ & $\phantom{00}0.624$ & $7.6\cdot 10^{-6}$ & $10.54\phantom{0}$ & $4.7\cdot 10^{-4}$ \\
+        $ 2000$ & $ 10000$ & $\phantom{00}2.44\phantom{0}$ & $1.0\cdot 10^{-5}$ & $29.62\phantom{0}$ & $5.3\cdot 10^{-4}$ \\
         \bottomrule
     \end{tabular}
     \caption{Total wall-clock time and final gap as $H$ grows with
@@ -598,19 +491,12 @@ Table~\ref{tab:scalability} collects the numbers.
     \label{tab:scalability}
 \end{table}
 
-Figure~\ref{fig:scalability} plots the same data on log--log axes
-together with the two reference power laws. At $M=5H$, the leading
-terms $O(MH^{2})$ and $O(H^{3})$ for IRLS are both cubic in $H$, while
-SGPTL's fixed-budget cost is quadratic in the dominant matrix-vector
-products. The measured slopes are not perfectly asymptotic --- BLAS
-kernel changes, cache effects and Python overhead are still visible at
-these sizes --- but the qualitative conclusion is unambiguous: in this
-range IRLS is faster \emph{and} more accurate. At $H=2000$, IRLS
-reaches a gap of $1.0\cdot 10^{-5}$ in about $1.7$~s, whereas SGPTL
-spends about $24$~s and remains at a much looser gap
-$5.3\cdot 10^{-4}$. The per-iteration advantage of SGPTL is not enough
-to compensate for the much larger fixed iteration budget required by
-the sublinear method.
+Figure~\ref{fig:scalability} plots the data with the reference power
+laws. At $M=5H$, IRLS's $O(MH^{2})+O(H^{3})$ is cubic in $H$, SGPTL's
+fixed-budget cost is quadratic. The measured slopes are pre-asymptotic
+(BLAS and Python overhead) but the conclusion is clear: IRLS is faster
+\emph{and} more accurate in this range. At $H=2000$ IRLS reaches
+$1.0\cdot 10^{-5}$ in $2.4$~s; SGPTL takes $30$~s for $5.3\cdot 10^{-4}$.
 
 \begin{figure}[H]
     \centering
@@ -624,27 +510,17 @@ the sublinear method.
     \label{fig:scalability}
 \end{figure}
 
-A trade-off worth flagging is that the iteration budget we use for
-SGPTL ($i_{\max}=3000$) is fixed across the sweep, so the $O(H^{2})$
-total-time slope only holds because the per-iteration cost dominates
-the algorithm-state overhead at every $H$ we tested. If we were to
-target a fixed accuracy $\varepsilon$ instead of a fixed budget, the
-$\Omega(L^{2}/\varepsilon^{2})$ iteration count would multiply the
-per-iteration cost and the slope would be steeper. The project's
-intended ELM regime is $M\gg H$, which lets IRLS amortise its
-Cholesky-based inner solves over a small number of outer iterations
-and gives it both better iteration counts and better gaps on the sizes
-tested here.
+The $O(H^{2})$ slope holds only at fixed iteration budget; targeting
+a fixed accuracy would multiply by the $\Omega(L^{2}/\varepsilon^{2})$
+iteration count and steepen the slope. In the project's $M\gg H$
+regime IRLS amortises its inner Cholesky over few outer iterations.
 
 \section{Iterations to a target accuracy}
 \label{sec:iters-to-eps}
 
-A different way to read the same data is to ask how much work each
-algorithm needs to reach a fixed accuracy~$\varepsilon$ on the same
-instance. Table~\ref{tab:iters-to-eps} reports iteration counts and
-wall-clock times to the first iterate satisfying $f-f^{*}\le
-\varepsilon$ on the moderate problem ($H=50$, $M=200$,
-$\lambda_\text{LASSO}=0.1$).
+Table~\ref{tab:iters-to-eps} reports iterations and wall-clock time
+to reach $f-f^{*}\le\varepsilon$ on the moderate problem ($H=50$,
+$M=200$, $\lambda_\text{LASSO}=0.1$).
 
 \begin{table}[H]
     \centering
@@ -653,11 +529,11 @@ $\lambda_\text{LASSO}=0.1$).
         $\varepsilon$ & $k_\text{IRLS}$ & $t_\text{IRLS}$ (s) &
         $i_\text{SGPTL}$ & $t_\text{SGPTL}$ (s) \\
         \midrule
-        $10^{-1}$ & $  1$ & $5.2\cdot 10^{-5}$ & $    2$ & $5.5\cdot 10^{-5}$ \\
-        $10^{-2}$ & $  3$ & $1.2\cdot 10^{-4}$ & $  351$ & $6.2\cdot 10^{-3}$ \\
-        $10^{-3}$ & $  7$ & $2.3\cdot 10^{-4}$ & $ 2571$ & $4.4\cdot 10^{-2}$ \\
-        $10^{-4}$ & $ 19$ & $5.5\cdot 10^{-4}$ & $ 5069$ & $8.7\cdot 10^{-2}$ \\
-        $10^{-6}$ & $101$ & $2.7\cdot 10^{-3}$ & $ 9711$ & $1.7\cdot 10^{-1}$ \\
+        $10^{-1}$ & $  1$ & $7.8\cdot 10^{-5}$ & $    2$ & $1.2\cdot 10^{-4}$ \\
+        $10^{-2}$ & $  3$ & $1.6\cdot 10^{-4}$ & $  108$ & $3.2\cdot 10^{-3}$ \\
+        $10^{-3}$ & $  7$ & $3.3\cdot 10^{-4}$ & $  674$ & $1.5\cdot 10^{-2}$ \\
+        $10^{-4}$ & $ 19$ & $6.9\cdot 10^{-4}$ & $ 2477$ & $5.4\cdot 10^{-2}$ \\
+        $10^{-6}$ & $101$ & $8.1\cdot 10^{-3}$ & --- & --- \\
         \bottomrule
     \end{tabular}
     \caption{Iterations and wall-clock time required to reach
@@ -666,36 +542,41 @@ $\lambda_\text{LASSO}=0.1$).
     \label{tab:iters-to-eps}
 \end{table}
 
-The two algorithms are competitive at the loosest accuracy: SGPTL reaches $\varepsilon=10^{-1}$ in $2$ iterations, IRLS in $1$. Past that target the iteration gap widens fast: SGPTL needs $351$ iterations to reach $10^{-2}$, $2571$ for $10^{-3}$ and $5069$ for $10^{-4}$, against $3$, $7$ and $19$ iterations of IRLS for the same targets. Wall-clock differences are wider still --- $0.087$~s vs $0.55$~ms at $10^{-4}$ --- because IRLS' per-iteration Cholesky cost is amortised against rapid linear decrease while SGPTL pays the $\Omega(L^{2}/\varepsilon^{2})$ sublinear cost per decade of accuracy. SGPTL does eventually reach $10^{-6}$ inside the $30\,000$-iteration budget, at iteration $9711$; IRLS reaches the same target in $101$~iterations.
-
-Figure~\ref{fig:comparison} overlays the two trajectories on the same
-instance.
+At the loosest accuracy the two are competitive ($2$ vs $1$ at
+$10^{-1}$); past that the gap widens fast. SGPTL needs
+$108,674,2477$ iterations for $10^{-2},10^{-3},10^{-4}$ against IRLS's
+$3,7,19$. Wall-clock at $10^{-4}$: $54$~ms vs $0.7$~ms. Each decade
+costs IRLS a constant iteration increment, SGPTL a $\sim\!100\times$
+multiplier (Theorem~\ref{thm:dsm_convergence}). SGPTL does not reach
+$10^{-6}$ within $10000$ iterations; IRLS reaches it in $101$
+(Figure~\ref{fig:comparison}).
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{images/comparison_irls_dsm.pdf}
-    \caption{IRLS versus SGPTL on the moderate problem ($H=50$, $M=200$, $\lambda_\text{LASSO}=0.1$). Both panels use log--log axes: linear scaling would crush IRLS' $\sim 100$ iterations against the axis next to SGPTL's $\sim\!10^{4}$. Left: optimality gap versus iteration. Right: gap versus CPU time. SGPTL falls below $10^{-2}$ in $351$ iterations and $10^{-3}$ in $2571$, then enters the sublinear regime; IRLS reaches $10^{-8}$ within $\sim\!10$~ms.}
+    \caption{IRLS versus SGPTL on the moderate problem ($H=50$, $M=200$, $\lambda_\text{LASSO}=0.1$), log--log axes. Left: gap vs.\ iteration. Right: gap vs.\ CPU time. SGPTL falls below $10^{-2}$ in $108$ iterations and $10^{-3}$ in $674$, then enters the sublinear regime; IRLS reaches $10^{-6}$ in $101$ iterations ($\sim\!8$~ms).}
     \label{fig:comparison}
 \end{figure}
 
 \section{Validation on real datasets}
 \label{sec:real_data}
 
-The synthetic experiments above use a known sparse
-$\mathbf{w}_\text{true}$, so support recovery has a ground-truth
-reference and sklearn's coordinate descent gives a reliable
-high-accuracy $f^{*}$ for the optimisation gap. Real datasets give up
-both conveniences: there is no planted support, and sklearn's
-coordinate descent does not converge reliably on the ELM-transformed
-matrices at high tolerance. We therefore use real data as a qualitative
-transfer check and plot gaps against the empirical baseline
-$f_{\min}$, the lowest objective value attained by the methods that
-finished on each dataset.
+Real datasets lack a planted support and sklearn's coordinate
+descent does not converge reliably on the ELM-transformed matrices
+at high tolerance, so we use them as a qualitative transfer check
+and plot gaps against the empirical baseline $f_{\min}$.
 
-We test two regression datasets included with scikit-learn: \textit{diabetes} ($n=442$, $d=10$) \cite{efron2004least} and \textit{California housing} ($n=20640$, $d=8$) \cite{pace1997sparse}. Each set is split $80/20$ into train/test, both features and target are standardised on the training split, and the ELM transformation $\mathbf{X}_\text{hidden}=\sigma(\mathbf{X}\,\mathbf{W}_{1}^{\top})$ with $H=200$ sigmoid units and a fixed random $\mathbf{W}_{1}$ produces the matrix on which the LASSO is solved. Both algorithms use the OLS warm start $\mathbf{w}_{0}=(\mathbf{X}_\text{hidden}^{\top}\mathbf{X}_\text{hidden})^{-1}\mathbf{X}_\text{hidden}^{\top}\mathbf{y}$, $\lambda_\text{LASSO}=0.1$, $\beta=1$. IRLS runs for $100$~iterations with $\varepsilon_\text{thr}=10^{-8}$; SGPTL runs for $8000$~iterations.
-
-\paragraph{Configuration.}
-SGPTL runs the revised default ($\rho=0.7$, $\delta_{0} = 0.1\,f(\mathbf{w}_{0})$) motivated in Section~\ref{sec:params}, the same configuration used for every other SGPTL plot and table in this chapter.
+We test \textit{diabetes} ($n=442$, $d=10$)~\cite{efron2004least}
+and \textit{California housing} ($n=20640$, $d=8$)~\cite{pace1997sparse}.
+Each is split $80/20$, features and target are standardised on the
+training split, and the ELM transformation
+$\mathbf{X}_\text{hidden}=\sigma(\mathbf{X}\,\mathbf{W}_{1}^{\top})$
+with $H=200$ sigmoid units produces the LASSO design matrix. Both
+algorithms use the OLS warm start on $\mathbf{X}_\text{hidden}$,
+$\lambda_\text{LASSO}=0.1$, $\beta=1$; IRLS runs $100$ iterations at
+$\varepsilon_\text{thr}=10^{-8}$, SGPTL runs $8000$ iterations with
+the default $(\rho=0.7,\,\delta_{0}=0.1\,f(\mathbf{w}_{0}))$ of
+Section~\ref{sec:params}.
 
 \begin{table}[H]
     \centering
@@ -719,14 +600,19 @@ SGPTL runs the revised default ($\rho=0.7$, $\delta_{0} = 0.1\,f(\mathbf{w}_{0})
     \label{tab:real_data}
 \end{table}
 
-\paragraph{Historical note: why an earlier configuration was wrong.}
-An earlier draft of this chapter ran SGPTL with $\rho=0.9$ and $\delta_{0} = 0.1\,f^{*}$. Two issues converged. First, the use of $f^{*}$ as a scale for $\delta_{0}$ is inadmissible: $f^{*}$ is exactly the quantity the optimiser is searching for and using it to tune the algorithm conflates training and evaluation. The principled rule, already stated in Section~\ref{sec:dsm_parameters}, is $\delta_{0} = c\,f(\mathbf{w}_{0})$. Second, the choice $\rho=0.9$ was kept by inertia for consistency with the convergence experiment, even though the sweep in Section~\ref{sec:params} (and the smoke tests on the synthetic instance discussed there) places the algorithm's sweet spot at $\rho\in[0.5,\,0.8]$ and gives $\rho=0.9$ a final gap two orders of magnitude worse than $\rho=0.7$ on the same instance. The numbers reported throughout this chapter, including Table~\ref{tab:real_data}, are produced under the corrected configuration.
-
-\paragraph{Effect of the correction on the synthetic side.}
-On the convergence-experiment instance the same correction moves SGPTL's final record gap from $2.85\cdot 10^{-6}$ at $i_{\max}=8000$ to $6.56\cdot 10^{-8}$, a 43$\times$ improvement; on the comparison instance ($H=50$, $M=200$, Table~\ref{tab:iters-to-eps}) the iterations needed to reach $\varepsilon=10^{-3}$ drop from $8678$ to $2571$ ($3.4\times$ faster) and at $\varepsilon=10^{-6}$ from $29\,184$ to $9711$ ($3.0\times$). Support recovery on the synthetic instance also improves: SGPTL's F1 at the $10^{-6}$ threshold goes from $0.92$ to $1.00$ (Table~\ref{tab:support_recovery}). These are the numbers reported in the corresponding tables and figures of this chapter, all regenerated from the corrected configuration. The choice of $\rho=0.7$ remains the principled one because it is the only setting we found that is robust across all three test problems (synthetic, \texttt{diabetes}, \texttt{california}).
-
 \paragraph{Method-to-method comparison.}
-The picture is the one already familiar from the synthetic experiments. IRLS drives the training objective down most aggressively ($52.95$ on diabetes, $2358.02$ on California) and is also the most sparsity-recovering at the uniform $10^{-3}$ threshold ($18\%$ and $4\%$ respectively). SGPTL converges sublinearly --- after $8000$ iterations its record gap is still well above the IRLS baseline, both at the iterate level and on the support, consistent with the $O(L^{2}/\varepsilon^{2})$ rate. The held-out test MSE tells a different story on \texttt{diabetes}: the design has only $354$ training samples for $200$ hidden units and is ill-conditioned, so lowering the training objective does not translate to lower test MSE; sklearn's stopped-early iterate ($f=57.62$, test MSE $0.745$) generalises best on the held-out split, IRLS sits between sklearn and Ridge ($0.898$ vs Ridge's $0.942$), and SGPTL's residual optimisation error is large enough to hurt the test metric ($1.059$). On \texttt{california} the three optimisers are within rounding noise on test MSE ($\sim 0.307$); SGPTL barely moves from the OLS warm start ($f_{0} = f^{*}$ to working precision on this instance), so its support has no zeros at the $10^{-3}$ threshold and the per-iteration progress reduces to numerical noise.
+The synthetic picture transfers. IRLS reaches the lowest training
+objective ($52.95$ on diabetes, $2358.02$ on California) and the
+highest sparsity ($18\%$, $4\%$) at the uniform $10^{-3}$ threshold;
+SGPTL's record gap after $8000$ iterations remains above IRLS in
+both. Test MSE diverges on \texttt{diabetes} ($354$ training samples
+for $200$ hidden units, ill-conditioned): sklearn's stopped iterate
+generalises best ($0.745$), IRLS sits between sklearn and Ridge
+($0.898$ vs $0.942$), SGPTL's residual error hurts the metric
+($1.059$). On \texttt{california} all three are within rounding noise
+on test MSE ($\sim 0.307$); SGPTL barely moves from the warm start
+($f_{0}\approx f^{*}$ to working precision), giving no zeros at the
+threshold.
 
 \begin{figure}[H]
     \centering

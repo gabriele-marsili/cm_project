@@ -6,8 +6,7 @@ from sklearn.datasets import load_diabetes, fetch_california_housing
 from sklearn.preprocessing import StandardScaler
 
 
-# sklearn minimises (1/(2M))||Xw-y||^2 + a||w||_1, our objective is
-# (1/2)||Xw-y||^2 + lam ||w||_1, so we pass alpha = lam / M.
+# sklearn uses (1/(2M))||Xw-y||^2 + a||w||_1; pass alpha = lam / m to match ours.
 
 def make_lasso_problem(n=100, m=200, sparsity=0.1, noise_std=0.1,
                        lam=0.1, random_state=42):
@@ -18,7 +17,6 @@ def make_lasso_problem(n=100, m=200, sparsity=0.1, noise_std=0.1,
     active = rng.choice(n, size=n_active, replace=False)
     w_true[active] = rng.randn(n_active)
 
-    # column-normalised Gaussian design -> X^T X is well-conditioned w.h.p.
     X_raw = rng.randn(m, n)
     X = X_raw / (np.linalg.norm(X_raw, axis=0, keepdims=True) + 1e-12)
 

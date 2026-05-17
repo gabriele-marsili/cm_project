@@ -11,12 +11,11 @@ def irls(X, y, lam, eps_thr=1e-8, eps_stop=1e-8, k_max=200,
          solver='cholesky', w0=None, f_star=None, verbose=False):
     _, H = X.shape
 
-    # A, b are constant across iterations -- only the diagonal of Q changes.
     A = X.T @ X
     b = X.T @ y
 
     if w0 is None:
-        # OLS as warm start; tiny ridge keeps A invertible if X^T X is rank-deficient.
+        # OLS warm start; tiny ridge guards against rank-deficient X^T X.
         try:
             w = solve_spd(A + 1e-12 * np.eye(H), b, method=solver)
         except Exception:

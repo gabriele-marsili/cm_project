@@ -351,31 +351,6 @@
       \field{title}{(Convex) Nondifferentiable optimization is hard(er)}
       \field{year}{2026}
     \endentry
-    \entry{frangioni-slides-opt-nonsmooth}{misc}{}{}
-      \name{author}{1}{}{%
-        {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
-           family={Frangioni},
-           familyi={F\bibinitperiod},
-           given={Antonio},
-           giveni={A\bibinitperiod}}}%
-      }
-      \strng{namehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{fullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{bibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorbibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
-      \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{2}
-      \field{sortinit}{F}
-      \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{note}{Course slides, University of Pisa}
-      \field{title}{Computational Mathematics for Learning and Data Analysis --- Optimization, Set 5: Nonsmooth Unconstrained Optimization}
-      \field{year}{2024}
-    \endentry
     \entry{convex-functions-frangioni}{misc}{}{}
       \name{author}{1}{}{%
         {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
@@ -392,7 +367,7 @@
       \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{3}
+      \field{extraname}{2}
       \field{sortinit}{F}
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
@@ -418,7 +393,7 @@
       \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{4}
+      \field{extraname}{3}
       \field{sortinit}{F}
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
@@ -444,7 +419,7 @@
       \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{5}
+      \field{extraname}{4}
       \field{sortinit}{F}
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
@@ -470,7 +445,7 @@
       \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{6}
+      \field{extraname}{5}
       \field{sortinit}{F}
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
@@ -496,7 +471,7 @@
       \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{7}
+      \field{extraname}{6}
       \field{sortinit}{F}
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
@@ -522,7 +497,7 @@
       \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{8}
+      \field{extraname}{7}
       \field{sortinit}{F}
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
@@ -548,7 +523,7 @@
       \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{9}
+      \field{extraname}{8}
       \field{sortinit}{F}
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
@@ -574,7 +549,7 @@
       \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{10}
+      \field{extraname}{9}
       \field{sortinit}{F}
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
@@ -600,7 +575,7 @@
       \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{11}
+      \field{extraname}{10}
       \field{sortinit}{F}
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
@@ -626,7 +601,7 @@
       \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{12}
+      \field{extraname}{11}
       \field{sortinit}{F}
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}
@@ -652,7 +627,7 @@
       \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
       \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
-      \field{extraname}{13}
+      \field{extraname}{12}
       \field{sortinit}{F}
       \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
       \field{labelnamesource}{author}

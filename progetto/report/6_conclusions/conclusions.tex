@@ -7,60 +7,61 @@ We solved the ELM LASSO problem
     f(\mathbf{w}) = \tfrac{1}{2}\,\|\mathbf{X}\mathbf{w}-\mathbf{y}\|_{2}^{2}
     + \lambda_\text{LASSO}\,\|\mathbf{w}\|_{1}
 \end{equation*}
-with two algorithms whose convergence properties sit at opposite ends
-of the nonsmooth-optimisation spectrum. IRLS reformulates the
-non-differentiable $\ell_{1}$ penalty as a sequence of smooth quadratic
-surrogates and inherits the linear rate of the MM framework; SGPTL
-keeps the non-smoothness explicit and pays for it with the
-$\Omega(L^{2}/\varepsilon^{2})$ lower bound that limits any first-order
-method on convex non-differentiable functions.
+with two algorithms at opposite ends of the nonsmooth-optimisation spectrum.
+IRLS reformulates the $\ell_1$ penalty as a sequence of smooth quadratic
+surrogates and inherits the MM linear rate; SGPTL keeps the non-smoothness
+explicit and pays the $\Omega(L^{2}/\varepsilon^{2})$ first-order lower bound.
 
 \paragraph{What the experiments confirmed.}
-On synthetic ELM-style instances the empirical behaviour tracks the
-theory of Chapter~\ref{chap:comparison} closely. IRLS produced a
-straight line on semilog gap-versus-iteration plots, monotone
-non-increasing $f$ at every seed we tried, and a sparse iterate at
-convergence with the support recovered to within two percentage points
-of the ground truth. SGPTL produced an oscillating
-$f(\mathbf{w}_{i})$ stabilised by a monotone record value
-$\bar{f}^{i}$, a sublinear gap curve that flattens as the iterations
-accumulate, and an iterate with zero exact zeros, in line with the
-absence of any explicit thresholding mechanism. The $O(MH^{2})$
-pre-computation cost of IRLS was visible on the scalability plot as a
-clean cubic slope at $M=5H$, and the work required by each method to reach the same gap on the
-convergence instance ($1.5\cdot 10^{-6}$ for IRLS at iteration $100$ versus $4.8\cdot 10^{-5}$ for SGPTL at iteration $8000$ --- an iteration multiplier of $80\times$ for a comparable order of magnitude) lines up with
-the $O(\log\varepsilon^{-1})$ versus $O(\varepsilon^{-2})$ comparison.
-On the moderate problem of Section~\ref{sec:iters-to-eps} IRLS reached $\varepsilon=10^{-2}$ in $3$~iterations against SGPTL's $141$, and $10^{-3}$ in $7$ against $978$; SGPTL reached $\varepsilon=10^{-4}$ at iteration $2584$ but did not reach $10^{-6}$ within the $30\,000$-iteration budget, against IRLS' $101$ to that target. This illustrates how quickly the rate gap dominates as the accuracy target tightens, exactly the $O(\log\varepsilon^{-1})$ vs $O(\varepsilon^{-2})$ separation predicted by the theory.
+Empirical behaviour tracked the theory of Chapter~\ref{chap:comparison}. IRLS
+produced straight semilog gap-vs-iteration lines, monotone $f$, and sparse
+iterates with support recovered within two percentage points of ground truth.
+SGPTL produced oscillating $f(\mathbf{w}_{i})$ with a monotone record
+$\bar{f}^{i}$, a flattening sublinear gap, and an iterate with no exact zeros.
+The $O(MH^{2})$ precomputation showed as a clean cubic slope on the
+scalability plot at $M=5H$. On the convergence instance, IRLS reached gap
+$1.5\cdot 10^{-6}$ in $100$ iterations versus $4.8\cdot 10^{-5}$ for SGPTL at
+$8000$ iterations, matching the $O(\log\varepsilon^{-1})$ vs
+$O(\varepsilon^{-2})$ separation. On the moderate problem of
+Section~\ref{sec:iters-to-eps}, IRLS hit $\varepsilon=10^{-2}$ in $3$
+iterations against $141$ for SGPTL, and $10^{-3}$ in $7$ against $978$; SGPTL
+reached $10^{-4}$ at iteration $2584$ and never reached $10^{-6}$ within the
+$30\,000$-iteration budget, against $101$ for IRLS.
 
 \paragraph{Where the theoretical bounds proved conservative.}
-A few observations did not have a clean theoretical counterpart in the
-report and are worth recording. The IRLS final gap saturated around
-$10^{-10}$ for $\varepsilon_\text{thr}=10^{-12}$, but pushing
-$\varepsilon_\text{thr}$ further did not improve the gap further: the
-linear solver hits floating-point limits before the safety mechanism
-does, so the ``smaller $\varepsilon_\text{thr}$ is always sharper''
-intuition has a hard floor. The SGPTL contraction factor $\rho$ proved highly influential: across $\rho\in[0.3,0.95]$ the final record gap spans about two orders of magnitude (from $\sim\!2\cdot 10^{-5}$ at $\rho=0.3$--$0.5$ to $8\cdot 10^{-4}$ at $\rho=0.95$, see Section~\ref{sec:params}). The aggressive--to--moderate range $[0.3,\,0.7]$ is the empirical sweet spot, with $\rho=0.7$ adopted as the default across the comparison, scalability and real-data runs for its robustness across the smoke-test grid. The initial gap estimate $\delta_{0}$ was less sensitive: across all values in $\{0.01,\,0.05,\,0.1,\,0.5,\,1.0\}\,f(\mathbf{w}_{0})$ the final record gap stayed in the band $[2\cdot 10^{-5},\,2\cdot 10^{-4}]$, i.e.\ within a single order of magnitude (Section~\ref{sec:params}, ``three families''). The diagnostic comparison against the inadmissible oracle $\delta_{0}=0.1\,f^{*}$ confirmed that the $f^{*}$-free recipe $\delta_{0}=c\,f(\mathbf{w}_{0})$ is indistinguishable from the oracle on this instance, which is the central methodological point we wanted to verify.
-Finally, an implementation lesson worth recording. The first submission of this project carried two non-theoretical safeguards on top of Algorithm~\ref{alg:dsm} (an iteration-count $\delta$-contraction trigger and an overshoot rescue snapping $\mathbf{w}$ back to $\mathbf{w}_{\mathrm{best}}$) plus a default travel-distance threshold $R = 10\sqrt{i_{\max}}$ that was orders of magnitude larger than any realistic accumulated travel. The combination looked numerically effective but flagged with the instructor as inconsistent with the theory of \cite[Lemma~3.8]{dantonio2009deflected}: every $\delta$-contraction has to be preceded by at least $R$ of travel via the $r_k > R$ trigger, and the iteration-count fallback violates that link. The fix that landed in this submission turned out to be conceptually simpler than the first construction: remove both safeguards and reduce $R$ to a small absolute value ($R = 1$, comparable to the natural per-iteration step length on ELM~LASSO). With that single calibration, the theory-pure $r_k > R$ branch fires repeatedly along the run, $\delta$ contracts at the rate the theory wants, and the algorithm converges sublinearly in line with Theorem~\ref{thm:dsm_convergence}. The cost relative to the first-submission numbers is moderate ($\bar f^{i} - f^{*} \sim 10^{-5}$ at $8\,000$ iterations rather than $\sim 10^{-8}$ with the workarounds), and is the honest baseline of the algorithm. The OLS warm start is shared with IRLS so the two methods minimise the same problem from the same point; Section~\ref{sec:warm_cold} of Chapter~\ref{chap:comparison} documents the (minor) warm-vs-cold sensitivity.
+A few observations have no clean theoretical counterpart. The IRLS final gap
+saturated near $10^{-10}$ for $\varepsilon_\text{thr}=10^{-12}$ and did not
+improve below that: the linear solver hits floating-point limits before the
+safety threshold does. The SGPTL contraction $\rho$ proved highly influential:
+across $\rho\in[0.3,0.95]$ the final record gap spans two orders of magnitude
+(from $\sim\!2\cdot 10^{-5}$ at $\rho\in[0.3,0.5]$ to $8\cdot 10^{-4}$ at
+$\rho=0.95$, Section~\ref{sec:params}); $\rho=0.7$ is the default for
+robustness across the smoke grid. The initial estimate $\delta_{0}$ was less
+sensitive: across $\{0.01,0.05,0.1,0.5,1.0\}\,f(\mathbf{w}_{0})$ the final gap
+stayed in $[2\cdot 10^{-5},2\cdot 10^{-4}]$. The diagnostic comparison against
+the inadmissible oracle $\delta_{0}=0.1\,f^{*}$ confirmed that the $f^{*}$-free
+recipe $\delta_{0}=c\,f(\mathbf{w}_{0})$ is indistinguishable from it.
+
+\paragraph{Implementation lesson.}
+The first submission combined two non-theoretical safeguards (an
+iteration-count $\delta$-contraction trigger and an overshoot rescue) with
+a default $R=10\sqrt{i_{\max}}$, flagged by the instructor as inconsistent
+with \cite[Lemma~3.8]{dantonio2009deflected}. The fix in this submission
+removes both safeguards and sets $R=1$ (the natural per-iteration step on
+ELM~LASSO); the theory-pure $r_k > R$ branch then fires repeatedly and SGPTL
+converges sublinearly in line with Theorem~\ref{thm:dsm_convergence}. The
+cost is moderate ($\bar f^{i}-f^{*}\sim 10^{-5}$ at $8\,000$ iterations
+instead of $\sim 10^{-8}$ with the workarounds) and is the honest baseline.
 
 \paragraph{Recommendation for the ELM LASSO problem.}
-On the project's intended regime, $M\gg H$ with $\mathbf{W}_{1}$ fixed
-random and the output layer trained offline once, IRLS is the recommended
-choice. It has a single numerical knob ($\varepsilon_\text{thr}$),
-delivers sparse iterates without post-processing, and reaches
-machine-precision accuracy in tens to a few hundred iterations on every
-problem size we tested. SGPTL becomes competitive only when $H^{2}\gg
-M$, i.e. when the hidden layer is wide and the training set is small
-enough that the $O(MH^{2})$ pre-computation cost of IRLS no longer
-amortises, or when the dense $H\times H$ matrix
-$\mathbf{X}^{\top}\mathbf{X}$ does not fit in memory. Neither regime
-appeared in the tested project setting; the moderate hidden-layer sizes
-accessible on a laptop ($H\le 2000$) all remained on the IRLS side in
-both wall-clock time and final gap. SGPTL retains value as a sanity check (a different algorithm
-converging to the same $f^{*}$ within the achievable accuracy is a
-useful indication that the implementation is correct) and as a
-baseline to quantify what we gain from exploiting the structure of the
-LASSO problem through the MM smoothing rather than treating it as a
-generic non-smooth convex programme.
+On the intended regime, $M\gg H$ with $\mathbf{W}_{1}$ fixed and the output
+layer trained offline, IRLS is the recommended choice: a single knob
+$\varepsilon_\text{thr}$, sparse iterates without post-processing,
+machine-precision accuracy in tens to a few hundred iterations. SGPTL becomes
+competitive only when $H^{2}\gg M$ or when $\mathbf{X}^{\top}\mathbf{X}$ does
+not fit in memory --- neither regime appeared at the hidden-layer sizes
+tested ($H\le 2000$). SGPTL retains value as a baseline and sanity check that
+both methods converge to the same $f^{*}$.
 
 \paragraph{Limitations and possible extensions.}
 The synthetic study is the primary evidence base because it is the

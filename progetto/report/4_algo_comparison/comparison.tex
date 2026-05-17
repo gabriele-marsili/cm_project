@@ -8,75 +8,53 @@ Both IRLS (Chapter~\ref{chap:irls}) and the Deflected Subgradient Method
     = \frac{1}{2}\|\mathbf{X}\mathbf{w} - \mathbf{y}\|_2^2 + \lambda_{\text{LASSO}}\|\mathbf{w}\|_1,
     \label{eq:comp_objective}
 \end{equation}
-yet they differ fundamentally in \emph{how} they handle the non-smoothness of the
-$\ell_1$ penalty and in the trade-offs that result.
-This chapter compares the two methods along the following dimensions:
-mathematical strategy, convergence behaviour, computational cost, solution quality,
-and suitability for the ELM setting.
+but handle the non-smoothness of the $\ell_1$ penalty in opposite ways.
 
 % ------------------------------------------------------------------
 \section{Core strategy: how each algorithm handles non-smoothness}
 \label{sec:comp_strategy}
 
-The root difficulty in~\eqref{eq:comp_objective} is the $\ell_1$ term: it is convex but
-non-differentiable wherever any $w_i = 0$, so classical gradient methods cannot be applied
-directly. The two algorithms adopt opposite philosophies.
-
 \paragraph{IRLS — smoothing via majorization.}\mbox{} \\
-At each iteration IRLS replaces $f$ with a smooth quadratic surrogate $Q(\mathbf{w},\mathbf{w}_k)$
-that majorises $f$ and coincides with it at $\mathbf{w}_k$ (Section~\ref{sec:irls_mm}).
-Minimising the surrogate reduces to a weighted ridge regression problem with a closed-form
-solution via the normal equations (Section~\ref{sec:irls_subproblem}).
-The non-smooth $\ell_1$ penalty never appears explicitly: it is absorbed into diagonal
-weights $(\mathbf{W}_k)_{ii}$ that grow large wherever $|w_{k,i}|$ is small, pushing those
-components toward zero (Section~\ref{sec:irls_idea}).
+IRLS replaces $f$ with a smooth quadratic majorant $Q(\mathbf{w},\mathbf{w}_k)$
+tight at $\mathbf{w}_k$ (Section~\ref{sec:irls_mm}), reducing each step to a
+weighted ridge problem solved in closed form via the normal equations
+(Section~\ref{sec:irls_subproblem}). The $\ell_1$ penalty is absorbed into
+diagonal weights $(\mathbf{W}_k)_{ii}$ that blow up where $|w_{k,i}|$ is small,
+driving those components to zero (Section~\ref{sec:irls_idea}).
 
 \paragraph{DSM — direct subgradient with memory.}\mbox{} \\
-DSM confronts the non-smoothness head-on by descending along a subgradient
-$\mathbf{g} \in \partial f(\mathbf{w}_i)$ at every step (Section~\ref{sec:dsm_subgrad}).
-To suppress the zig-zag oscillations of the plain subgradient method
-(Section~\ref{sec:dsm_motivation}), the direction is \emph{deflected}---blended with the
-previous iterate direction (Section~\ref{sec:dsm_deflection})---and the step length follows
-a Polyak rule with a self-adapting target-level estimate of $f^*$
-(Section~\ref{sec:dsm_target_level}).
+DSM descends along a subgradient $\mathbf{g} \in \partial f(\mathbf{w}_i)$
+(Section~\ref{sec:dsm_subgrad}), deflected with the previous direction
+(Section~\ref{sec:dsm_deflection}) to damp zig-zag, with a Polyak step using
+a self-adapting target estimate of $f^*$ (Section~\ref{sec:dsm_target_level}).
 
-In short: IRLS converts the non-smooth problem into a sequence of smooth ones and solves each \emph{exactly} via a linear system, which is what buys it a monotone decrease of $f$ at every iteration. DSM never smooths $f$; it leans on the classical subgradient-method convergence theory, pays for it by accepting that $f(\mathbf{w}_i)$ may increase along the way, and keeps track of progress only through the record value $\bar{f}^{\,i}$.
+IRLS solves a sequence of smooth problems \emph{exactly} and is monotone in $f$;
+DSM operates on $f$ directly, accepts $f(\mathbf{w}_i)$ may increase, and tracks
+progress via the record value $\bar{f}^{\,i}$.
 
 % ------------------------------------------------------------------
 \section{Convergence behaviour}
 \label{sec:comp_convergence}
 
-The convergence properties of the two algorithms differ in both \emph{rate} and
-\emph{monotonicity}.
-
 \subsection{Monotonicity}
 
-The MM framework guarantees that IRLS is \textbf{monotone}:
-$f(\mathbf{w}_{k+1}) \leq f(\mathbf{w}_k)$ at every iteration
-(Section~\ref{sec:irls_mm}), so a non-decreasing plot of $f(\mathbf{w}_k)$
-immediately signals a bug and a simple iterate-change criterion reliably detects convergence.
-DSM is intrinsically \textbf{non-monotone}: individual function values oscillate, and only the record value
-$\bar{f}^{\,i} = \min_{h \leq i} f(\mathbf{w}_h)$ converges monotonically.
-As a practical consequence, DSM must return $\mathbf{w}_{\mathrm{best}}$ rather than
-the last iterate, and a fixed iteration budget is the only reliable stopping criterion.
+MM guarantees IRLS is \textbf{monotone}: $f(\mathbf{w}_{k+1}) \leq f(\mathbf{w}_k)$
+(Section~\ref{sec:irls_mm}); a non-decreasing plot signals a bug, and an
+iterate-change criterion reliably stops the algorithm. DSM is
+\textbf{non-monotone}: only the record $\bar{f}^{\,i} = \min_{h \leq i} f(\mathbf{w}_h)$
+is monotone, so DSM returns $\mathbf{w}_{\mathrm{best}}$ and stops on a fixed budget.
 
 \subsection{Rate}
 
-The two methods occupy different positions in the complexity hierarchy for nonsmooth
-convex optimisation (Section~\ref{sec:dsm_motivation}).
-IRLS achieves a \textbf{linear (geometric)} rate (Section~\ref{sec:irls_convergence}):
-$f(\mathbf{w}_k) - f^*$ decreases by a constant factor each iteration.
-DSM achieves the information-theoretically optimal \textbf{sublinear} rate
-$O(1/\varepsilon^2)$ for nonsmooth convex functions
-(Theorem~\ref{thm:dsm_convergence}), so $\bar{f}^{\,i} - f^*$ flattens
-progressively on the same scale.
-The key quantitative consequence is that improving the target accuracy by one
-decade requires roughly $100\times$ more DSM iterations, whereas IRLS needs only
-a constant number of additional steps.
+IRLS achieves a \textbf{linear} rate (Section~\ref{sec:irls_convergence}); DSM
+achieves the optimal \textbf{sublinear} $O(1/\varepsilon^2)$ rate for
+nonsmooth convex functions (Theorem~\ref{thm:dsm_convergence}). Tightening
+$\varepsilon$ by one decade costs $\sim 100\times$ more DSM iterations versus
+a constant for IRLS.
 
 \subsection{Convergence on the ELM problem}
 
-For the ELM LASSO problem $\mathbf{X} = \sigma(\mathbf{X}_{\text{origin}}\mathbf{W}_1^T)$ is assumed to have full column rank (the standard ELM condition when $M \ge H$ and $\mathbf{W}_1$ is random with a nonlinear $\sigma$), so $f$ is strictly (in fact $\mu$-strongly) convex and admits a unique minimizer $\mathbf{w}^*$. The two algorithms relate to $\mathbf{w}^*$ in different ways: the IRLS iterates $\mathbf{w}_k$ converge to $\mathbf{w}^*$ themselves (Theorem~\ref{thm:irls_convergence}), at a linear rate governed by the condition number of the weighted normal-equation matrices; for SGPTL, instead, Theorem~\ref{thm:dsm_convergence} only guarantees that the \emph{record values} satisfy $\bar{f}_i \to f^*$, while the iterates $\mathbf{w}_i$ may oscillate by design and need not converge. Strong convexity of $f$ would in principle allow the worst-case complexity to improve from $O(L^2/\varepsilon^2)$ to $O(L^2/(\mu\varepsilon))$ \cite{strongly-convex-frangioni}, but our SGPTL does not exploit this structure (see Section~\ref{sec:dsm_convergence}).
+For the ELM problem $\mathbf{X} = \sigma(\mathbf{X}_{\text{origin}}\mathbf{W}_1^T)$ has full column rank (standard ELM condition when $M \ge H$ with random $\mathbf{W}_1$ and nonlinear $\sigma$), so $f$ is $\mu$-strongly convex with unique minimizer $\mathbf{w}^*$. IRLS iterates $\mathbf{w}_k \to \mathbf{w}^*$ at a linear rate governed by the weighted normal-equation conditioning (Theorem~\ref{thm:irls_convergence}); Theorem~\ref{thm:dsm_convergence} only guarantees $\bar{f}_i \to f^*$, with iterates that may oscillate. Strong convexity would allow $O(L^2/(\mu\varepsilon))$ \cite{strongly-convex-frangioni}, but SGPTL does not exploit it (Section~\ref{sec:dsm_convergence}).
 
 % ------------------------------------------------------------------
 \section{Computational cost}
@@ -101,36 +79,32 @@ Linear system solve & $O(H^3)$ (Cholesky) or $O(pH^2)$ (CG) & --- \\
 \label{tab:comp_cost}
 \end{table}
 
-IRLS requires solving an $H \times H$ symmetric positive definite linear system at every
-iteration (Section~\ref{sec:irls_subproblem}).
-With Cholesky factorisation the cost is $O(H^3/3)$ per iteration.
-With $p$ steps of Conjugate Gradient it is $O(pH^2)$, preferable when $H$ is large and
-$\mathbf{Q}_k$ is well-conditioned.
+IRLS solves an $H \times H$ SPD system per iteration
+(Section~\ref{sec:irls_subproblem}): $O(H^3/3)$ via Cholesky, or $O(pH^2)$
+via $p$ CG steps when $H$ is large and $\mathbf{Q}_k$ well-conditioned.
 The matrices $\mathbf{A} = \mathbf{X}^T\mathbf{X}$ and $\mathbf{b} = \mathbf{X}^T\mathbf{y}$
-are pre-computed once at cost $O(MH^2)$ and $O(MH)$ respectively.
+are precomputed once at $O(MH^2)$ and $O(MH)$.
 
-DSM requires only two matrix-vector products per iteration (to compute the subgradient:
-$\mathbf{X}\mathbf{w}_i$ costs $O(MH)$ and $\mathbf{X}^T(\cdot)$ costs $O(MH)$), giving
-a total per-iteration cost of $O(MH)$ (Section~\ref{sec:dsm_subgrad}).
-No precomputation of $\mathbf{X}^T\mathbf{X}$ is needed.
+DSM uses two matrix-vector products per iteration ($\mathbf{X}\mathbf{w}_i$
+and $\mathbf{X}^T(\cdot)$, each $O(MH)$), no precomputation
+(Section~\ref{sec:dsm_subgrad}).
 
 \subsection{Total cost}
 
-Let $k_{\mathrm{IRLS}}$ and $k_{\mathrm{DSM}}$ denote the respective iteration counts.
+With iteration counts $k_{\mathrm{IRLS}}$, $k_{\mathrm{DSM}}$:
 \begin{align*}
     \text{IRLS total:} &\quad O(MH^2) + k_{\mathrm{IRLS}} \cdot O(H^3), \\
     \text{DSM total:}  &\quad k_{\mathrm{DSM}} \cdot O(MH).
 \end{align*}
-Since IRLS converges linearly and DSM converges sublinearly, the iteration counts satisfy
-$k_{\mathrm{IRLS}} \ll k_{\mathrm{DSM}}$ for a given accuracy.
-The regime where DSM is competitive is therefore when $H$ is large enough that
-$H^3 \gg MH$, i.e.\ $H^2 \gg M$, so that the Cholesky cost of IRLS dominates.
+Linear vs sublinear gives $k_{\mathrm{IRLS}} \ll k_{\mathrm{DSM}}$, so DSM is
+competitive only when $H^2 \gg M$ and the Cholesky cost dominates.
 
-For the ELM problem, $M$ is the number of training samples and $H$ is the hidden layer
-size. Typical configurations have $M \gg H$ (many samples, moderate hidden layer), so
-$O(MH^2) \gg O(H^3)$ and the pre-computation of $\mathbf{A}$ dominates IRLS's total
-cost.
-In this regime, the total costs are roughly $O(MH^2)$ for IRLS and $O(k_{\mathrm{DSM}} \cdot MH)$ for DSM, so IRLS is cheaper than DSM whenever $k_{\mathrm{DSM}} \gtrsim H$. Since Theorem~\ref{thm:dsm_convergence} forces $k_{\mathrm{DSM}} = O(L^2/\varepsilon^2)$ with $L$ itself growing with $H$ (the $\ell_1$ subgradient has norm at most $\lambda_{\text{LASSO}}\sqrt{H}$), the inequality $k_{\mathrm{DSM}} \gtrsim H$ is automatically satisfied at the hidden-layer sizes we consider (any moderate hidden-layer size accessible on a standard machine) for any reasonable accuracy target.
+On the ELM problem $M \gg H$ is typical, so $O(MH^2)$ precomputation dominates
+IRLS's total. Total costs become $O(MH^2)$ vs $O(k_{\mathrm{DSM}} \cdot MH)$,
+and IRLS wins whenever $k_{\mathrm{DSM}} \gtrsim H$. Since
+Theorem~\ref{thm:dsm_convergence} forces $k_{\mathrm{DSM}} = O(L^2/\varepsilon^2)$
+with $L$ growing in $H$ (the $\ell_1$ subgradient has norm $\le \lambda_{\text{LASSO}}\sqrt{H}$),
+this inequality holds at every $H$ we test for any reasonable accuracy.
 
 % ------------------------------------------------------------------
 \section{Solution quality}
@@ -138,26 +112,18 @@ In this regime, the total costs are roughly $O(MH^2)$ for IRLS and $O(k_{\mathrm
 
 \subsection{Sparsity}
 
-In the ELM context, sparsity in $\mathbf{w}^*$ identifies which hidden neurons are
-relevant and which can be pruned.
-The two algorithms differ sharply in how well they enforce it.
-IRLS tends to produce numerically sparse solutions as a natural byproduct of its weighted
-least-squares structure: components near zero accumulate large diagonal weights and
-are driven to exactly zero (within $\varepsilon_{\mathrm{thr}}$) at convergence,
-without any post-processing (Section~\ref{sec:irls_expected}).
-DSM yields only \textbf{approximate sparsity}: subgradient steps carry no mechanism
-to pin components at exactly zero, so a post-processing thresholding step is typically
-required (Section~\ref{sec:dsm_properties}).
-This distinction is practically significant: IRLS produces interpretable, reproducible
-sparsity patterns, while DSM's sparsity depends on the choice of thresholding tolerance.
+IRLS yields numerically sparse iterates as a byproduct of its weighted
+least-squares structure: small components accumulate large weights and are
+driven to exactly zero (within $\varepsilon_{\mathrm{thr}}$) at convergence,
+no post-processing (Section~\ref{sec:irls_expected}). DSM gives only
+\textbf{approximate sparsity}; an explicit thresholding step is needed
+(Section~\ref{sec:dsm_properties}).
 
 \subsection{Accuracy}
 
-For a fixed computational budget (number of iterations or wall-clock time), IRLS
-reaches substantially higher accuracy than DSM on small-to-moderate problems, due to
-its linear convergence rate. DSM can reach competitive accuracy only when the
-per-iteration cost advantage of $O(MH)$ versus $O(H^3)$ outweighs the slower
-convergence rate, i.e.\ when $H^2 \gg M$ (see Table~\ref{tab:comp_cost}).
+At equal budget IRLS reaches much higher accuracy on small-to-moderate
+problems thanks to its linear rate. DSM is competitive only when
+$H^2 \gg M$ (Table~\ref{tab:comp_cost}).
 
 % ------------------------------------------------------------------
 \section{Comparison summary for the ELM problem}
@@ -184,4 +150,4 @@ Preferred when & High accuracy, $H \ll M$ & Large $H$, moderate accuracy \\
 \label{tab:comp_summary}
 \end{table}
 
-The two algorithms are therefore not interchangeable, and which one we would recommend depends on the regime. On the project's ELM LASSO problem --- fixed random $\mathbf{W}_1$, offline training, $M$ large and $H$ chosen substantially smaller --- $M \gg H$ is the default and the $O(MH^2)$ precomputation of $\mathbf{A} = \mathbf{X}^T\mathbf{X}$ is amortized over a small number of cheap $O(H^3)$ Cholesky solves. In this regime IRLS is the preferred method: it converges linearly, it produces sparse iterates without a post-processing step, it has a single numerical parameter $\varepsilon_{\mathrm{thr}}$ to tune, and its monotone $f(\mathbf{w}_k)$ provides a per-iteration correctness criterion during implementation. DSM becomes competitive when the IRLS precomputation no longer amortizes, i.e.\ when $H$ grows large enough that $H^2 \gg M$ and the $O(H^3)$ solve dominates, or when memory is tight and we cannot afford to store $\mathbf{X}^T\mathbf{X} \in \mathbb{R}^{H \times H}$: then the $O(MH)$ per-iteration cost and the absence of precomputation tip the balance, provided the accuracy target is moderate (say $\varepsilon \sim 10^{-3}$, beyond which the $O(1/\varepsilon^2)$ rate makes DSM impractical). For the hidden-layer sizes we will actually test (any moderate hidden-layer size accessible on a standard machine), we expect IRLS to win on both accuracy and wall-clock time, and DSM useful as a baseline and as a sanity check that we are converging to the same $\mathbf{w}^*$.
+On the project's regime ($M \gg H$, $\mathbf{W}_1$ fixed, offline training) IRLS is preferred: the $O(MH^2)$ precomputation of $\mathbf{A}$ amortizes over a few cheap Cholesky solves, sparsity comes for free, the single knob is $\varepsilon_{\mathrm{thr}}$, and monotone $f$ doubles as a correctness check. DSM is the better choice only when $H^2 \gg M$ or $\mathbf{X}^T\mathbf{X}$ does not fit in memory, and the accuracy target is moderate ($\varepsilon \sim 10^{-3}$).
