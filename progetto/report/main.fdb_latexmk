@@ -1,12 +1,12 @@
 # Fdb version 4
-["biber main"] 1779013125.03469 "main.bcf" "main.bbl" "main" 1779014096.55907 0
-  "main.bcf" 1779014096.42845 115032 2f4f0608a17f2c7186dd4dc874bc813f "pdflatex"
-  "references.bib" 1779012438.96491 9546 aa4618bfcc81c0a9bae50c6a20d64828 ""
+["biber main"] 1779014372.3821 "main.bcf" "main.bbl" "main" 1779014377.83453 0
+  "main.bcf" 1779014377.71746 115032 2f4f0608a17f2c7186dd4dc874bc813f "pdflatex"
+  "references.bib" 1779014364.40589 9562 83732135d55b547ecc8ace00f35469c6 ""
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1779014094.56921 "main.tex" "main.pdf" "main" 1779014096.55933 0
+["pdflatex"] 1779014376.03121 "main.tex" "main.pdf" "main" 1779014377.8348 0
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm" 1136768653 1536 e07581a4bb3136ece9eeb4c3ffab8233 ""
@@ -208,12 +208,12 @@
   "images/scalability.pdf" 1778948715.94395 27956 df5251d2f646dd0966389ef436dc0050 ""
   "images/solver_comparison.pdf" 1778256200.19873 42433 e6088dcd735dfd9864040ec16ced1927 ""
   "images/warm_vs_cold.pdf" 1778948715.94417 37582 fa5a5b0ab7a27a1c54071ccaa04bc098 ""
-  "main.aux" 1779014096.42131 47186 a1742eb95a8e6cbe3a58d2425775f385 "pdflatex"
-  "main.bbl" 1779013126.58178 37421 5cacc35ed98710a646a7214fae7067a2 "biber main"
-  "main.out" 1779014096.42749 11769 9e36e73a45780a3e5600101b88a52b6a "pdflatex"
-  "main.run.xml" 1779014096.42903 2305 52095dfad395b381e9a32937e764a41c "pdflatex"
+  "main.aux" 1779014377.70816 47186 306d65dd3df5461a3007f36e9c4a9fa3 "pdflatex"
+  "main.bbl" 1779014374.072 37469 55f263bd12d00172f6d6a0ff3d75ba09 "biber main"
+  "main.out" 1779014377.71639 11769 9e36e73a45780a3e5600101b88a52b6a "pdflatex"
+  "main.run.xml" 1779014377.718 2305 52095dfad395b381e9a32937e764a41c "pdflatex"
   "main.tex" 1779007906.61092 3563 225357a095fb6fc0b4176a727275e7ac ""
-  "main.toc" 1779014096.42909 8282 e295d388c38be5d5f39fc3ce4c34c5e3 "pdflatex"
+  "main.toc" 1779014377.71805 8282 e295d388c38be5d5f39fc3ce4c34c5e3 "pdflatex"
   (generated)
   "main.aux"
   "main.bcf"
