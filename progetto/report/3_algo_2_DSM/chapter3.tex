@@ -44,7 +44,7 @@ We pick $\gamma_i$ to minimize the deflected direction norm subject to the floor
 \begin{equation}\label{eq:gamma_opt}
 \gamma_i \in \argmin_{\gamma \in [\gamma_{\min},1]} \norm{\gamma\, \mathbf{g}_i + (1-\gamma)\, \mathbf{d}_{i-1}}_2^2.
 \end{equation}
-The Polyak denominator $\norm{\mathbf{d}_i}^2$ makes this the maximum-step choice. The problem is quadratic in $\gamma$ with closed-form solution (derived below):
+The Polyak denominator $\norm{\mathbf{d}_i}^2$ makes this the maximum-step choice. The problem is quadratic in $\gamma$ with closed-form solution:
 \begin{equation}\label{eq:gamma_star}
 \gamma^* = \frac{\norm{\mathbf{d}_{i-1}}_2^2 - \inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}}{\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}_2^2}, \quad \gamma_i = \min(1,\max(\gamma_{\min},\gamma^*)).
 \end{equation}
@@ -76,17 +76,21 @@ h(\gamma)
 
 \textbf{Case $\mathbf{g}_i = \mathbf{d}_{i-1}$:} the leading coefficient $\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}_2^2 = 0$, so $h(\gamma) = \norm{\mathbf{d}_{i-1}}_2^2$ is constant on $[0,1]$; moreover, $\mathbf{d}_i = \gamma\mathbf{g}_i + (1-\gamma)\mathbf{d}_{i-1} = \mathbf{d}_{i-1}$ for all $\gamma$, so the deflected direction is identical regardless of the choice; we set $\gamma_i = 1$ by convention.
 
-\textbf{Case $\mathbf{g}_i \neq \mathbf{d}_{i-1}$:} $h$ is a strictly convex parabola in $\gamma$ (positive leading coefficient). Its unique unconstrained minimizer satisfies $h'(\gamma^*) = 0$:
-\[
-h'(\gamma)
-= 2\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}_2^2\,\gamma
-  + 2\bigl(\inner{\mathbf{g}_i}{\mathbf{d}_{i-1}} - \norm{\mathbf{d}_{i-1}}_2^2\bigr) = 0
-\implies
-\gamma^* = \frac{\norm{\mathbf{d}_{i-1}}_2^2 - \inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}}
-               {\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}_2^2},
-\]
-which is exactly \eqref{eq:gamma_star}.
-The constrained minimum over $[\gamma_{\min},1]$ is $\gamma_i = \min(1,\max(\gamma_{\min},\gamma^*))$: since the parabola opens upward, if $\gamma^* < \gamma_{\min}$ then $h$ is increasing on $[\gamma_{\min},1]$ and the minimum is attained at $\gamma = \gamma_{\min}$; if $\gamma^* > 1$ then $h$ is decreasing on the interval and the minimum is at $\gamma = 1$; if $\gamma^* \in [\gamma_{\min},1]$ the interior solution applies.
+\textbf{Case $\mathbf{g}_i \neq \mathbf{d}_{i-1}$:} $h$ is a strictly convex parabola in $\gamma$ (positive leading coefficient). Setting $h'(\gamma^*) = 0$:
+\begin{align*}
+h'(\gamma) &= 2\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}_2^2\,\gamma
+  + 2\bigl(\inner{\mathbf{g}_i}{\mathbf{d}_{i-1}} - \norm{\mathbf{d}_{i-1}}_2^2\bigr) = 0 \\
+\implies\;
+\gamma^* &= \frac{\norm{\mathbf{d}_{i-1}}_2^2 - \inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}}
+                {\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}_2^2},
+\end{align*}
+which is exactly \eqref{eq:gamma_star}. Projecting onto $[\gamma_{\min}, 1]$ exploits that the parabola opens upward:
+\begin{itemize}[nosep,leftmargin=*]
+  \item $\gamma^* \in [\gamma_{\min},1]$: use the interior vertex;
+  \item $\gamma^* < \gamma_{\min}$: $h$ is increasing on $[\gamma_{\min},1]$, take $\gamma_i = \gamma_{\min}$;
+  \item $\gamma^* > 1$: $h$ is decreasing on $[\gamma_{\min},1]$, take $\gamma_i = 1$.
+\end{itemize}
+Compactly: $\gamma_i = \min(1, \max(\gamma_{\min}, \gamma^*))$.
 
 In the zig-zag regime $\mathbf{g}_i \approx -\mathbf{d}_{i-1}$ with $\norm{\mathbf{g}_i}_2 \approx \norm{\mathbf{d}_{i-1}}_2$, the formula gives $\gamma^* \approx 1/2$ and $\mathbf{d}_i$ halves the oscillation.
 
