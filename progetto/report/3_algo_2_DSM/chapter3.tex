@@ -44,7 +44,7 @@ We pick $\gamma_i$ to minimize the deflected direction norm subject to the floor
 \begin{equation}\label{eq:gamma_opt}
 \gamma_i \in \argmin_{\gamma \in [\gamma_{\min},1]} \norm{\gamma\, \mathbf{g}_i + (1-\gamma)\, \mathbf{d}_{i-1}}_2^2.
 \end{equation}
-The Polyak denominator $\norm{\mathbf{d}_i}^2$ makes this the maximum-step choice. The problem is quadratic in $\gamma$ with closed-form solution \cite[Slide 15]{frangioni-slides-nonsmooth}:
+The Polyak denominator $\norm{\mathbf{d}_i}^2$ makes this the maximum-step choice. The problem is quadratic in $\gamma$ with closed-form solution (derived below):
 \begin{equation}\label{eq:gamma_star}
 \gamma^* = \frac{\norm{\mathbf{d}_{i-1}}_2^2 - \inner{\mathbf{g}_i}{\mathbf{d}_{i-1}}}{\norm{\mathbf{g}_i - \mathbf{d}_{i-1}}_2^2}, \quad \gamma_i = \min(1,\max(\gamma_{\min},\gamma^*)).
 \end{equation}
