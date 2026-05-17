@@ -100,7 +100,7 @@ Algorithm~\ref{alg:dsm} presents the full Deflected Subgradient Method with targ
 \end{algorithm}
 
 \paragraph{Numerical safeguards.}
-Three pure floating-point guards lie outside the pseudocode. \emph{(i)}~If $\norm{\mathbf{d}_i}^2 < 10^{-30}$ we terminate. \emph{(ii)}~If $f(\mathbf{w}_i) - (f_{\mathrm{ref}}-\delta) \le 0$ we set $\alpha_i = 0$ (condition~(3.5) of~\cite{dantonio2009deflected}) and trigger the sufficient-descent update at $\mathbf{w}_i$, since $f(\mathbf{w}_i) \le f_{\mathrm{ref}}-\delta/2$. \emph{(iii)}~If $\mathbf{w}_{i+1}$ has a non-finite component we skip the iteration without touching $(\delta, f_{\mathrm{ref}}, r)$. No non-theoretical $\delta$-contraction or overshoot rescue is added: such mechanisms have no support in~\cite{dantonio2009deflected} and would break Theorem~\ref{thm:dsm_convergence}.
+Three pure floating-point guards lie outside the pseudocode. \emph{(i)}~If $\norm{\mathbf{d}_i}^2 < 10^{-30}$ we terminate. \emph{(ii)}~If $f(\mathbf{w}_i) - (f_{\mathrm{ref}}-\delta) \le 0$ we set $\alpha_i = 0$ (condition~(3.5) of~\cite{dantonio2009deflected}) and trigger the sufficient-descent update at $\mathbf{w}_i$, since $f(\mathbf{w}_i) \le f_{\mathrm{ref}}-\delta/2$. \emph{(iii)}~If $\mathbf{w}_{i+1}$ has a non-finite component we skip the iteration without touching $(\delta, f_{\mathrm{ref}}, r)$.
 
 % ------------------------------------------------------------------
 \subsection{Parameter calibration for ELM LASSO}
