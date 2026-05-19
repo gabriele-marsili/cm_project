@@ -4,7 +4,7 @@
 In this chapter, we apply the deflected subgradient method with Polyak step and with target level (SGPTL) to the ELM LASSO problem.
 
 % ------------------------------------------------------------------
-\section{Motivation: why the plain subgradient method is inadequate for ELM LASSO}
+\section{Why the plain subgradient method is inadequate}
 \label{sec:dsm_motivation}
 
 The ELM LASSO problem
@@ -106,7 +106,7 @@ Three pure floating-point guards lie outside the pseudocode. \emph{(i)}~If $\nor
 \subsection{Parameter calibration for ELM LASSO}
 \label{sec:dsm_parameters}
 
-SGPTL has five parameters: $\beta$, $\gamma_{\min}$, $\delta_0$, $\rho$, $R$. Each is discussed below with the choice we adopt for ELM~LASSO and its rationale.
+SGPTL has five parameters: $\beta$, $\gamma_{\min}$, $\delta_0$, $\rho$, $R$. Each is discussed below with the choice we adopt for ELM~LASSO and its rationale. The starting point is $\mathbf{w}_0 = (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{y}$, the same OLS warm start used by IRLS in Chapter~\ref{chap:irls}.
 
 \paragraph{$\beta = 1$.}
 \cite[(3.1)]{dantonio2009deflected} admits $\beta_k \in (0, 1]$. Substituting the Polyak step $\alpha_i = \beta\,(f(\mathbf{w}_i)-f^*)/\norm{\mathbf{g}_i}_2^2$ into the fundamental inequality~\eqref{eq:fundamental} gives a per-iteration reduction in $\norm{\mathbf{w}_i - \mathbf{w}^*}_2^2$ proportional to $\beta(2 - \beta)$, a downward parabola maximised at $\beta = 1$; the deflected variant of~\cite[Slide 15]{frangioni-slides-nonsmooth} inherits the property. We fix $\beta = 1$ so that $\beta_i = \min(\beta, \gamma_i)$ is driven by $\gamma_i$.
@@ -124,28 +124,18 @@ Condition~(3.5) of~\cite[]{dantonio2009deflected} requires $\beta^* > 0$ strictl
 \cite[Lemma~3.8]{dantonio2009deflected} admits any $R > 0$ and gives no specific value. Tradeoff: $R$ too small contracts $\delta$ on every minor stagnation, wasting potential progress between target updates; $R$ too large makes the sufficient-descent test the sole driver and stalls if the target is structurally infeasible. $R$ should therefore sit on the per-iteration travel scale $\alpha_i\norm{\mathbf{d}_i}$, which under our other defaults on ELM~LASSO with column-normalised $\mathbf{X}$ is of order $10^{-3}$. We adopt $R = 1$, so the travel-distance branch fires every $\mathcal{O}(10^{3})$ stalled iterations; Section~\ref{sec:warm_cold} reports the empirical contraction counts.
 
 % ------------------------------------------------------------------
-\subsection{Starting point and patience-threshold calibration}
-\label{sec:dsm_start}
-
-Algorithm~\ref{alg:dsm} uses the same OLS warm start as IRLS, $\mathbf{w}_0 = (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{y}$, for an apples-to-apples comparison. With $R = 1$ and $\gamma_{\min} = 0.05$ the travel-distance branch fires $\mathcal O(10)$--$\mathcal O(100)$ times per $8\,000$-iteration run, contracting $\delta$ at the pace the theory expects (Section~\ref{sec:params}).
-
-
-% ------------------------------------------------------------------
 \section{Application to the ELM LASSO problem}
 \label{sec:dsm_application}
 
 \subsection{Subgradient computation for ELM LASSO}
 \label{sec:dsm_subgrad}
 
-For the ELM LASSO objective, decompose $f = g + h$ where $g(\mathbf{w}) = \frac{1}{2}\norm{\mathbf{X}\mathbf{w}-\mathbf{y}}_2^2$ (smooth) and $h(\mathbf{w}) = \lambda_{\text{LASSO}}\norm{\mathbf{w}}_1$ (nonsmooth).
-
-By the sum rule for subdifferentials \cite[Slide 7]{frangioni-slides-nonsmooth}:
-\[ \partial f(\mathbf{w}) = \nabla g(\mathbf{w}) + \lambda_{\text{LASSO}}\,\partial\norm{\mathbf{w}}_1, \]
-where $\nabla g(\mathbf{w}) = \mathbf{X}^T(\mathbf{X}\mathbf{w} - \mathbf{y})$ and the $\ell_1$ subdifferential is component-wise (Section~\ref{sec:intro_optimality}):
+Section~\ref{sec:intro_optimality} already gives the subdifferential of the ELM LASSO objective. Algorithm~\ref{alg:dsm} requires a single element $\mathbf{g}_i \in \partial f(\mathbf{w}_i)$ per iteration; we pick the canonical sign-based representative
 \begin{equation}\label{eq:dsm_subgrad}
-  \mathbf{g} = \mathbf{X}^T(\mathbf{X}\mathbf{w} - \mathbf{y}) + \lambda_{\text{LASSO}}\, \mathbf{s}, \quad s_i \in \partial|w_i|.
+  \mathbf{g} = \mathbf{X}^\top(\mathbf{X}\mathbf{w} - \mathbf{y}) + \lambda_{\text{LASSO}}\, \mathbf{s},
+  \qquad s_i = \mathrm{sign}(w_i) \in \partial|w_i|,
 \end{equation}
-For $w_i = 0$ we take $s_i = 0$ via \texttt{numpy.sign(0)}, which is admissible (it lies in $[-1,1]$) so Theorem~\ref{thm:dsm_convergence} applies. It is not the minimum-norm element; the discrepancy in $|g_i|$ is at most $\lambda_{\text{LASSO}}$ per component, inflating $L$ but not the $O(L^2/\varepsilon^2)$ order. The issue is moot under Polyak-step updates from the OLS warm start: exact zeros occur on a set of Lebesgue measure zero.
+with the convention $\mathrm{sign}(0) = 0$, which is admissible since $0 \in [-1,1] = \partial|0|$. This choice is not the minimum-norm element of $\partial f(\mathbf{w}_i)$, but Theorem~\ref{thm:dsm_convergence} only requires admissibility.
 
 % ------------------------------------------------------------------
 \subsection{Convergence analysis and hypothesis verification for ELM LASSO}
@@ -153,7 +143,7 @@ For $w_i = 0$ we take $s_i = 0$ via \texttt{numpy.sign(0)}, which is admissible 
 
 \begin{theorem}[Convergence of SGPTL, adapted from {\cite[Slides 14--15]{frangioni-slides-nonsmooth}},~\cite{dantonio2009deflected}]
 \label{thm:dsm_convergence}
-Let $f : \R^H \to \R$ be convex with $f^* = \min_{\mathbf{w}} f(\mathbf{w}) > -\infty$ attained at some $\mathbf{w}^*$, and let $\{\mathbf{w}_i\}$ be the sequence generated by Algorithm~\ref{alg:dsm} (the target-level deflected subgradient method we actually run). Assume the subgradients encountered along the run are uniformly bounded, $\norm{\mathbf{g}_i}_2 \leq L$, and the stepsize-restricted rule $\beta_i \le \gamma_i$ holds with $\gamma_i \ge \gamma_{\min} > 0$. Then the record values $\bar{f}_i = \min_{h \le i} f(\mathbf{w}_h)$ converge to $f^*$, and once the target-level estimate has sharpened to $f^*$ (i.e.\ $\delta_k \to 0$ and $f^k_{\mathrm{ref}} \to f^*$, which Lemma~3.8 of \cite{dantonio2009deflected} guarantees) the asymptotic rate matches the classical Polyak bound \cite[Thm.~3.2]{bubeck2015convex},~\cite[Slide 13]{frangioni-slides-nonsmooth} inflated by the deflection floor:
+Let $f : \R^H \to \R$ be convex with $f^* = \min_{\mathbf{w}} f(\mathbf{w}) > -\infty$ attained at some $\mathbf{w}^*$, and let $\{\mathbf{w}_i\}$ be the sequence generated by Algorithm~\ref{alg:dsm}. Assume the subgradients encountered along the run are uniformly bounded, $\norm{\mathbf{g}_i}_2 \leq L$, and the stepsize-restricted rule $\beta_i \le \gamma_i$ holds with $\gamma_i \ge \gamma_{\min} > 0$. Then the record values $\bar{f}_i = \min_{h \le i} f(\mathbf{w}_h)$ converge to $f^*$, and once the target-level estimate has sharpened to $f^*$ (i.e.\ $\delta_k \to 0$ and $f^k_{\mathrm{ref}} \to f^*$, which Lemma~3.8 of \cite{dantonio2009deflected} guarantees) the asymptotic rate matches the classical Polyak bound \cite[Thm.~3.2]{bubeck2015convex},~\cite[Slide 13]{frangioni-slides-nonsmooth} inflated by the deflection floor:
 \begin{equation}
 \label{eq:def-rate-deflected}
 \bar{f}_k - f^* \;\leq\; \frac{L\,\norm{\mathbf{w}_0 - \mathbf{w}^*}_2}{\gamma_{\min}\sqrt{k}}\,,
@@ -162,34 +152,53 @@ so the worst-case complexity to attain $\bar f_k - f^* \le \varepsilon$ is $O(L^
 \end{theorem}
 
 \begin{proof}
-We verify the hypotheses of \cite[Theorem~3.7]{dantonio2009deflected} on Algorithm~\ref{alg:dsm} and read off the conclusions. The notation in \cite{dantonio2009deflected} maps to ours via $\sigma_k \leftrightarrow 0$ (exact oracle), $\alpha_k \leftrightarrow \gamma_i$, $\beta_k \leftrightarrow \beta_i$, $\nu_k \leftrightarrow \alpha_i$, $\mu \leftrightarrow \rho$, $X = \R^H$ (no constraint), and $\lambda_k \leftrightarrow f(\mathbf{w}_i) - (f^k_{\mathrm{ref}} - \delta_k)$.
+We verify the hypotheses of \cite[Theorem~3.7]{dantonio2009deflected} on Algorithm~\ref{alg:dsm} and read off the conclusions. The framework of~\cite{dantonio2009deflected} is stated for $\sigma_k$-inexact subgradients, where $\sigma_k \ge 0$ bounds the oracle error; we compute $\mathbf{g}_i$ exactly via~\eqref{eq:dsm_subgrad}, so the inexactness parameter is zero. The remaining notation maps to ours via $\alpha_k \leftrightarrow \gamma_i$, $\beta_k \leftrightarrow \beta_i$, $\nu_k \leftrightarrow \alpha_i$, $\mu \leftrightarrow \rho$, $X = \R^H$ (no constraint), and $\lambda_k \leftrightarrow f(\mathbf{w}_i) - (f^k_{\mathrm{ref}} - \delta_k)$.
 
-\emph{(a)~Deflection-consistency condition~(2.13).} In \cite{dantonio2009deflected} condition~(2.13) of Lemma~2.4 reads $d_k = \tilde d_k \Rightarrow v_{k+1} = \tilde d_k$, where $\tilde d_k$ is the unprojected deflected direction and $\hat d_k = -P_{T_k}(-\tilde d_k)$ the projected one. This is the hypothesis under which the ``crucial'' inequality (2.12) holds, which the stepsize-restricted analysis relies on. With $X = \R^H$ the tangent cone is $T_k = \R^H$ everywhere, so $\hat d_k = \tilde d_k$ and necessarily $d_k = \tilde d_k$ at every iteration; the algorithm sets $v_{k+1}$ to $d_k = \tilde d_k$ (Algorithm~\ref{alg:dsm} carries no projection step), so~(2.13) is satisfied trivially.
+\emph{(a)~Deflection-consistency condition~(2.13).} The condition of \cite[Lemma~2.4]{dantonio2009deflected} requires $v_{k+1} = \tilde d_k$ whenever $d_k = \tilde d_k$, where $\tilde d_k$ is the unprojected deflected direction. In our unconstrained setting $X = \R^H$ no projection occurs, so $d_k = \tilde d_k$ at every iteration and Algorithm~\ref{alg:dsm} sets $v_{k+1} = d_k$, so~(2.13) holds trivially.
 
-\emph{(b)~Stepsize condition (3.5)}: $\lambda_k \ge 0 \Rightarrow \alpha_k \ge \beta_k \ge \beta^* > 0$, $\lambda_k < 0 \Rightarrow \alpha_k = 0$. When $\lambda_k > 0$, line~12 of Algorithm~\ref{alg:dsm} sets $\beta_i = \min(1,\gamma_i) \ge \gamma_{\min}$ via the floor on $\gamma_i$, so we may take $\beta^* = \gamma_{\min}$; the inequality $\alpha_k \ge \beta_k$ in (3.5) is $\gamma_i \ge \beta_i$, which is exactly the stepsize-restricted rule. When $\lambda_k \le 0$ the numerical safeguard of Section~\ref{sec:dsm_algorithm} skips the step --- equivalent to $\alpha_i = 0$ --- and triggers the sufficient-descent update $f^k_{\mathrm{ref}} \gets \bar f$, $r \gets 0$ on $\mathbf{w}_i$ itself. The skip realises (3.5) verbatim; the additional $f^k_{\mathrm{ref}}$ update is theory-aligned because $\lambda_k \le 0$ means $f(\mathbf{w}_i) \le f^k_{\mathrm{ref}} - \delta_k \le f^k_{\mathrm{ref}} - \delta_k/2$, which is the sufficient-descent condition of \cite[Lemma~3.8]{dantonio2009deflected} evaluated at $\mathbf{w}_i$ rather than at $\mathbf{w}_{i+1}$.
+\emph{(b)~Stepsize condition~(3.5) of \cite{dantonio2009deflected}.} Translated through the notation mapping above ($\alpha_k \leftrightarrow \gamma_i$, $\beta_k \leftrightarrow \beta_i$), the condition has two clauses:
+\begin{itemize}
+\item if $\lambda_k \ge 0$ then $\gamma_i \ge \beta_i \ge \beta^* > 0$ for some uniform constant $\beta^* > 0$ independent of $i$;
+\item if $\lambda_k < 0$ then the step is null, $\alpha_i = 0$.
+\end{itemize}
 
-\emph{(c)~Target-level threshold condition~(3.26)}: requires \emph{either} $f^\infty_{\mathrm{ref}} = f^* = -\infty$ \emph{or} $\liminf_k \delta_k = 0$ together with the series condition~(3.25), $\sum_k \lambda_k/\norm{\mathbf{d}_k}^2 = \infty$ (equivalent to $\sum_k s_k = \infty$ via~(3.28) of \cite{dantonio2009deflected}, where $s_k = \norm{\mathbf{w}_{k+1}-\mathbf{w}_k} = \beta_k \lambda_k / \norm{\mathbf{d}_k}$). Since on ELM~LASSO $f^* > -\infty$, the first branch is excluded and we need the second. \cite[Lemma~3.8]{dantonio2009deflected} provides a concrete update strategy for $(f^k_{\mathrm{ref}}, \delta_k)$ --- the sufficient-descent test on $f_{k+1} \le f^k_{\mathrm{ref}} - \delta_k/2$, the target-infeasibility test on $r_k > R$, and the accumulate-$r$ counter --- which attains both $\delta_k \to 0$ and $\sum_k s_k = \infty$. Lines~16--21 of Algorithm~\ref{alg:dsm} implement that strategy verbatim under the identification $\mu \leftrightarrow \rho$, so condition~(3.26) holds.
+\emph{Case $\lambda_k > 0$ (target not yet reached).} Line~12 of Algorithm~\ref{alg:dsm} sets $\beta_i = \min(1, \gamma_i)$, and the clip~\eqref{eq:gamma_star} keeps $\gamma_i \in [\gamma_{\min}, 1]$. Hence $\beta_i \ge \gamma_{\min}$ for every $i$, and the uniform lower bound is satisfied with $\beta^* = \gamma_{\min}$. The other inequality $\gamma_i \ge \beta_i$ is just $\gamma_i \ge \min(1, \gamma_i)$, which holds by definition of $\min$.
 
-\emph{Subgradients uniformly bounded.} The convex objective $f$ of ELM~LASSO is coercive and continuous; the iterates $\{\mathbf{w}_i\}$ remain in a compact sublevel set $S_{c_0}$ for some $c_0 \ge f(\mathbf{w}_0)$ (verification below), and $\partial f$ is uniformly bounded on $S_{c_0}$ by Lipschitz continuity of convex functions on compact sets \cite[Slide 9]{frangioni-slides-smooth}.
+\emph{Case $\lambda_k \le 0$ (target already attained at $\mathbf{w}_i$).} The numerical safeguard of Section~\ref{sec:dsm_algorithm} skips the iteration with $\alpha_i = 0$, which is the second clause verbatim.
 
-Conditions (2.13), (3.5), (3.26) being verified with $\sigma^* = 0$, \cite[Theorem~3.7]{dantonio2009deflected} gives $f^\infty_{\mathrm{ref}} \le f^* + \sigma^* = f^*$, so $\bar f_i \to f^*$. The asymptotic rate~\eqref{eq:def-rate-deflected} is then the classical Polyak rate \cite[Thm.~3.2]{bubeck2015convex},~\cite[Slide 13]{frangioni-slides-nonsmooth} applied to the regime where the target-level estimate has sharpened to $f^*$ (Lemma~3.8 of \cite{dantonio2009deflected} guarantees $\delta_k \to 0$, so eventually the step reduces to the standard Polyak step with $f^*$); the factor $1/\gamma_{\min}$ is the explicit price of the deflection floor, which contracts the effective stepsize by $\beta_i = \min(1, \gamma_i) \ge \gamma_{\min}$ at every iteration. On ELM~LASSO with $\gamma_{\min} = 0.05$ this inflates the iteration count to reach a given $\varepsilon$ by $400\times$ relative to the unfloored Polyak rate, but the $O(L^2/\varepsilon^2)$ order is preserved.
+\emph{(c)~Target-level threshold condition~(3.26) of \cite{dantonio2009deflected}.} The condition requires \emph{either} $f^\infty_{\mathrm{ref}} = f^* = -\infty$ \emph{or} both $\liminf\limits_{k\to\infty} \delta_k = 0$ and the series condition~(3.25) of \cite{dantonio2009deflected}, $\sum_k \lambda_k/\norm{\mathbf{d}_k}^2 = \infty$. Since on ELM~LASSO $f^* > -\infty$, the first branch is excluded and we need the second. \cite[Lemma~3.8]{dantonio2009deflected} provides a concrete update strategy for $(f^k_{\mathrm{ref}}, \delta_k)$ --- the sufficient-descent test on $f_{k+1} \le f^k_{\mathrm{ref}} - \delta_k/2$, the target-infeasibility test on $r_k > R$, and the accumulate-$r$ counter --- that delivers both $\liminf\limits_{k\to\infty} \delta_k = 0$ and~(3.25). Lines~16--21 of Algorithm~\ref{alg:dsm} implement that strategy verbatim under the identification $\mu \leftrightarrow \rho$, so condition~(3.26) holds.
+
+\emph{Subgradients uniformly bounded.} The convex objective $f$ of ELM~LASSO is coercive and continuous; the iterates $\{\mathbf{w}_i\}$ remain in a compact sublevel set $S_{c_0}$ for some $c_0 \ge f(\mathbf{w}_0)$, and $\partial f$ is uniformly bounded on $S_{c_0}$ by Lipschitz continuity of convex functions on compact sets \cite[Slide 9]{frangioni-slides-smooth}.
+
+Conditions (2.13), (3.5), (3.26) of~\cite{dantonio2009deflected} being verified with $\sigma^* = 0$, \cite[Theorem~3.7]{dantonio2009deflected} gives $f^\infty_{\mathrm{ref}} \le f^* + \sigma^* = f^*$, so $\bar f_i \to f^*$. The asymptotic rate~\eqref{eq:def-rate-deflected} is then the classical Polyak rate \cite[Thm.~3.2]{bubeck2015convex},~\cite[Slide 13]{frangioni-slides-nonsmooth} applied to the regime where the target-level estimate has sharpened to $f^*$.
+
+The deflection floor contracts the effective stepsize: $\beta_i = \min(1, \gamma_i) \ge \gamma_{\min}$ at every iteration. This is the source of the factor $1/\gamma_{\min}$ appearing explicitly in the rate bound~\eqref{eq:def-rate-deflected}.
+
+To translate the rate into an iteration count we calculate how many iterations $k$ are needed so that the right-hand side of~\eqref{eq:def-rate-deflected} drops below a target accuracy $\varepsilon$. Setting
+\[
+  \frac{L\norm{\mathbf{w}_0 - \mathbf{w}^*}_2}{\gamma_{\min}\sqrt{k}} \le \varepsilon
+\]
+and solving for $k$ gives
+\[
+  k \;\ge\; \frac{L^2\norm{\mathbf{w}_0 - \mathbf{w}^*}_2^2}{\gamma_{\min}^2\,\varepsilon^2}.
+\]
+The factor $1/\gamma_{\min}$ in the rate becomes $1/\gamma_{\min}^2$ in the iteration count because of the squaring step. The unfloored Polyak bound (same derivation with no floor) is $k \ge L^2\norm{\mathbf{w}_0 - \mathbf{w}^*}_2^2 / \varepsilon^2$, so SGPTL needs $1/\gamma_{\min}^2$ times more iterations to reach the same $\varepsilon$. With $\gamma_{\min} = 0.05$ this multiplier is $1/0.05^2 = 1/0.0025 = 400$. The order $O(L^2/\varepsilon^2)$ is the same in both bounds; only the multiplicative constant changes.
 \end{proof}
 
 \paragraph{Verification of theorem assumptions for ELM LASSO.}
-
-\begin{enumerate}
-\item \textbf{Convexity.} $\nabla^2 g = \mathbf{X}^T\mathbf{X} \succeq 0$, the $\ell_1$ norm is convex, so $f$ is convex \cite[Slides 21--24]{frangioni-slides-unconstrained}. Under the standard ELM assumption $M \ge H$ with $\mathbf{X}$ full column rank \cite{HUANG2006489}, $\nabla^2 g \succ 0$ and $f$ is $\mu$-strongly convex with $\mu = \lambda_{\min}(\mathbf{X}^T\mathbf{X}) > 0$ \cite[Slide 12]{frangioni-slides-smooth},~\cite[Slides 21--24]{frangioni-slides-unconstrained}. SGPTL exploits neither acceleration nor proximal structure, so its guarantee remains $O(L^2/\varepsilon^2)$.
-
-\item \textbf{Bounded subgradients.} The $\ell_1$ part is bounded, $\norm{\lambda_{\text{LASSO}} \mathbf{s}}_2 \leq \lambda_{\text{LASSO}}\sqrt{H}$. The smooth part $\mathbf{X}^T(\mathbf{X}\mathbf{w}-\mathbf{y})$ grows with $\norm{\mathbf{w}}$, so $f$ is not globally Lipschitz. But $f$ is coercive, every sublevel set is compact, and the target-level mechanism keeps $f(\mathbf{w}_i) - (f_{\mathrm{ref}} - \delta)$ on the same scale as $f(\mathbf{w}_i) - f^*$, so the iterates stay in an enlarged sublevel set $S_{c_0}$ with $c_0 \ge f(\mathbf{w}_0)$. Lipschitz continuity of $f$ on $S_{c_0}$ \cite[Slide 9]{frangioni-slides-smooth} gives the uniform bound $L$.
-\end{enumerate}
+Convexity of $f$, coercivity, and compactness of every sublevel set were established in Proposition~\ref{prop:irls_prop}; the same proposition also shows that the minimum value $f^* > -\infty$ is attained at a unique $\mathbf{w}^*$ when $\mathbf{X}$ has full column rank. The only remaining hypothesis of Theorem~\ref{thm:dsm_convergence} is the uniform bound on subgradients along the run. The $\ell_1$ part contributes a bounded term $\norm{\lambda_{\text{LASSO}}\mathbf{s}}_2 \le \lambda_{\text{LASSO}}\sqrt{H}$ (each $|s_i| \le 1$), but the smooth part $\mathbf{X}^\top(\mathbf{X}\mathbf{w} - \mathbf{y})$ grows with $\norm{\mathbf{w}}$ so $f$ is not globally Lipschitz. The iterates $\{\mathbf{w}_i\}$ nonetheless stay in a compact set: this is part of the conclusions of \cite[Theorem~3.7]{dantonio2009deflected} on the convergence of the target-level deflected scheme. A convex function is Lipschitz on any compact set \cite[Slide 9]{frangioni-slides-smooth}, which gives a uniform bound $L$ on $\norm{\mathbf{g}_i}_2$ along the run.
 
 \paragraph{Complexity.}
 The lower bound for first-order methods on nonsmooth convex problems is $\Omega(L^2/\varepsilon^2)$ \cite[Slide 8]{frangioni-slides-nonsmooth},~\cite{bubeck2015convex}; Algorithm~\ref{alg:dsm} attains it. Deflection improves constants, not the order.
 
 % ------------------------------------------------------------------
-\section{Expected practical behavior on the ELM LASSO problem}
+\section{Expected practical behavior}
 \label{sec:dsm_properties}
 
-SGPTL is non-monotone: only $\bar{f}_i = \min_{h \le i} f(\mathbf{w}_h)$ decreases to $f^*$, so semilog plots use $\log(\bar{f}_i - f^*)$ and the returned iterate is $\mathbf{w}_{\mathrm{best}}$. The rate is sublinear $O(L^2/\varepsilon^2)$, so accuracies below $10^{-6}$ are unrealistic. The per-iteration cost is $O(MH)$ (two matvecs with $\mathbf{X}$) against $O(H^3)$ for IRLS's Cholesky solve; DSM is CPU-competitive only at large $H$ and moderate accuracy.
+Theorem~\ref{thm:dsm_convergence} establishes that the record sequence $\bar f_i = \min_{h \le i} f(\mathbf{w}_h)$ converges to $f^*$ at the rate $\bar f_k - f^* \lesssim L\norm{\mathbf{w}_0 - \mathbf{w}^*}_2 / (\gamma_{\min}\sqrt{k})$ of~\eqref{eq:def-rate-deflected}. From execution we therefore expect a concave curve of $\bar f_i - f^*$ on a semilog plot, with the residual gap closing as $1/\sqrt{i}$. The theorem bounds the record, not the raw values $f(\mathbf{w}_i)$, so we expect $f(\mathbf{w}_i)$ to oscillate around $\bar f_i$ rather than decrease step by step.
 
-No reliable subgradient stopping test exists: $0 \in \partial f(\mathbf{w}^*)$ does not force $\norm{\mathbf{g}_i} \to 0$, so we stop on $i_{\max}$ or on a flat-window test on $\bar{f}_i$. Neither method produces exact zeros: IRLS pins them at the safety floor $\varepsilon_{\mathrm{thr}} = 10^{-8}$ in~\eqref{eq:irls_weights}, SGPTL leaves them at the residual-rate level $\sim L/\sqrt{i}$ ($10^{-3}$--$10^{-4}$ at our budgets). The fair comparison uses the same post-termination threshold on both (Section~\ref{sec:quality}). Larger $\lambda_{\text{LASSO}}$ amplifies oscillations through $\mathbf{s}$ and inflates the iteration count.
+The same bound depends on two ingredients which are problem-specific. The Lipschitz constant $L$ scales with $\norm{\mathbf{X}}_2$ and $\lambda_{\text{LASSO}}$ (verification of theorem assumptions, Section~\ref{sec:dsm_convergence}); from~\eqref{eq:def-rate-deflected} we therefore expect larger $\lambda_{\text{LASSO}}$ to inflate $L$ and shift the entire curve upward. The initial distance $\norm{\mathbf{w}_0 - \mathbf{w}^*}_2$ enters multiplicatively in the same bound. On the synthetic and diabetes ELM instances ($H \le 50$) the starting point we adopt is the OLS warm start (Section~\ref{sec:dsm_parameters}); since the OLS solution coincides with $\mathbf{w}^*$ at $\lambda_{\text{LASSO}} = 0$ and varies continuously with $\lambda_{\text{LASSO}}$, we expect $\norm{\mathbf{w}_0 - \mathbf{w}^*}_2$ to be small for the moderate $\lambda_{\text{LASSO}}$ we use, and consequently the residual gap to lie toward the lower end of what~\eqref{eq:def-rate-deflected} allows. On California ELM the starting point is the cold start $\mathbf{w}_0 = \mathbf{0}$, which gives $\norm{\mathbf{w}_0 - \mathbf{w}^*}_2 = \norm{\mathbf{w}^*}_2$ exactly; from~\eqref{eq:def-rate-deflected} the predicted bound is correspondingly larger, so we expect the curve to sit visibly higher.
+
+The rate~\eqref{eq:def-rate-deflected} controls $\bar f_i - f^*$, not the magnitude of individual coordinates of $\mathbf{w}_i$. A subgradient step $\mathbf{w}_{i+1} = \mathbf{w}_i - \alpha_i \mathbf{d}_i$ updates each coordinate continuously and never enforces $(\mathbf{w}_i)_j = 0$ exactly; combined with the rate~\eqref{eq:def-rate-deflected}, this leaves an inactive component at a magnitude no larger than the residual scale of the rate, $L/(\gamma_{\min}\sqrt{i})$. We therefore do not expect SGPTL to produce hard sparsity at termination; recovery of the support will require a thresholding step set above this residual scale.
+
+The optimality condition $0 \in \partial f(\mathbf{w}^*)$ of Section~\ref{sec:intro_optimality} is a set condition that holds \emph{at} $\mathbf{w}^*$; it asks for some element of the set $\partial f(\mathbf{w}^*)$ to vanish, not for any element of $\partial f(\mathbf{w}_i)$ at a generic iterate. Under the sublinear rate~\eqref{eq:def-rate-deflected} the iterates do not reach $\mathbf{w}^*$ within a finite budget, so we do not expect $\norm{\mathbf{g}_i}_2 \to 0$ along the run regardless of which subdifferential representative is computed in~\eqref{eq:dsm_subgrad}. Termination will therefore rely on $i_{\max}$ or on a flat-window test on $\bar f_i$ rather than on a subgradient-based optimality check.

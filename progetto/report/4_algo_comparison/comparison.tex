@@ -38,23 +38,23 @@ progress via the record value $\bar{f}^{\,i}$.
 
 \subsection{Monotonicity}
 
-MM guarantees IRLS is \textbf{monotone}: $f(\mathbf{w}_{k+1}) \leq f(\mathbf{w}_k)$
-(Section~\ref{sec:irls_mm}); a non-decreasing plot signals a bug, and an
+The majorization-minimization construction of Section~\ref{sec:irls_mm} guarantees IRLS is \textbf{monotone}: $f(\mathbf{w}_{k+1}) \leq f(\mathbf{w}_k)$; a non-decreasing plot signals a bug, and an
 iterate-change criterion reliably stops the algorithm. DSM is
 \textbf{non-monotone}: only the record $\bar{f}^{\,i} = \min_{h \leq i} f(\mathbf{w}_h)$
 is monotone, so DSM returns $\mathbf{w}_{\mathrm{best}}$ and stops on a fixed budget.
 
 \subsection{Rate}
 
-IRLS achieves a \textbf{linear} rate (Section~\ref{sec:irls_convergence}); DSM
-achieves the optimal \textbf{sublinear} $O(1/\varepsilon^2)$ rate for
-nonsmooth convex functions (Theorem~\ref{thm:dsm_convergence}). Tightening
-$\varepsilon$ by one decade costs $\sim 100\times$ more DSM iterations versus
-a constant for IRLS.
+IRLS achieves a \textbf{linear} rate (Section~\ref{sec:irls_convergence}); DSM achieves the optimal \textbf{sublinear} $O(L^2/\varepsilon^2)$ rate for nonsmooth convex functions (Theorem~\ref{thm:dsm_convergence}), where $L$ is the uniform Lipschitz constant of the subgradients on the iterate sublevel set. The contrast between the two rates is sharpest under successive tightening of $\varepsilon$:
+\begin{itemize}
+  \item For DSM, the rate $\bar f_k - f^* \lesssim L\norm{\mathbf{w}_0 - \mathbf{w}^*}_2/(\gamma_{\min}\sqrt k)$ gives $k \propto 1/\varepsilon^2$. Cutting $\varepsilon$ by a factor $10$ therefore multiplies the iteration count by $10^2 = 100$.
+  \item For IRLS, the linear rate $f(\mathbf{w}_{k+1}) - f^* \le r\,(f(\mathbf{w}_k) - f^*)$ with $r \in (0,1)$ of Theorem~\ref{thm:irls_convergence} gives $k \propto \log(1/\varepsilon)/\log(1/r)$. Cutting $\varepsilon$ by a factor $10$ \emph{adds} the constant $\log 10/\log(1/r)$ iterations, independent of $\varepsilon$.
+\end{itemize}
+The growth in iteration count with required accuracy is therefore polynomial for DSM and only logarithmic (additively constant per decade) for IRLS.
 
 \subsection{Convergence on the ELM problem}
 
-For the ELM problem $\mathbf{X} = \sigma(\mathbf{X}_{\text{origin}}\mathbf{W}_1^T)$ has full column rank (standard ELM condition when $M \ge H$ with random $\mathbf{W}_1$ and nonlinear $\sigma$), so $f$ is $\mu$-strongly convex with unique minimizer $\mathbf{w}^*$. IRLS iterates $\mathbf{w}_k \to \mathbf{w}^*$ at a linear rate governed by the weighted normal-equation conditioning (Theorem~\ref{thm:irls_convergence}); Theorem~\ref{thm:dsm_convergence} only guarantees $\bar{f}_i \to f^*$, with iterates that may oscillate. Strong convexity would allow $O(L^2/(\mu\varepsilon))$ \cite[Slide 12]{frangioni-slides-smooth}, but SGPTL does not exploit it (Section~\ref{sec:dsm_convergence}).
+For the ELM problem $\mathbf{X} = \sigma(\mathbf{X}_{\text{origin}}\mathbf{W}_1^T)$ has full column rank (standard ELM condition when $M \ge H$ with random $\mathbf{W}_1$ and nonlinear $\sigma$), so $f$ is $\mu$-strongly convex with $\mu = \lambda_{\min}(\mathbf{X}^\top\mathbf{X}) > 0$ and admits a unique minimizer $\mathbf{w}^*$ (Proposition~\ref{prop:irls_prop}). Both algorithms are theoretically guaranteed to converge on this problem, but with different notions of convergence: Theorem~\ref{thm:irls_convergence} gives IRLS iterates $\mathbf{w}_k \to \mathbf{w}^*$ at a linear rate governed by the weighted normal-equation conditioning, while Theorem~\ref{thm:dsm_convergence} gives SGPTL only the weaker guarantee $\bar f_i \to f^*$ on the record sequence $\bar f_i = \min_{h \le i} f(\mathbf{w}_h)$, with iterates $\{\mathbf{w}_i\}$ that may oscillate.
 
 % ------------------------------------------------------------------
 \section{Computational cost}
@@ -91,20 +91,15 @@ and $\mathbf{X}^T(\cdot)$, each $O(MH)$), no precomputation
 
 \subsection{Total cost}
 
-With iteration counts $k_{\mathrm{IRLS}}$, $k_{\mathrm{DSM}}$:
+Accounting for both the precomputation/warm-start phase and the iteration loop, the total costs are
 \begin{align*}
-    \text{IRLS total:} &\quad O(MH^2) + k_{\mathrm{IRLS}} \cdot O(H^3), \\
-    \text{DSM total:}  &\quad k_{\mathrm{DSM}} \cdot O(MH).
+    \text{IRLS (OLS warm start):}                 &\quad O(MH^2) + k_{\mathrm{IRLS}} \cdot O(H^3), \\
+    \text{SGPTL with OLS warm start:}             &\quad O(MH^2) + O(H^3) + k_{\mathrm{DSM}} \cdot O(MH), \\
+    \text{SGPTL with cold start $\mathbf{w}_0 = \mathbf{0}$:}\;\;\; &\quad k_{\mathrm{DSM}} \cdot O(MH).
 \end{align*}
-Linear vs sublinear gives $k_{\mathrm{IRLS}} \ll k_{\mathrm{DSM}}$, so DSM is
-competitive only when $H^2 \gg M$ and the Cholesky cost dominates.
+The $O(MH^2)$ term in the IRLS line is the precomputation of $\mathbf{X}^\top\mathbf{X}$ used in every weighted normal-equation solve, and the OLS warm start adds only the single $O(H^3)$ Cholesky solve which is absorbed at leading order. SGPTL iterations do not need $\mathbf{X}^\top\mathbf{X}$, so requesting an OLS warm start incurs a full $O(MH^2)$ overhead that the cold start avoids; we adopt the OLS warm start on synthetic and diabetes ELM and the cold start on California ELM (Section~\ref{sec:dsm_parameters}).
 
-On the ELM problem $M \gg H$ is typical, so $O(MH^2)$ precomputation dominates
-IRLS's total. Total costs become $O(MH^2)$ vs $O(k_{\mathrm{DSM}} \cdot MH)$,
-and IRLS wins whenever $k_{\mathrm{DSM}} \gtrsim H$. Since
-Theorem~\ref{thm:dsm_convergence} forces $k_{\mathrm{DSM}} = O(L^2/\varepsilon^2)$
-with $L$ growing in $H$ (the $\ell_1$ subgradient has norm $\le \lambda_{\text{LASSO}}\sqrt{H}$),
-this inequality holds at every $H$ we test for any reasonable accuracy.
+On the ELM problem $M \gg H$ is typical, so $O(MH^2)$ dominates IRLS's total. IRLS therefore wins whenever $k_{\mathrm{DSM}} \gtrsim H$: the warm-start variant of SGPTL already pays the same $O(MH^2)$ overhead and adds the iteration cost on top, while the cold-start variant trades the overhead for $k_{\mathrm{DSM}}$ matrix-vector products at $O(MH)$ each. Since Theorem~\ref{thm:dsm_convergence} forces $k_{\mathrm{DSM}} = O(L^2/\varepsilon^2)$ with $L$ growing in $H$ (the $\ell_1$ subgradient has norm $\le \lambda_{\text{LASSO}}\sqrt{H}$), the inequality $k_{\mathrm{DSM}} > H$ holds at every $H$ we test for any reasonable accuracy.
 
 % ------------------------------------------------------------------
 \section{Solution quality}
@@ -137,7 +132,7 @@ $H^2 \gg M$ (Table~\ref{tab:comp_cost}).
 \midrule
 Approach & Smoothing (MM) & Direct subgradient \\
 Monotone & Yes & No (record value only) \\
-Convergence rate & Linear & Sublinear $O(1/\varepsilon^2)$ \\
+Convergence rate & Linear & Sublinear $O(L^2/\varepsilon^2)$ \\
 Per-iteration cost & $O(H^3)$ & $O(MH)$ \\
 Precomputation & $O(MH^2)$ & None \\
 Exact sparsity & Yes & No (needs thresholding) \\
