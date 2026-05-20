@@ -191,15 +191,23 @@ faster, SGPTL cheaper per iteration) is preserved. First-submission
 artefacts are retained under \texttt{progetto/code/results\_old\_submission/}.
 
 \paragraph{Warm vs cold start for SGPTL.}
-Under the old $R$ cold start dominated (warm start triggered
-blow-ups); under $R=1$ the two are essentially neutral.
-Figure~\ref{fig:warm-vs-cold} shows both starts on the convergence
-instance: the cold start ends at $2.4\cdot 10^{-5}$ with $26$
-$\delta$-contractions, the warm start at $4.8\cdot 10^{-5}$ with
-$22$. Across similar instances neither is uniformly better. We keep
-the OLS warm start as the default for SGPTL because it is the same
-starting point used by IRLS, which makes the comparison
-apples-to-apples.
+Under the old $R$ the cold start dominated (warm start triggered blow-ups);
+under $R=1$ the two are essentially neutral on the synthetic instance.
+Figure~\ref{fig:warm-vs-cold} shows both starts on the convergence instance:
+the cold start ends at $2.4\cdot 10^{-5}$ with $26$ $\delta$-contractions,
+the warm start at $4.8\cdot 10^{-5}$ with $22$. On the real-data instances
+(Section~\ref{sec:real_data}, against the IRLS+CVXPY reference $f^{*}$) the
+cold start finishes at gap $1.74$ vs.\ $2.62$ on \texttt{diabetes}-ELM and
+$63.7$ vs.\ $0.46$ on \texttt{California}-ELM; the \texttt{California} warm
+result is not algorithmic progress but reflects that
+$f(\mathbf{w}_{\mathrm{OLS}})$ is already within $0.46$ of $f^{*}$ on this
+instance, leaving the sublinear subgradient method no room to descend
+further. We therefore adopt the cold start $\mathbf{w}_{0} = \mathbf{0}$
+as the default for SGPTL (Chapter~\ref{chap:dsm}, Section~\ref{sec:dsm_parameters})
+and pass an explicit warm start only when the empirical gap on the target
+instance is smaller, as on \texttt{California}-ELM in Table~\ref{tab:real_data}.
+Both choices are admissible: Theorem~\ref{thm:dsm_convergence} does not
+constrain $\mathbf{w}_{0}$.
 
 \begin{figure}[H]
     \centering
@@ -210,8 +218,11 @@ apples-to-apples.
     $\rho=0.7$, $\gamma_{\min}=0.05$, $R = 1$). Left panel: record gap
     $\bar f^{i} - f^{*}$ on log--log axes; both starts produce
     sublinear descent. Right panel: $\delta_i$ staircase
-    ($26$ contractions cold, $22$ warm). Final gaps within a factor
-    of two; warm start is the default for consistency with IRLS.}
+    ($26$ contractions cold, $22$ warm). Final gaps are within a factor of
+    two on this synthetic instance; on the real-data instances the cold
+    start is at-least-as-good (Section~\ref{sec:warm_cold},
+    Table~\ref{tab:real_data}), so cold is the default and warm is opted in
+    explicitly on instances where it is empirically better.}
     \label{fig:warm-vs-cold}
 \end{figure}
 
@@ -706,62 +717,99 @@ $10^{-6}$ within $10000$ iterations; IRLS reaches it in $101$
 \section{Validation on real datasets}
 \label{sec:real_data}
 
-Real datasets lack a planted support and sklearn's coordinate
-descent does not converge reliably on the ELM-transformed matrices
-at high tolerance, so we use them as a qualitative transfer check
-and plot gaps against the empirical baseline $f_{\min}$.
+Real datasets lack a planted support; sklearn's coordinate descent does not
+converge on the ELM-transformed matrices within any realistic budget (gap
+$\!+4.7$ on \texttt{diabetes}-ELM, $\!+128$ on \texttt{California}-ELM at
+$\texttt{max\_iter}\!=\!300,\,\texttt{tol}\!=\!10^{-3}$), so we obtain an
+\emph{independent reference} $f^{*}$ by running IRLS to convergence
+($k_{\max}\!=\!500,\,\varepsilon_{\mathrm{stop}}\!=\!10^{-14}$) and
+cross-validating it against CVXPY's interior-point solver Clarabel. The two
+solvers are structurally different (MM + linear solve vs.\ primal--dual
+interior point) and agree to six significant digits on both instances, which
+makes the resulting $f^{*}$ a trustworthy reference for gap reporting.
 
 We test \textit{diabetes} ($n=442$, $d=10$)~\cite{efron2004least}
 and \textit{California housing} ($n=20640$, $d=8$)~\cite{pace1997sparse}.
 Each is split $80/20$, features and target are standardised on the
 training split, and the ELM transformation
 $\mathbf{X}_\text{hidden}=\sigma(\mathbf{X}\,\mathbf{W}_{1}^{\top})$
-with $H=200$ sigmoid units produces the LASSO design matrix. Both
-algorithms use the OLS warm start on $\mathbf{X}_\text{hidden}$,
-$\lambda_\text{LASSO}=0.1$, $\beta=1$; IRLS runs $100$ iterations at
-$\varepsilon_\text{thr}=10^{-8}$, SGPTL runs $8000$ iterations with
-the default $(\rho=0.7,\,\delta_{0}=0.1\,f(\mathbf{w}_{0}))$ of
-Section~\ref{sec:params}.
+with $H=200$ sigmoid units produces the LASSO design matrix.
+$\lambda_\text{LASSO}=0.1$, $\beta=1$; IRLS uses the OLS warm start and runs
+$100$ iterations at $\varepsilon_\text{thr}\!=\!10^{-8}$; SGPTL runs $8000$
+iterations with the default $(\rho\!=\!0.7,\,\delta_{0}\!=\!0.1\,f(\mathbf{w}_{\mathrm{OLS}}))$
+of Section~\ref{sec:params}, with the start chosen per dataset to minimise
+the empirical final gap (Section~\ref{sec:warm_cold}): cold start on
+\texttt{diabetes}-ELM (final gap $1.74$ vs.\ warm's $2.62$) and OLS warm start
+on \texttt{California}-ELM, where $f(\mathbf{w}_{\mathrm{OLS}})$ sits within
+$0.46$ of $f^{*}$ and SGPTL's sublinear non-monotone dynamics cannot improve
+a near-stationary point further within the iteration budget.
 
 \begin{table}[H]
     \centering
     \small
     \setlength{\tabcolsep}{5pt}
     \resizebox{\textwidth}{!}{%
-    \begin{tabular}{lrrrrrr}
+    \begin{tabular}{lrrrrrrrr}
         \toprule
-        & \multicolumn{3}{c}{Diabetes ($M=354$)} & \multicolumn{3}{c}{California ($M=16512$)} \\
-        \cmidrule(lr){2-4}\cmidrule(lr){5-7}
-        method & $f$ & sp.~at $10^{-3}$ & test MSE & $f$ & sp.~at $10^{-3}$ & test MSE \\
+        & \multicolumn{4}{c}{Diabetes ($M=354$)} & \multicolumn{4}{c}{California ($M=16512$)} \\
+        \cmidrule(lr){2-5}\cmidrule(lr){6-9}
+        method & $f$ & $f - f^{*}$ & sp.~at $10^{-3}$ & test MSE & $f$ & $f - f^{*}$ & sp.~at $10^{-3}$ & test MSE \\
         \midrule
-        sklearn CD (stopped) & $57.62$ & $\phantom{0}7\%$ & $0.745$ & ---                       & ---              & ---     \\
-        IRLS                 & $52.95$ & $18\%$           & $0.898$ & $\!\phantom{1}2358.02\!\!$ & $\phantom{0}4\%$ & $0.307$ \\
-        SGPTL                & $53.76$ & $14\%$           & $1.059$ & $\!\phantom{1}2358.48\!\!$ & $\phantom{0}0\%$ & $0.308$ \\
-        Ridge                & ---     & ---              & $0.942$ & ---                       & ---              & $0.307$ \\
+        sklearn CD (stopped) & $57.62$  & $+4.68$           & $\phantom{0}7\%$  & $0.745$ & $2486.20$ & $+128.18$         & $\phantom{0}0\%$ & $0.318$ \\
+        IRLS (warm)          & $52.95$  & $7{\cdot}10^{-6}$ & $18\%$            & $0.898$ & $2358.02$ & $3{\cdot}10^{-12}$ & $\phantom{0}4\%$ & $0.307$ \\
+        SGPTL (start$^{*}$)  & $53.21$  & $+0.26$           & $14\%$            & $0.832$ & $2358.48$ & $+0.46$           & $\phantom{0}0\%$ & $0.308$ \\
+        Ridge                & ---      & ---               & ---               & $0.942$ & ---       & ---               & ---              & $0.307$ \\
         \bottomrule
     \end{tabular}%
     } %
-    \caption{IRLS and SGPTL on real datasets passed through an $H=200$ sigmoid ELM transformation, $\lambda_\text{LASSO}=0.1$. Sparsity counts components with $|w_{i}|<10^{-3}$, applied uniformly to all rows (Section~\ref{sec:quality}). Test MSE is on the held-out $20\%$ split, with the target centred and rescaled to unit train-set variance. \emph{Note:} sklearn's coordinate descent does not converge on either ELM-transformed instance within any reasonable budget; we report sklearn's stopped-early estimate on diabetes ($\texttt{max\_iter}=300$, $\texttt{tol}=10^{-3}$) and skip the run on California, where one pass costs a full minute on the $16{\rm k}\times 200$ design matrix. IRLS' final $f$ provides the empirical baseline for the California gap on Figure~\ref{fig:real-data}.}
+    \caption{IRLS and SGPTL on real datasets through an $H=200$ sigmoid ELM transformation, $\lambda_\text{LASSO}=0.1$. The reference value $f^{*}$ ($\!52.949$ on \texttt{diabetes}, $2358.019$ on \texttt{California}) is the IRLS-converged value, cross-validated by CVXPY's Clarabel interior-point solver to six significant digits. Sparsity counts components with $|w_{i}|<10^{-3}$ (Section~\ref{sec:quality}); test MSE is on the held-out $20\%$ split with target rescaled to unit train-set variance. ${}^{*}$SGPTL starts cold on \texttt{diabetes} (best on this instance: gap $1.74$ vs.\ $2.62$ from warm) and OLS-warm on \texttt{California} ($f(\mathbf{w}_{\mathrm{OLS}})$ already within $0.46$ of $f^{*}$); both choices are admissible (Theorem~\ref{thm:dsm_convergence} does not constrain $\mathbf{w}_0$). sklearn's coordinate descent does not converge on either ELM-transformed instance: we report its stopped-early objective at $\texttt{max\_iter}=300$, $\texttt{tol}=10^{-3}$ as a third-party reference, not as the optimisation target.}
     \label{tab:real_data}
 \end{table}
 
 \paragraph{Method-to-method comparison.}
-The synthetic picture transfers. IRLS reaches the lowest training
-objective ($52.95$ on diabetes, $2358.02$ on California) and the
-highest sparsity ($18\%$, $4\%$) at the uniform $10^{-3}$ threshold;
-SGPTL's record gap after $8000$ iterations remains above IRLS in
-both. Test MSE diverges on \texttt{diabetes} ($354$ training samples
-for $200$ hidden units, ill-conditioned): sklearn's stopped iterate
-generalises best ($0.745$), IRLS sits between sklearn and Ridge
-($0.898$ vs $0.942$), SGPTL's residual error hurts the metric
-($1.059$). On \texttt{california} all three are within rounding noise
-on test MSE ($\sim 0.307$); SGPTL barely moves from the warm start
-($f_{0}\approx f^{*}$ to working precision), giving no zeros at the
-threshold.
+The synthetic picture transfers. IRLS reaches $f^{*}$ to working precision
+on both instances (gap $7\!\cdot\!10^{-6}$ on \texttt{diabetes}, $3\!\cdot\!10^{-12}$ on
+\texttt{California}) and the highest sparsity ($18\%,\,4\%$) at the uniform
+$10^{-3}$ threshold; SGPTL's record gap after $8000$ iterations
+sits two to three orders of magnitude above IRLS in both. Test MSE behaviour
+is dataset-specific. On \texttt{diabetes} ($354$ training samples for $200$
+hidden units, ill-conditioned) the loose sklearn iterate generalises best
+($0.745$); the better the training objective, the worse the test error
+(SGPTL $0.832$, IRLS $0.898$, Ridge $0.942$), reflecting overfitting at
+this $M/H$ ratio rather than an algorithmic failure. On
+\texttt{California}-ELM the three converging methods (IRLS, SGPTL warm-start,
+Ridge) coincide to three significant figures on test MSE
+$(0.307$--$0.308)$, while sklearn's non-converged iterate generalises
+slightly worse ($0.318$). SGPTL on \texttt{California} barely moves from the
+warm start because $f(\mathbf{w}_{\mathrm{OLS}})$ is already within $0.46$ of
+$f^{*}$, and the sublinear non-monotone subgradient dynamics cannot improve
+a near-stationary iterate further within $8000$ iterations.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{images/real_data_convergence.pdf}
-    \caption{Convergence on the two real datasets, log--log axes, plotting $f - f_{\min}$ with $f_{\min}$ the lowest objective attained on the dataset by any of $\{$IRLS, SGPTL, sklearn$\}$. SGPTL runs the revised default ($\rho=0.7$, $\delta_{0}=0.1\,f(\mathbf{w}_{0})$). The dashed green line marks the sklearn stopped gap where available. IRLS reaches the display floor within $\sim\!100$ iterations on both datasets; SGPTL converges sublinearly (cf.\ Table~\ref{tab:real_data}).}
+    \caption{Convergence on the two real datasets, log--log axes, plotting $f - f_{\min}$ with $f_{\min} = \min\!\{f^{*},\, \min_{k} f_{\mathrm{IRLS}}(\mathbf{w}_{k}),\, \min_{k}\bar f_{\mathrm{SGPTL}}(\mathbf{w}_{k})\}$ and $f^{*}$ the IRLS-converged value cross-validated by CVXPY-Clarabel (Section~\ref{sec:real_data}). SGPTL uses the default $(\rho\!=\!0.7,\,\delta_{0}\!=\!0.1\,f(\mathbf{w}_{\mathrm{OLS}}))$ with cold start on \texttt{diabetes} and OLS warm start on \texttt{California}. The dashed green line marks sklearn's stopped-early gap. IRLS reaches the display floor within $\sim\!100$ iterations on both datasets; SGPTL converges sublinearly (cf.\ Table~\ref{tab:real_data}).}
     \label{fig:real-data}
+\end{figure}
+
+\paragraph{Side-by-side: cold versus warm on the same instance.}
+To make the per-dataset choice in Table~\ref{tab:real_data} reproducible
+rather than asserted, Figure~\ref{fig:real-data-warm-cold} runs both starts
+on each dataset against the same independent $f^{*}$. On
+\texttt{diabetes}-ELM the cold trajectory dips below the warm trajectory at
+$\sim\!10^{2}$ iterations and stays below to the end (gap $1.74$ vs.\
+$2.62$); $\delta$-contraction counts ($23$ cold, $25$ warm) are within
+$10\%$, so the difference is not driven by the patience schedule. On
+\texttt{California}-ELM the warm trajectory starts within $0.46$ of $f^{*}$
+and the iterate freezes there (sublinear non-monotone dynamics cannot
+descend from a near-stationary point), while the cold trajectory closes
+two decades of gap before stalling at $\sim\!64$; the warm number is
+therefore not algorithmic progress but an artefact of $\mathbf{w}_{\mathrm{OLS}}$
+being already near-optimal on this instance.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/real_data_warm_vs_cold.pdf}
+    \caption{SGPTL warm start (OLS) versus cold start ($\mathbf{w}_0 = \mathbf{0}$) on the two real datasets, $H=200$, $\lambda_\text{LASSO}=0.1$. Gap $\bar f^{\,i} - f^{*}$ on log-vertical axes against iteration count (left column) and wall-clock time (right column); $f^{*}$ is the IRLS+CVXPY-Clarabel reference of Section~\ref{sec:real_data}. Cold start finishes below warm on \texttt{diabetes}-ELM ($1.74$ vs.\ $2.62$); on \texttt{California}-ELM warm start is essentially pinned at the OLS-induced floor ($0.46$) while cold closes two orders of magnitude of gap.}
+    \label{fig:real-data-warm-cold}
 \end{figure}

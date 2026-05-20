@@ -1,13 +1,12 @@
 # Fdb version 4
-["biber main"] 1779121564.77502 "main.bcf" "main.bbl" "main" 1779123222.72905 0
-  "main.bcf" 1779123222.64273 114837 1d11bea6be284ed54cf65274a6c94fc0 "pdflatex"
+["biber main"] 1779303624.33417 "main.bcf" "main.bbl" "main" 1779304156.66452 2
+  "main.bcf" 1779304156.53355 114758 36b850f1599d900126a12146c84671ec "pdflatex"
   "references.bib" 1779014473.7708 5716 44f2972d1c679b28fa7910a6187879a6 ""
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1779123221.0944 "/Users/piccoletto/Desktop/Everything/pisa/corsi/magistrale/primo_anno/CM - Computational Mathematics for Learning and Data Analysis/progetto/report/main.tex" "main.pdf" "main" 1779123222.72928 0
-  "/Users/piccoletto/Desktop/Everything/pisa/corsi/magistrale/primo_anno/CM - Computational Mathematics for Learning and Data Analysis/progetto/report/main.tex" 1779007906.61092 3563 225357a095fb6fc0b4176a727275e7ac ""
+["pdflatex"] 1779304154.90146 "main.tex" "main.pdf" "main" 1779304156.66478 0
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm" 1136768653 1536 e07581a4bb3136ece9eeb4c3ffab8233 ""
@@ -193,10 +192,10 @@
   "/usr/local/texlive/2025/texmf-var/web2c/pdftex/pdflatex.fmt" 1762014249 3345735 45d227c75567e94fd8e00c25f4ba6ba6 ""
   "/usr/local/texlive/2025/texmf.cnf" 1741450484 577 418a7058ec8e006d8704f60ecd22c938 ""
   "1_introduction/report.tex" 1779014495.39233 9795 7df8358ed4fe2d238b9c12f8271fd678 ""
-  "2_algo_1_IRLS/algo1.tex" 1779014495.40208 21246 8b41448e4cf18e1030432f3edbe8e788 ""
-  "3_algo_2_DSM/chapter3.tex" 1779123219.28788 26726 298aac7399f39d793ab69c8bddd9546b ""
-  "4_algo_comparison/comparison.tex" 1779014495.4164 7487 4a8621bc51821107720a5757c68dde76 ""
-  "5_results/results.tex" 1779038714.98463 40219 4c260f663631f38386b236fbe41f5093 ""
+  "2_algo_1_IRLS/algo1.tex" 1779281074.12836 21524 6396777a95c91ba6fd6e04df98b00707 ""
+  "3_algo_2_DSM/chapter3.tex" 1779299642.83467 28360 8bba9936691587c08d58ff3372c21455 ""
+  "4_algo_comparison/comparison.tex" 1779128505.07577 9293 fc511f7aad4e23f3f29355fe15e5bfdf ""
+  "5_results/results.tex" 1779304139.64777 44762 7fa70b460c1d09bbf4bf347d67900d7e ""
   "6_conclusions/conclusions.tex" 1779014495.4304 5364 7a3c805467f9475aef2c09770c5fb57c ""
   "images/cherubino_pant541.png" 1777368345.91363 164399 35acb288a44c404ffd063bc22487e4be ""
   "images/comparison_irls_dsm.pdf" 1778948715.94223 44363 d5f8219054cf0fedeb73f89ea4cac6a8 ""
@@ -208,16 +207,17 @@
   "images/gamma_floor_test.pdf" 1779025401.87997 38836 fefb90990cb7a98426e277c09d3557e2 ""
   "images/params_dsm.pdf" 1778948715.9435 38858 a7da00007df97a1a1ccb1361c3338920 ""
   "images/params_irls.pdf" 1778256200.18876 41794 bbceb611322e9a88257deda462b97965 ""
-  "images/real_data_convergence.pdf" 1778948715.94376 43284 e1522ca688c4f2cb4b4bad29b584e639 ""
+  "images/real_data_convergence.pdf" 1779304109.32739 44727 f85819bcfaacaf7bcbc98cb3f37707d6 ""
+  "images/real_data_warm_vs_cold.pdf" 1779304109.33091 44503 82933859df1b3aac1c82bad81dcbaa75 ""
   "images/scalability.pdf" 1778948715.94395 27956 df5251d2f646dd0966389ef436dc0050 ""
   "images/solver_comparison.pdf" 1778256200.19873 42433 e6088dcd735dfd9864040ec16ced1927 ""
   "images/warm_vs_cold.pdf" 1778948715.94417 37582 fa5a5b0ab7a27a1c54071ccaa04bc098 ""
-  "main.aux" 1779123222.63688 48032 d0ebdc4e27f9eaa7156c744d71b165d3 "pdflatex"
-  "main.bbl" 1779121566.37844 26056 345aabe8f822368db1cea1371ca5571e "biber main"
-  "main.out" 1779123222.64195 11270 5d6b44107d9eb139b7bb5675b02d3b34 "pdflatex"
-  "main.run.xml" 1779123222.64321 2305 52095dfad395b381e9a32937e764a41c "pdflatex"
+  "main.aux" 1779304156.52757 49142 5e24e36c076dae159389f0d37580cad1 "pdflatex"
+  "main.bbl" 0 -1 0 "biber main"
+  "main.out" 1779304156.53274 11270 5d6b44107d9eb139b7bb5675b02d3b34 "pdflatex"
+  "main.run.xml" 1779304156.53405 2305 63f269bfedf01fc607ba88db2e78a934 "pdflatex"
   "main.tex" 1779007906.61092 3563 225357a095fb6fc0b4176a727275e7ac ""
-  "main.toc" 1779123222.64326 7980 f78c9a9e80ca5a641c235a6ca74cf3b5 "pdflatex"
+  "main.toc" 1779304156.53409 8078 c768de5943fbf619f6484b916c69167f "pdflatex"
   (generated)
   "main.aux"
   "main.bcf"

@@ -1,10 +1,10 @@
 """Algorithm A2: deflected subgradient with Polyak target level (SGPTL).
 
 Iteration: g_i = subgradient of f at w_i; gamma_i minimises
-||gamma g_i + (1-gamma) d_{i-1}||^2 on [gamma_min, 1]; d_i is the convex
-combination; alpha_i is the stepsize-restricted Polyak step with target
-level f_ref - delta; w_{i+1} = w_i - alpha_i d_i. f_ref, delta and the
-travel-distance counter r are updated by the patience rules.
+||gamma g_i + (1-gamma) d_{i-1}||^2 on [gamma_min, 1]
+-> d_i is the convex combination
+-> alpha_i is the stepsize-restricted Polyak step with target level f_ref - delta
+-> w_{i+1} = w_i - alpha_i d_i. f_ref, delta and the travel-distance counter r are updated by the patience rules
 """
 
 import time
@@ -13,8 +13,8 @@ import numpy as np
 from .lasso_utils import f_lasso, subgradient_f
 
 
-def _optimal_gamma(g, d_prev, gamma_min=0.0):
-    """Closed-form minimiser of ||gamma g + (1-gamma) d_prev||^2 on [gamma_min, 1]."""
+def _optimal_gamma(g, d_prev, gamma_min=0.05):
+    """Closed-form minimiser of ||gamma g + (1-gamma) d_prev||^2 on [gamma_min, 1]"""
     d_sq = d_prev @ d_prev
     if d_sq < 1e-30:
         return 1.0
@@ -30,11 +30,25 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0,
                           delta0=None, R=None, rho=0.95,
                           f_star=None, verbose=False, verbose_freq=500,
                           gamma_min=0.05):
+    """Deflected subgradient (SGPTL) for LASSO:
+
+    Args:
+        w0: initial iterate. Default is cold start w_0 = 0
+        i_max: max iteration counter 
+        β: Polyak coefficient -> β_i = min(β, γ_i) at each step
+        delta0: initial target margin, default 0.1·f(w_0)
+        R: travel-distance patience threshold, default 1.0
+        rho: contraction factor applied to δ when r > R, in (0,1)
+        gamma_min: lower clip for the deflection γ_i ∈ [γ_min, 1]
+        f_star: if given, optimality gaps f̄_i - f* are stored in result['gaps']
+
+    Returns dict with keys: w (= argmin iterate), f_vals, f_bar, gaps,
+    gamma_hist, skip_hist, times, n_iter, delta_hist.
+
+    Cold-start default: callers may pass an explicit w0 when they want a warm start    
+    """
     _, H = X.shape
 
-    # Cold start by default: warm-starting from OLS places w_0 too close to w^*,
-    # the Polyak numerator is dominated by delta_0, r never reaches R, and
-    # delta is never contracted. Callers may still pass an explicit w0.
     if w0 is None:
         w = np.zeros(H)
     else:
@@ -80,8 +94,10 @@ def deflected_subgradient(X, y, lam, w0=None, i_max=5000, beta=1.0,
         target = f_ref - delta
         num = beta_i * (f_curr - target)
 
-        # lambda_k < 0 in (3.5) of d'Antonio-Frangioni 2009: skip the step
-        # and refresh f_ref (sufficient-descent condition met at w_i).
+        # Safeguard (ii): num ≤ 0 implies f_i ≤ f_ref - δ,
+        # so the sufficient-descent test fires at w_i already. Set α_i = 0
+        # (no move) and refresh f_ref. Matches (3.5) of d'Antonio-Frangioni
+        # 2009 for the λ_k ≤ 0 branch.
         if num <= 0.0:
             f_ref = f_bar
             r = 0.0

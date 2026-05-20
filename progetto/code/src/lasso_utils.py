@@ -4,20 +4,23 @@ import numpy as np
 
 
 def f_lasso(X, y, w, lam):
+    """Compute f(w) = (1/2)·||Xw - y||² + λ·||w||₁."""
     r = X @ w - y
     return float(0.5 * r @ r + lam * np.sum(np.abs(w)))
 
 
 def grad_smooth(X, y, w):
+    """Gradient of the smooth part: X^T(Xw - y)."""
     return X.T @ (X @ w - y)
 
 
 def subgradient_f(X, y, w, lam):
-    # Min-norm subgradient: sign(0) = 0 picks s_i = 0 at w_i = 0.
+    """A subgradient of f at w (picks sign(0) = 0 on null coordinates)."""
     return grad_smooth(X, y, w) + lam * np.sign(w)
 
 
 def optimality_gap(X, y, w, lam, f_star):
+    """f(w) - f*."""
     return f_lasso(X, y, w, lam) - f_star
 
 
@@ -28,11 +31,10 @@ def support_metrics(w_true, w_hat, tol=1e-3):
     tp = int(np.sum(s_true & s_hat))
     fp = int(np.sum(~s_true & s_hat))
     fn = int(np.sum(s_true & ~s_hat))
-    if tp + fp > 0:
-        precision = tp / (tp + fp)
-    else:
-        precision = 1.0 if not s_true.any() else 0.0
-    recall = tp / (tp + fn) if tp + fn > 0 else 1.0
+    # precision undefined when nothing is predicted positive; return 0
+    # (no positives predicted = no correct positives).
+    precision = tp / (tp + fp) if tp + fp > 0 else 0.0
+    recall    = tp / (tp + fn) if tp + fn > 0 else 1.0
     f1 = 2 * precision * recall / (precision + recall) if precision + recall > 0 else 0.0
     return {
         "tol":       tol,
@@ -46,12 +48,16 @@ def support_metrics(w_true, w_hat, tol=1e-3):
     }
 
 
-def check_optimality(X, y, w, lam, tol=1e-6):
-    """Max KKT violation. tol selects which components are treated as zero."""
+def check_optimality(X, y, w, lam, zero_tol=1e-6):
+    """Max KKT-residual over coordinates.
+
+    A coordinate w_i is treated as zero when |w_i| < zero_tol.
+    Returns 0 iff w satisfies the LASSO optimality system up to the tolerance.
+    """
     g = grad_smooth(X, y, w)
     v = 0.0
     for i in range(len(w)):
-        if abs(w[i]) < tol:
+        if abs(w[i]) < zero_tol:
             vi = max(0.0, abs(g[i]) - lam)
         else:
             vi = abs(g[i] + lam * np.sign(w[i]))

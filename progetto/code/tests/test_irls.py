@@ -43,7 +43,7 @@ def test_irls_kkt_residual_small(medium_problem):
     res = irls(p.X, p.y, p.lam, eps_thr=1e-10, eps_stop=1e-12, k_max=300)
     # KKT violation tolerance proportional to eps_thr (small components are
     # frozen by the safety threshold and may have residual up to lam*eps_thr).
-    viol = check_optimality(p.X, p.y, res["w"], p.lam, tol=1e-6)
+    viol = check_optimality(p.X, p.y, res["w"], p.lam, zero_tol=1e-6)
     assert viol < 1e-2, f"KKT violation {viol:.2e}"
 
 

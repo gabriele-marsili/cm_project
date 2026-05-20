@@ -5,11 +5,19 @@ import scipy.linalg as la
 
 
 def cholesky_solve(Q, b):
+    """Solve Q x = b for SPD Q via Cholesky factorization (Q = L L^T)."""
     c, low = la.cho_factor(Q, lower=True, check_finite=False)
     return la.cho_solve((c, low), b, check_finite=False)
 
 
 def conjugate_gradient(Q, b, x0=None, tol=1e-10, max_iter=None, precond=None):
+    """Preconditioned CG for SPD Q x = b. Returns (x, iters_done).
+
+    precond: vector applied as M^{-1} = diag(precond). If None, uses Jacobi
+    (precond_i = 1 / Q_ii), which requires strictly positive diag(Q).
+    Stops on relative residual ||r|| <= tol * ||b||. In exact arithmetic,
+    converges in at most n iterations.
+    """
     n = len(b)
     if max_iter is None:
         max_iter = n
@@ -18,7 +26,7 @@ def conjugate_gradient(Q, b, x0=None, tol=1e-10, max_iter=None, precond=None):
     r = b - Q @ x
 
     if precond is None:
-        precond = 1.0 / np.diag(Q)   # Jacobi
+        precond = 1.0 / np.diag(Q)   # Jacobi preconditioner (assumes diag(Q) > 0)
     z = precond * r
     p = z.copy()
     rz = r @ z
@@ -42,10 +50,17 @@ def conjugate_gradient(Q, b, x0=None, tol=1e-10, max_iter=None, precond=None):
     return x, max_iter
 
 
-def solve_spd(Q, b, method='cholesky', **kwargs):
+def solve_spd(Q, b, method='cholesky', return_info=False, **kwargs):
+    """Solve SPD system Q x = b. method ∈ {'cholesky', 'cg'}.
+
+    return_info=False (default): returns x.
+    return_info=True: returns (x, info) where info is None for Cholesky and
+    the number of CG iterations performed for CG. Useful for diagnostics.
+    """
     if method == 'cholesky':
-        return cholesky_solve(Q, b)
+        x = cholesky_solve(Q, b)
+        return (x, None) if return_info else x
     if method == 'cg':
-        w, _ = conjugate_gradient(Q, b, **kwargs)
-        return w
+        x, n_iter = conjugate_gradient(Q, b, **kwargs)
+        return (x, n_iter) if return_info else x
     raise ValueError(f"Unknown method: {method!r}")

@@ -118,14 +118,14 @@ def test_subgradient_minimum_norm_at_zero():
 
 def test_check_optimality_zero_at_sklearn_solution(small_problem):
     p = small_problem
-    viol = check_optimality(p.X, p.y, p.w_star, p.lam, tol=1e-6)
+    viol = check_optimality(p.X, p.y, p.w_star, p.lam, zero_tol=1e-6)
     assert viol < 5e-4, f"sklearn solution should be near-optimal; got {viol:.2e}"
 
 
 def test_check_optimality_positive_at_random_point(small_problem, rng):
     p = small_problem
     w_random = rng.standard_normal(p.X.shape[1])
-    viol = check_optimality(p.X, p.y, w_random, p.lam, tol=1e-6)
+    viol = check_optimality(p.X, p.y, w_random, p.lam, zero_tol=1e-6)
     assert viol > 0.0
 
 

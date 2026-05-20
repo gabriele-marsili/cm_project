@@ -66,9 +66,12 @@ followed by two triangular back-substitutions. Cost: $O(H^3/3) + O(H^2)$.
 This is the default solver and is used in all experiments with $H \leq 5000$.
 
 \paragraph{Conjugate Gradient (\texttt{conjugate\_gradient}).}
-A standard CG loop, terminating when the relative residual
+A preconditioned CG loop with diagonal (Jacobi) preconditioner
+$\mathbf{M}^{-1} = \operatorname{diag}(\mathbf{Q}_k)^{-1}$, well defined since
+$\mathbf{Q}_k$ has strictly positive diagonal.
+The iteration terminates when the relative residual
 $\|\mathbf{r}_k\| / \|\mathbf{b}\| < \texttt{tol}$ (default $10^{-10}$).
-Converges in at most $H$ steps in exact arithmetic.
+In exact arithmetic it converges in at most $H$ steps.
 Preferred for large $H$ where the $O(H^3)$ Cholesky cost becomes prohibitive.
 
 A unified interface \texttt{solve\_spd(Q, b, method)} accepts \texttt{'cholesky'}
@@ -208,15 +211,23 @@ and count of output weights with $|w_i| \geq 10^{-8}$.
 generates a synthetic regression dataset $(X, y)$ with a known sparse ground-truth
 vector $\mathbf{w}_{\mathrm{true}}$:
 \begin{enumerate}[nosep]
-    \item Draw $\mathbf{X} \in \mathbb{R}^{M \times n}$ with i.i.d.\ $\mathcal{N}(0,1)$
-    entries.
+    \item Draw $\mathbf{X}_{\mathrm{raw}} \in \mathbb{R}^{M \times n}$ with i.i.d.\
+    $\mathcal{N}(0,1)$ entries, then normalise each column to unit $\ell_2$ norm.
     \item Draw $\mathbf{w}_{\mathrm{true}}$ with $\lfloor n \cdot \mathrm{sparsity}\rfloor$
     non-zero components drawn from $\mathcal{N}(0,1)$.
     \item Set $\mathbf{y} = \mathbf{X}\mathbf{w}_{\mathrm{true}} + \varepsilon$,
     $\varepsilon \sim \mathcal{N}(0, \sigma^2)$.
     \item Compute $f^*$ and $\mathbf{w}^*$ by running scikit-learn's \texttt{Lasso}
-    with \texttt{alpha} $= \lambda/(2M)$ (scikit-learn normalises by $1/(2M)$)
-    to machine precision.
+    with \texttt{alpha} $= \lambda/M$ to machine precision. Scikit-learn minimises
+    $(1/(2M))\|\mathbf{Xw} - \mathbf{y}\|_2^2 + \alpha\|\mathbf{w}\|_1$, which shares
+    its minimiser with our $f(\mathbf{w}) = (1/2)\|\mathbf{Xw} - \mathbf{y}\|_2^2 +
+    \lambda\|\mathbf{w}\|_1$ exactly when $\alpha = \lambda/M$.
 \end{enumerate}
+The companion \texttt{make\_elm\_problem} follows the same recipe except that
+the design $\mathbf{X}$ is replaced by $\mathbf{X}_{\mathrm{hidden}} =
+\sigma(\mathbf{X}_{\mathrm{raw}}\mathbf{W}_1^T)$ with a random ELM hidden layer,
+and no column renormalisation is applied: bounded activations already keep the
+columns in a fixed range.
+
 The returned $f^*$ serves as the reference optimal value for gap tracking in all
 experiments.

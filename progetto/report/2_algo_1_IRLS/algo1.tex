@@ -167,7 +167,7 @@ Because $\mathbf{Q}_k$ is SPD, two efficient methods can be used:
     \end{algorithmic}
 \end{algorithm}
 
-\paragraph{Initialization.} We initialize $\mathbf{w}_0$ with the unregularized least-squares solution $\mathbf{A}^{-1}\mathbf{b}$: it is already available (we compute $\mathbf{A}$ and $\mathbf{b}$ once at the start anyway), the relative magnitudes of its components are a reasonable proxy for which weights the $L_1$ penalty will shrink, and no component is exactly zero, so the weights $(\mathbf{W}_0)_{ii} = |(w_0)_i|^{-1/2}$ are well defined without having to lean on $\varepsilon_{\mathrm{thr}}$ at the first step.
+\paragraph{Initialization.} We initialize $\mathbf{w}_0$ with the unregularized least-squares solution $\mathbf{A}^{-1}\mathbf{b}$: it is already available (we compute $\mathbf{A}$ and $\mathbf{b}$ once at the start anyway), the relative magnitudes of its components are a reasonable proxy for which weights the $L_1$ penalty will shrink, and no component is exactly zero, so the weights $(\mathbf{W}_0)_{ii} = |(w_0)_i|^{-1/2}$ are well defined without having to lean on $\varepsilon_{\mathrm{thr}}$ at the first step. In the implementation we add a vanishing ridge $10^{-12}\mathbf{I}$ to $\mathbf{A}$ before this first solve, which is numerically indistinguishable from $\mathbf{A}^{-1}\mathbf{b}$ when $\mathbf{A} \succ 0$ but keeps the warm start well-posed if $\mathbf{X}$ is rank-deficient.
 
 \paragraph{Stopping criterion.} The algorithm terminates when the relative change between successive iterates falls below $\varepsilon_{\mathrm{stop}}$,
 $$\frac{\|\mathbf{w}_{k+1} - \mathbf{w}_k\|}{\max(1, \|\mathbf{w}_k\|)} < \varepsilon_{\mathrm{stop}} \, ,$$

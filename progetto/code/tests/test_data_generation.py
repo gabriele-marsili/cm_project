@@ -36,7 +36,7 @@ def test_make_lasso_problem_fstar_is_local_minimum():
 
 def test_make_lasso_problem_kkt_at_wstar():
     X, y, _, _, w_star = make_lasso_problem(n=20, m=80, lam=0.1, random_state=0)
-    viol = check_optimality(X, y, w_star, 0.1, tol=1e-6)
+    viol = check_optimality(X, y, w_star, 0.1, zero_tol=1e-6)
     assert viol < 1e-3, f"sklearn solution KKT violation {viol:.2e}"
 
 
@@ -57,5 +57,5 @@ def test_make_elm_problem_kkt_at_wstar():
     _, X_hid, y, _, _, _, w_star = make_elm_problem(
         d=8, p=40, m=150, sparsity=0.2, lam=0.05, random_state=3
     )
-    viol = check_optimality(X_hid, y, w_star, 0.05, tol=1e-6)
+    viol = check_optimality(X_hid, y, w_star, 0.05, zero_tol=1e-6)
     assert viol < 1e-2, f"ELM sklearn solution KKT violation {viol:.2e}"

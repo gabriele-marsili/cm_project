@@ -1,15 +1,55 @@
 [0] Config.pm:308> INFO - This is Biber 2.20
 [0] Config.pm:311> INFO - Logfile is 'main.blg'
-[34] biber-darwin:340> INFO - === Mon May 18, 2026, 18:26:06
-[42] Biber.pm:420> INFO - Reading 'main.bcf'
-[73] Biber.pm:994> INFO - Found 18 citekeys in bib section 0
-[78] Biber.pm:4463> INFO - Processing section 0
-[83] Biber.pm:4654> INFO - Looking for bibtex file 'references.bib' for section 0
-[83] bibtex.pm:1713> INFO - LaTeX decoding ...
-[90] bibtex.pm:1519> INFO - Found BibTeX data source 'references.bib'
-[137] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'normalization = NFD' with 'normalization = prenormalized'
-[137] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'variable = shifted' with 'variable = non-ignorable'
-[137] Biber.pm:4283> INFO - Sorting list 'nty/global//global/global/global' of type 'entry' with template 'nty' and locale 'en-US'
-[137] Biber.pm:4289> INFO - No sort tailoring available for locale 'en-US'
-[147] bbl.pm:676> INFO - Writing 'main.bbl' with encoding 'UTF-8'
-[150] bbl.pm:779> INFO - Output to main.bbl
+[27] biber-darwin:340> INFO - === Wed May 20, 2026, 21:10:21
+[33] Biber.pm:420> INFO - Reading 'main.bcf'
+[65] Biber.pm:994> INFO - Found 18 citekeys in bib section 0
+[65] Biber.pm:997> DEBUG - The citekeys for section 0 are: Boyd_Vandenberghe_2004, HUANG2006489, bertsekas1999nonlinear, brannlund1993generalized, bubeck2015convex, chartrand2008iteratively, cortinovis-introleastsquares, dantonio2009deflected, daubechies2008iterativelyreweightedsquaresminimization, efron2004least, frangioni-slides-nonsmooth, frangioni-slides-smooth, frangioni-slides-unconstrained, goffin1999convergence, hastie2009elements, nguyen2016introductionmmalgorithmsmachine, pace1997sparse, trefethen1997numerical
+[67] Biber.pm:1070> DEBUG - Adding datalist of type 'entry' with sortingtemplate 'nty', sortingnamekeytemplatename 'global', labelprefix '', uniquenametemplate 'global', labelalphanametemplate 'global' and name 'nty/global//global/global/global' for section 0
+[70] Biber.pm:4463> INFO - Processing section 0
+[71] Biber.pm:4577> DEBUG - Looking for directly cited keys: HUANG2006489, cortinovis-introleastsquares, Boyd_Vandenberghe_2004, frangioni-slides-unconstrained, frangioni-slides-nonsmooth, daubechies2008iterativelyreweightedsquaresminimization, chartrand2008iteratively, nguyen2016introductionmmalgorithmsmachine, trefethen1997numerical, bubeck2015convex, dantonio2009deflected, brannlund1993generalized, goffin1999convergence, bertsekas1999nonlinear, frangioni-slides-smooth, hastie2009elements, efron2004least, pace1997sparse
+[75] Biber.pm:4654> INFO - Looking for bibtex file 'references.bib' for section 0
+[75] bibtex.pm:181> DEBUG - Caching data for BibTeX format file 'references.bib' for section 0
+[75] bibtex.pm:1662> DEBUG - File 'references.bib' is converted to UTF8 as '/var/folders/7g/q0yqpn0s3fx0_yp3mt53zdyc0000gn/T/biber_tmp_rTFq/33e59b5ca9ec342068223d604c3f8d55_76375.utf8'
+[75] bibtex.pm:1713> INFO - LaTeX decoding ...
+[82] bibtex.pm:1519> INFO - Found BibTeX data source 'references.bib'
+[82] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'nguyen2016introductionmmalgorithmsmachine' from BibTeX file 'references.bib'
+[82] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'daubechies2008iterativelyreweightedsquaresminimization' from BibTeX file 'references.bib'
+[82] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'HUANG2006489' from BibTeX file 'references.bib'
+[82] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'bubeck2015convex' from BibTeX file 'references.bib'
+[82] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'dantonio2009deflected' from BibTeX file 'references.bib'
+[82] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'trefethen1997numerical' from BibTeX file 'references.bib'
+[82] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'frangioni-slides-unconstrained' from BibTeX file 'references.bib'
+[82] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'frangioni-slides-smooth' from BibTeX file 'references.bib'
+[82] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'chartrand2008iteratively' from BibTeX file 'references.bib'
+[82] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'cortinovis-introleastsquares' from BibTeX file 'references.bib'
+[82] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'cortinovis-leastsquares' from BibTeX file 'references.bib'
+[82] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'goodfellow2016deep' from BibTeX file 'references.bib'
+[83] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'rahimi2007random' from BibTeX file 'references.bib'
+[83] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'hastie2009elements' from BibTeX file 'references.bib'
+[83] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'Boyd_Vandenberghe_2004' from BibTeX file 'references.bib'
+[83] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'pace1997sparse' from BibTeX file 'references.bib'
+[83] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'efron2004least' from BibTeX file 'references.bib'
+[83] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'brannlund1993generalized' from BibTeX file 'references.bib'
+[83] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'goffin1999convergence' from BibTeX file 'references.bib'
+[83] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'bertsekas1999nonlinear' from BibTeX file 'references.bib'
+[83] bibtex.pm:1632> DEBUG - Cached Text::BibTeX entry for key 'frangioni-slides-nonsmooth' from BibTeX file 'references.bib'
+[83] bibtex.pm:239> DEBUG - Text::BibTeX cache keys: frangioni-slides-smooth, daubechies2008iterativelyreweightedsquaresminimization, Boyd_Vandenberghe_2004, frangioni-slides-nonsmooth, cortinovis-introleastsquares, hastie2009elements, frangioni-slides-unconstrained, goodfellow2016deep, chartrand2008iteratively, efron2004least, HUANG2006489, bertsekas1999nonlinear, trefethen1997numerical, rahimi2007random, cortinovis-leastsquares, nguyen2016introductionmmalgorithmsmachine, bubeck2015convex, goffin1999convergence, pace1997sparse, brannlund1993generalized, dantonio2009deflected
+[83] bibtex.pm:240> DEBUG - Wanted keys: HUANG2006489, cortinovis-introleastsquares, Boyd_Vandenberghe_2004, frangioni-slides-unconstrained, frangioni-slides-nonsmooth, daubechies2008iterativelyreweightedsquaresminimization, chartrand2008iteratively, nguyen2016introductionmmalgorithmsmachine, trefethen1997numerical, bubeck2015convex, dantonio2009deflected, brannlund1993generalized, goffin1999convergence, bertsekas1999nonlinear, frangioni-slides-smooth, hastie2009elements, efron2004least, pace1997sparse
+[83] bibtex.pm:243> DEBUG - Looking for key 'HUANG2006489' in Text::BibTeX cache
+[83] bibtex.pm:251> DEBUG - Found key 'HUANG2006489' in Text::BibTeX cache
+[83] bibtex.pm:849> DEBUG - Source mapping (type=driver, key=HUANG2006489): Deleting field 'day'
+[83] bibtex.pm:554> DEBUG - Source mapping (type=driver, key=HUANG2006489): Entry type is 'article' but map wants 'conference', skipping step ...
+[83] bibtex.pm:554> DEBUG - Source mapping (type=driver, key=HUANG2006489): Entry type is 'article' but map wants 'electronic', skipping step ...
+[83] bibtex.pm:554> DEBUG - Source mapping (type=driver, key=HUANG2006489): Entry type is 'article' but map wants 'www', skipping step ...
+[83] bibtex.pm:547> DEBUG - Source mapping (type=driver, key=HUANG2006489): Entry type is 'article' but map wants 'mastersthesis' and step has 'final' set, skipping rest of map ...
+[83] bibtex.pm:547> DEBUG - Source mapping (type=driver, key=HUANG2006489): Entry type is 'article' but map wants 'phdthesis' and step has 'final' set, skipping rest of map ...
+[83] bibtex.pm:547> DEBUG - Source mapping (type=driver, key=HUANG2006489): Entry type is 'article' but map wants 'techreport' and step has 'final' set, skipping rest of map ...
+[83] bibtex.pm:713> DEBUG - Source mapping (type=driver, key=HUANG2006489): No field 'hyphenation', skipping step ...
+[83] bibtex.pm:713> DEBUG - Source mapping (type=driver, key=HUANG2006489): No field 'address', skipping step ...
+[83] bibtex.pm:713> DEBUG - Source mapping (type=driver, key=HUANG2006489): No field 'school', skipping step ...
+[83] bibtex.pm:713> DEBUG - Source mapping (type=driver, key=HUANG2006489): No field 'annote', skipping step ...
+[83] bibtex.pm:713> DEBUG - Source mapping (type=driver, key=HUANG2006489): No field 'archiveprefix', skipping step ...
+[83] bibtex.pm:713> DEBUG - Source mapping (type=driver, key=HUANG2006489): No field 'primaryclass', skipping step ...
+[83] bibtex.pm:713> DEBUG - Source mapping (type=driver, key=HUANG2006489): No field 'key', skipping step ...
+[83] bibtex.pm:713> DEBUG - Source mapping (type=driver, key=HUANG2006489): No field 'pdf', skipping step ...
+[83] bibtex.pm:950> DEBUG - Creating biber Entry object with key 'HUANG2006489'

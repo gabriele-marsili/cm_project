@@ -20,7 +20,7 @@ from sklearn.datasets import load_diabetes, fetch_california_housing
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import Lasso as SkLasso
 
-from src import deflected_subgradient
+from src import deflected_subgradient, irls
 from src.elm import ELM
 from src.lasso_utils import f_lasso
 from src.linear_solvers import solve_spd
@@ -84,20 +84,38 @@ def build_hidden(X_tr_raw, X_te_raw, d_in, H=H, seed=SEED, name="california"):
     return elm.transform(X_tr_raw), elm.transform(X_te_raw)
 
 
-def reference_solution(X, y, lam):
-    """sklearn coordinate descent reference at moderate tolerance."""
-    M = X.shape[0]
-    sk = SkLasso(alpha=lam / M, fit_intercept=False, max_iter=300, tol=1e-3)
-    sk.fit(X, y)
-    w_star = sk.coef_
-    f_star = f_lasso(X, y, w_star, lam)
-    return w_star, f_star
-
-
 def ols_warm_start(X, y):
     """Cholesky-based (X^T X + eps I)^{-1} X^T y."""
     return solve_spd(X.T @ X + 1e-10 * np.eye(X.shape[1]),
                      X.T @ y, method="cholesky")
+
+
+def reference_fstar(X, y, lam, w_ols):
+    """Compute an independent reference f^* (IRLS-converged + CVXPY validation).
+
+    Two structurally different solvers (MM-style IRLS + interior-point Clarabel)
+    cross-validate the optimum. sklearn CD is too loose on these ELM-transformed
+    instances to serve as the reference.
+    """
+    M, p = X.shape
+    res = irls(X, y, lam, eps_thr=1e-8, eps_stop=1e-14,
+               k_max=500, solver="cholesky", w0=w_ols)
+    f_irls = float(np.min(res["f_vals"]))
+    f_cvxpy = None
+    if M * p <= 4_000_000:
+        try:
+            import cvxpy as cp
+            w = cp.Variable(p)
+            obj = cp.Minimize(0.5 * cp.sum_squares(X @ w - y) + lam * cp.norm(w, 1))
+            prob = cp.Problem(obj)
+            prob.solve(solver=cp.CLARABEL, verbose=False, max_iter=200_000)
+            if prob.status in ("optimal", "optimal_inaccurate") and prob.value is not None:
+                f_cvxpy = float(prob.value)
+        except Exception:
+            pass
+    if f_cvxpy is not None:
+        return min(f_irls, f_cvxpy), f"cvxpy ({f_cvxpy:.6e}) + irls ({f_irls:.6e})"
+    return f_irls, "irls-converged"
 
 
 def run_one(name):
@@ -111,26 +129,31 @@ def run_one(name):
     print(f"  hidden activations: shape={X_tr.shape}, "
           f"cond(X^T X) ≈ {np.linalg.cond(X_tr.T @ X_tr):.2e}")
 
-    # f_star: sklearn on diabetes, OLS placeholder on california (sklearn
-    # does not converge there within a reasonable iteration budget).
-    if name == "california":
-        print("  sklearn skipped on this dataset; using OLS f as placeholder for f_star.")
-        f_star = float(f_lasso(X_tr, y_tr, ols_warm_start(X_tr, y_tr), LAMBDA_CALIFORNIA))
-    else:
-        _, f_star = reference_solution(X_tr, y_tr, LAMBDA_DIABETES)
-        print(f"  f* (sklearn baseline) = {f_star:.6f}")
-
     lambda_ = LAMBDA_CALIFORNIA if name == "california" else LAMBDA_DIABETES
     i_max = DSM_IMAX_CALIFORNIA if name == "california" else DSM_IMAX_DIABETES
-    delta0 = (DSM_DELTA0_CALIFORNIA if name == "california" else DSM_DELTA0_DIABETES) * f_star
     rho = DSM_RHO_CALIFORNIA if name == "california" else DSM_RHO_DIABETES
+
+    # Shared OLS warm start; used both to anchor δ_0 (which must be computable
+    # a priori, before f^* is known) and as the warm-start iterate.
+    w_ols = ols_warm_start(X_tr, y_tr)
+    f_w_ols = float(f_lasso(X_tr, y_tr, w_ols, lambda_))
+
+    # Independent reference f^* — IRLS-converged + CVXPY validation. Used only
+    # for the gap-to-f^* visualisation; the SGPTL algorithm itself never sees it.
+    f_star, src = reference_fstar(X_tr, y_tr, lambda_, w_ols)
+    print(f"  f(w_OLS) = {f_w_ols:.6f}")
+    print(f"  f* (independent reference) = {f_star:.6f}  [source: {src}]")
+    print(f"  gap(OLS, f*) = {f_w_ols - f_star:.3e}")
+
+    # δ_0 = c · f(w_OLS): an a-priori computable upper bound on c·f^*; the
+    # patience mechanism contracts δ when this bound overshoots f^*.
+    delta0 = (DSM_DELTA0_CALIFORNIA if name == "california" else DSM_DELTA0_DIABETES) * f_w_ols
 
 
     # ------------------------------------------------------------------
     # WARM START (OLS)
     # ------------------------------------------------------------------
     t0    = time.time()
-    w_ols = ols_warm_start(X_tr, y_tr)
     res_warm = deflected_subgradient(
         X_tr, y_tr, lam=lambda_,
         w0=w_ols, i_max=i_max, beta=1.0,

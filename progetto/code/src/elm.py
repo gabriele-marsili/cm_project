@@ -7,6 +7,8 @@ from .deflected_subgradient import deflected_subgradient
 
 
 def _sigmoid(z):
+    # Clip pre-activation to avoid overflow in np.exp; |z|>500 saturates
+    # σ to {0,1} to machine precision anyway.
     z = np.clip(z, -500.0, 500.0)
     return 1.0 / (1.0 + np.exp(-z))
 
@@ -39,9 +41,14 @@ class ELM:
         self._fit_result = None
 
     def transform(self, X_raw):
+        """Hidden-layer features: σ(X_raw @ W1.T), shape (M, p)."""
         return self.sigma(X_raw @ self.W1.T)
 
     def fit(self, X_raw, y, solver='irls', **kwargs):
+        """Fit output weights w by solving the LASSO problem on transformed inputs.
+
+        solver: 'irls' (A1) or 'dsm' (A2). Extra kwargs are forwarded to the solver.
+        """
         Xh = self.transform(X_raw)
         if solver == 'irls':
             res = irls(Xh, y, self.lam, **kwargs)
@@ -54,6 +61,7 @@ class ELM:
         return self
 
     def predict(self, X_raw):
+        """Return ŷ = transform(X_raw) @ w. Requires a prior fit()."""
         if self.w is None:
             raise RuntimeError("Call fit() first.")
         return self.transform(X_raw) @ self.w

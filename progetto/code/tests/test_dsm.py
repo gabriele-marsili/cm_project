@@ -41,13 +41,14 @@ def test_optimal_gamma_is_argmin_of_norm(rng):
 # ---------------------------------------------------------------------------
 
 
-def test_dsm_default_warmstart_is_ols(small_problem):
-    """default w0 = (X^T X)^-1 X^T y."""
+def test_dsm_default_init_is_cold(small_problem):
+    """Default w0 = 0 (cold start). The OLS warm start is admissible but is
+    expected to be passed explicitly by the caller (see chapter 3, §parameter
+    calibration)."""
     p = small_problem
     res = deflected_subgradient(p.X, p.y, p.lam, i_max=0)
-    # i_max=0 means no iterations; w_best is the warm start
-    w_ols = np.linalg.solve(p.X.T @ p.X + 1e-12 * np.eye(p.X.shape[1]), p.X.T @ p.y)
-    assert np.allclose(res["w"], w_ols, atol=1e-8)
+    # i_max=0 means no iterations; w_best is the starting point.
+    assert np.allclose(res["w"], np.zeros(p.X.shape[1]), atol=1e-12)
 
 
 def test_dsm_user_warmstart_honoured(small_problem):
