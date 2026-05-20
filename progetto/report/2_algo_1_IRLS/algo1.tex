@@ -5,27 +5,18 @@ Iteratively Reweighted Least Squares (IRLS) \cite{daubechies2008iterativelyrewei
 optimization problems involving non-smooth objective functions of the form of a $p$-norm.
 Its core idea is to handle non-smoothness
 by solving a sequence of \textit{weighted} least-squares problems, each of which is
-smooth and admits an efficient closed-form solution. In our setting, IRLS is used
-to minimize the $L_1$-regularized least-squares objective:
-\begin{equation}
-    \min_{\mathbf{w} \in \mathbb{R}^H} f(\mathbf{w})
-    = \underbrace{\frac{1}{2}\|\mathbf{Xw} - \mathbf{y}\|_2^2}_{g(\mathbf{w})}
-    + \underbrace{\lambda_{\text{LASSO}}\|\mathbf{w}\|_1}_{h(\mathbf{w})}
-    \label{eq:irls_objective}
-\end{equation}
-where $\mathbf{X} \in \mathbb{R}^{M \times H}$, $\mathbf{y} \in \mathbb{R}^M$,
-and $\lambda_{\text{LASSO}} > 0$ is the regularization hyperparameter of the original problem.
+smooth and admits a closed-form solution.
 
 % ------------------------------------------------------------------
 \section{The core idea: a strict upper bound for the \texorpdfstring{$L_1$}{L1} norm}
 \label{sec:irls_idea}
 
-The difficulty in~\eqref{eq:irls_objective} is the $L_1$ term: convex but non-differentiable at every component crossing zero. To replace it with a smooth surrogate we use the elementary inequality $(|w_i| - |(w_k)_i|)^2 \ge 0$, which after expansion and division by $2|(w_k)_i|$ gives the majorization
+The difficulty in~\eqref{eq:obj_fun} is the $L_1$ term: convex but non-differentiable in every point where $w_i = 0$ for at least an index $i$. To replace it with a smooth surrogate function, we use the inequality $(|w_i| - |(w_k)_i|)^2 \ge 0$, which, after expansion and division by $2|(w_k)_i|$, gives the majorization:
 \begin{equation}
-    |w_i| \le \frac{w_i^2}{2|(w_k)_i|} + \frac{|(w_k)_i|}{2}, \qquad (w_k)_i \neq 0.
+    |w_i| \le \frac{w_i^2}{2|(w_k)_i|} + \frac{|(w_k)_i|}{2} \qquad (w_k)_i \neq 0
     \label{eq:irls_majorization_inequality}
 \end{equation}
-Summing over $i = 1, \ldots, H$ yields the bound on the $L_1$ norm
+Summing over $i = 1, \ldots, H$ returns the bound on the $L_1$ norm
 \begin{equation}
     \|\mathbf{w}\|_1 \le \frac{1}{2} \mathbf{w}^T \mathbf{W}_k^T\mathbf{W}_k \mathbf{w} + \frac{1}{2}\|\mathbf{w}_k\|_1
     \label{eq:irls_quadratic}
@@ -36,8 +27,8 @@ where $\mathbf{W}_k \in \mathbb{R}^{H \times H}$ is a diagonal matrix with entri
     \label{eq:irls_weights_exact}
 \end{equation}
 This bounds the non-smooth $L_1$ term using a \textit{smooth, quadratic} expression
-$\frac{1}{2}\mathbf{w}^T \mathbf{W}_k^T \mathbf{W}_k \mathbf{w}$, plus a constant term that depends only on the current iterate $\mathbf{w}_k$.
-Intuitively, $\mathbf{W}_k^T \mathbf{W}_k$ implements a \textit{personalized penalization} of each component of $\mathbf{w}$ \cite{chartrand2008iteratively}: components with small magnitude at iteration $k$ receive a large weight $|(w_k)_i|^{-1}$ and are strongly pushed toward zero, while components with large magnitude receive a small weight and are left relatively free. This \textit{reweighting} mechanism is what drives IRLS to produce sparse iterates, mimicking the sparsity-inducing effect of the $L_1$ norm through a sequence of smooth quadratic problems.
+$\frac{1}{2}\mathbf{w}^T \mathbf{W}_k^T \mathbf{W}_k \mathbf{w}$, plus a constant term that depends only on the current iteration $\mathbf{w}_k$.
+$\mathbf{W}_k^T \mathbf{W}_k$ represents a sort of \textit{personalized penalization} of each component of $\mathbf{w}$ \cite{chartrand2008iteratively}: components with small magnitude at iteration $k$ receive a large weight $|(w_k)_i|^{-1/2}$ and are strongly pushed toward zero, while components with large magnitude receive a small weight and are left relatively free. This \textit{reweighting} mechanism is what drives IRLS to produce sparse iterates.
 
 \paragraph{Handling near-zero components.}
 Equation~\eqref{eq:irls_weights_exact} becomes numerically unstable when $(w_k)_i
@@ -53,44 +44,58 @@ Typical values are $\varepsilon_{\mathrm{thr}} \in [10^{-6}, 10^{-10}]$.
 \section{The Majorization-Minimization interpretation}
 \label{sec:irls_mm}
 
-IRLS fits naturally inside the Majorization-Minimization (MM) framework \cite{nguyen2016introductionmmalgorithmsmachine}. Instead of minimizing $f$ directly, at each iteration $k$ we build a \emph{surrogate} $Q(\mathbf{w}, \mathbf{w}_k)$ that (i) majorizes $f$, i.e.\ $Q(\mathbf{w}, \mathbf{w}_k) \ge f(\mathbf{w})$ for all $\mathbf{w}$; (ii) touches $f$ at $\mathbf{w}_k$, i.e.\ $Q(\mathbf{w}_k, \mathbf{w}_k) = f(\mathbf{w}_k)$; and (iii) is smooth, so that it can be minimized in closed form. Plugging the quadratic upper bound~\eqref{eq:irls_quadratic} into~\eqref{eq:irls_objective} gives our surrogate,
+IRLS fits inside the Majorization-Minimization (MM) framework \cite{nguyen2016introductionmmalgorithmsmachine}. Instead of minimizing $f$ directly, at each iteration $k$ we build a \emph{surrogate} $Q(\mathbf{w}, \mathbf{w}_k)$ function that:
+\begin{enumerate}
+    \item Majorizes $f$: $Q(\mathbf{w}, \mathbf{w}_k) \ge f(\mathbf{w})$ for all $\mathbf{w}$
+    \item Touches $f$ at $\mathbf{w}_k$: $Q(\mathbf{w}_k, \mathbf{w}_k) = f(\mathbf{w}_k)$
+    \item Is smooth, so that it can be minimized in closed form
+\end{enumerate}
+Plugging the quadratic upper bound~\eqref{eq:irls_quadratic} into~\eqref{eq:obj_fun} gives the following surrogate:
 \begin{equation}
     Q(\mathbf{w}, \mathbf{w}_k) = \frac{1}{2}\|\mathbf{Xw} - \mathbf{y}\|_2^2
     + \frac{\lambda_{\text{LASSO}}}{2}\|\mathbf{W}_k\mathbf{w}\|_2^2
-    + \frac{\lambda_{\text{LASSO}}}{2}\|\mathbf{w}_k\|_1 \, ,
+    + \frac{\lambda_{\text{LASSO}}}{2}\|\mathbf{w}_k\|_1
     \label{eq:irls_surrogate}
 \end{equation}
-which is indeed a quadratic in $\mathbf{w}$. The majorization property is built in via~\eqref{eq:irls_majorization_inequality}. The touching property follows from a short computation: at $\mathbf{w} = \mathbf{w}_k$, each summand of the quadratic penalty becomes $(\mathbf{W}_k)_{ii}^2 (w_k)_i^2 = (w_k)_i^2/|(w_k)_i| = |(w_k)_i|$, so
-\[
-Q(\mathbf{w}_k, \mathbf{w}_k)
-= \tfrac{1}{2}\|\mathbf{Xw}_k - \mathbf{y}\|_2^2
-+ \tfrac{\lambda_{\text{LASSO}}}{2}\|\mathbf{w}_k\|_1
-+ \tfrac{\lambda_{\text{LASSO}}}{2}\|\mathbf{w}_k\|_1
-= f(\mathbf{w}_k).
-\]
-Taking $\mathbf{w}_{k+1} = \arg\min_{\mathbf{w}} Q(\mathbf{w}, \mathbf{w}_k)$, the two MM properties combined give $f(\mathbf{w}_{k+1}) \le Q(\mathbf{w}_{k+1}, \mathbf{w}_k) \le Q(\mathbf{w}_k, \mathbf{w}_k) = f(\mathbf{w}_k)$, so the sequence $\{f(\mathbf{w}_k)\}$ is non-increasing. IRLS thus guarantees a monotone decrease of the objective in exact arithmetic; in floating-point arithmetic the monotonicity is preserved up to the accuracy of the linear solver used for the subproblem.
+We need to check that the properties are satisfied:
+\begin{enumerate}
+    \item Majorization property: follows from \eqref{eq:irls_majorization_inequality}
+    \item Touching property: at $\mathbf{w} = \mathbf{w}_k$, we get the following $Q$ function
+        \[
+            Q(\mathbf{w}_k, \mathbf{w}_k)
+            = \tfrac{1}{2}\|\mathbf{Xw}_k - \mathbf{y}\|_2^2
+            + \tfrac{\lambda_{\text{LASSO}}}{2}\|\mathbf{w}_k\|_1
+            + \tfrac{\lambda_{\text{LASSO}}}{2}\|\mathbf{w}_k\|_1
+            = f(\mathbf{w}_k)
+        \]
+    \item \textbf{Smoothness property:} The surrogate $Q(\mathbf{w}, \mathbf{w}_k)$ is a function of $\mathbf{w}$, since $\mathbf{w}_k$ is fixed (constant). Its gradient is 
+    \[\nabla_{\mathbf{w}} Q(\mathbf{w}, \mathbf{w}_k) = \left(\mathbf{X}^T\mathbf{X} + \lambda_{\text{LASSO}}\mathbf{W}_k^T\mathbf{W}_k\right)\mathbf{w} - \mathbf{X}^T\mathbf{y}\]
+    Since it is an affine function of $\mathbf{w}$, the Hessian is a constant matrix. Because of that, $Q$ is infinitely differentiable ($C^\infty$), and also globally $L$-smooth (with a Lipschitz continuous gradient).
+\end{enumerate}
+
+Taking $\mathbf{w}_{k+1} = \arg\min_{\mathbf{w}} Q(\mathbf{w}, \mathbf{w}_k)$, the first two MM properties combined give $f(\mathbf{w}_{k+1}) \le Q(\mathbf{w}_{k+1}, \mathbf{w}_k) \le Q(\mathbf{w}_k, \mathbf{w}_k) = f(\mathbf{w}_k)$, so the sequence $\{f(\mathbf{w}_k)\}$ is non-increasing.
 
 % ------------------------------------------------------------------
 \section{The weighted least-squares subproblem}
 \label{sec:irls_subproblem}
 
-To find the next iterate $\mathbf{w}_{k+1}$, we must minimize the surrogate function $Q(\mathbf{w}, \mathbf{w}_k)$ with respect to $\mathbf{w}$:
+To find $\mathbf{w}_{k+1}$, we must minimize the surrogate function $Q(\mathbf{w}, \mathbf{w}_k)$ with respect to $\mathbf{w}$:
 $$\mathbf{w}_{k+1} = \underset{\mathbf{w}}{\arg\min} \left( \frac{1}{2}\|\mathbf{Xw} - \mathbf{y}\|_2^2 + \frac{\lambda_{\text{LASSO}}}{2}\|\mathbf{W}_k\mathbf{w}\|_2^2 + \frac{\lambda_{\text{LASSO}}}{2}\|\mathbf{w}_k\|_1 \right)$$
-Since the term $\frac{\lambda_{\text{LASSO}}}{2}\|\mathbf{w}_k\|_1$ is constant with respect to $\mathbf{w}$, it does not affect the optimization and can be dropped entirely. The minimization problem simplifies to a standard \textbf{weighted least-squares problem with $L_2$ regularization} (Ridge regression):
+Since the term $\frac{\lambda_{\text{LASSO}}}{2}\|\mathbf{w}_k\|_1$ is constant with respect to $\mathbf{w}$, it does not affect the optimization and can be dropped. The minimization problem simplifies to a standard \textbf{weighted least-squares problem with $L_2$ regularization}:
 \begin{equation}
     \mathbf{w}_{k+1} = \underset{\mathbf{w}}{\arg\min} \left( \frac{1}{2}\|\mathbf{Xw} - \mathbf{y}\|_2^2 + \lambda_{\text{IRLS}} \|\mathbf{W}_k \mathbf{w}\|^2_2 \right)
     \label{eq:irls_subproblem}
 \end{equation}
-provided that we strictly define the IRLS regularization parameter as:
+using:
 \begin{equation}
     \lambda_{\text{IRLS}} = \frac{1}{2}\lambda_{\text{LASSO}}
     \label{eq:lambda_relation}
 \end{equation}
 
-\paragraph{Relation to the LASSO regularization parameter.}\mbox{} \\
-The factor $1/2$ in~\eqref{eq:lambda_relation} is forced by the majorization constant in~\eqref{eq:irls_quadratic}. The upper bound on $\|\mathbf{w}\|_1$ carries a coefficient $\tfrac{1}{2}$ in front of the quadratic form $\mathbf{w}^T\mathbf{W}_k^T\mathbf{W}_k\mathbf{w}$, so the penalty entering the surrogate~\eqref{eq:irls_surrogate} is $\tfrac{\lambda_{\text{LASSO}}}{2}\|\mathbf{W}_k\mathbf{w}\|_2^2$. Rewriting this as $\lambda_{\text{IRLS}}\|\mathbf{W}_k\mathbf{w}\|_2^2$ in~\eqref{eq:irls_subproblem} therefore requires $\lambda_{\text{IRLS}} = \tfrac{1}{2}\lambda_{\text{LASSO}}$. This is precisely the factor that makes the fixed point of IRLS coincide with the LASSO optimum, as shown in the proof of Theorem~\ref{thm:irls_convergence}.
+% \paragraph{Relation to the LASSO regularization parameter.}\mbox{} \\
+% The factor $1/2$ in~\eqref{eq:lambda_relation} is forced by the majorization constant in~\eqref{eq:irls_quadratic}. The upper bound on $\|\mathbf{w}\|_1$ carries a coefficient $\tfrac{1}{2}$ in front of the quadratic form $\mathbf{w}^T\mathbf{W}_k^T\mathbf{W}_k\mathbf{w}$, so the penalty entering the surrogate~\eqref{eq:irls_surrogate} is $\tfrac{\lambda_{\text{LASSO}}}{2}\|\mathbf{W}_k\mathbf{w}\|_2^2$. Rewriting this as $\lambda_{\text{IRLS}}\|\mathbf{W}_k\mathbf{w}\|_2^2$ in~\eqref{eq:irls_subproblem} therefore requires $\lambda_{\text{IRLS}} = \tfrac{1}{2}\lambda_{\text{LASSO}}$. This is precisely the factor that makes the fixed point of IRLS coincide with the LASSO optimum, as shown in the proof of Theorem~\ref{thm:irls_convergence}.
 
-\begin{proposition}[Weighted normal equations]
+\begin{proposition}[Weighted normal equation solution]
     \label{prop:irls_normal}
     The unique solution of~\eqref{eq:irls_subproblem} satisfies:
     \begin{equation}
@@ -101,9 +106,9 @@ The factor $1/2$ in~\eqref{eq:lambda_relation} is forced by the majorization con
 \end{proposition}
 
 \begin{proof}
-    The gradient of the objective in~\eqref{eq:irls_subproblem} is:
+    The gradient of the objective function \eqref{eq:irls_subproblem} is:
     $$\nabla f_k(\mathbf{w}) = \mathbf{X}^T(\mathbf{Xw} - \mathbf{y}) + 2\lambda_{\text{IRLS}}\mathbf{W}_k^T \mathbf{W}_k\mathbf{w}$$
-    Setting this to zero yields~\eqref{eq:irls_normal}.
+    Setting this to zero results in \eqref{eq:irls_normal}.
     The coefficient matrix $\mathbf{X}^T\mathbf{X} + 2\lambda_{\text{IRLS}}\mathbf{W}_k^T\mathbf{W}_k$
     is symmetric positive definite (it is the sum of $\mathbf{X}^T\mathbf{X} \succeq 0$
     and $2\lambda_{\text{IRLS}}\mathbf{W}_k^T\mathbf{W}_k \succ 0$ since $\varepsilon_{\mathrm{thr}} > 0$),
@@ -117,11 +122,9 @@ equation~\eqref{eq:irls_normal} reduces to:
     \mathbf{Q}_k\, \mathbf{w}_{k+1} = \mathbf{b}
     \label{eq:irls_linear_system}
 \end{equation}
-This is an $H \times H$ symmetric positive definite (SPD) linear system, which can
-be solved efficiently at each iteration. Note that $\mathbf{b} = \mathbf{X}^T\mathbf{y}$
-can be pre-computed once before the iterative loop, since it does not depend on $k$.
-Similarly, $\mathbf{A} = \mathbf{X}^T\mathbf{X}$ is pre-computed once, and only the
-diagonal $2\lambda_{\text{IRLS}}\mathbf{W}_k^T\mathbf{W}_k$ is updated at each iteration.
+This is an $H \times H$ symmetric positive definite linear system, which can
+be solved efficiently at each iteration. Note that $\mathbf{A} = \mathbf{X}^T\mathbf{X}$ and $\mathbf{b} = \mathbf{X}^T\mathbf{y}$
+can be pre-computed once before the loop, so only the diagonal $2\lambda_{\text{IRLS}}\mathbf{W}_k^T\mathbf{W}_k$ is updated at each iteration.
 
 \paragraph{Solving the linear system.}
 Because $\mathbf{Q}_k$ is SPD, two efficient methods can be used:
@@ -167,10 +170,10 @@ Because $\mathbf{Q}_k$ is SPD, two efficient methods can be used:
     \end{algorithmic}
 \end{algorithm}
 
-\paragraph{Initialization.} We initialize $\mathbf{w}_0$ with the unregularized least-squares solution $\mathbf{A}^{-1}\mathbf{b}$: it is already available (we compute $\mathbf{A}$ and $\mathbf{b}$ once at the start anyway), the relative magnitudes of its components are a reasonable proxy for which weights the $L_1$ penalty will shrink, and no component is exactly zero, so the weights $(\mathbf{W}_0)_{ii} = |(w_0)_i|^{-1/2}$ are well defined without having to lean on $\varepsilon_{\mathrm{thr}}$ at the first step.
+\paragraph{Initialization.} We initialize $\mathbf{w}_0$ with the unregularized least-squares solution $\mathbf{A}^{-1}\mathbf{b}$ (\textbf{warm start}). The weights $(\mathbf{W}_0)_{ii} = |(w_0)_i|^{-1/2}$ are well defined, so we don't use $\varepsilon_{\mathrm{thr}}$ in the first step. Using a \textbf{cold start} technique instead, for example initializing $\mathbf{w}_0 = 0$, results in the use of the $\varepsilon_{\mathrm{thr}}$ threshold, which would make the algorithm converge slowly, especially in the first iterations.
 
-\paragraph{Stopping criterion.} The algorithm terminates when the relative change between successive iterates falls below $\varepsilon_{\mathrm{stop}}$,
-$$\frac{\|\mathbf{w}_{k+1} - \mathbf{w}_k\|}{\max(1, \|\mathbf{w}_k\|)} < \varepsilon_{\mathrm{stop}} \, ,$$
+\paragraph{Stopping criterion.} The algorithm ends when the relative change between successive iterations goes below $\varepsilon_{\mathrm{stop}}$:
+$$\frac{\|\mathbf{w}_{k+1} - \mathbf{w}_k\|}{\max(1, \|\mathbf{w}_k\|)} < \varepsilon_{\mathrm{stop}}$$
 where the $\max(1, \|\mathbf{w}_k\|)$ normalization makes the test scale-invariant and prevents false triggers when $\|\mathbf{w}_k\|$ is small.
 
 % ------------------------------------------------------------------
@@ -178,87 +181,80 @@ where the $\max(1, \|\mathbf{w}_k\|)$ normalization makes the test scale-invaria
 \label{sec:irls_convergence}
 
 \paragraph{Monotone decrease.}
-As derived in Section~\ref{sec:irls_mm} from the MM framework, IRLS
-monotonically decreases the objective: $f(\mathbf{w}_{k+1}) \leq f(\mathbf{w}_k)$
-for all $k$. Since $f$ is bounded below by zero, the sequence $\{f(\mathbf{w}_k)\}$
-converges.
+As said in Section~\ref{sec:irls_mm}, IRLS monotonically decreases the function. Since $f$ is bounded below by zero, the sequence $\{f(\mathbf{w}_k)\}$ converges.
 
 \begin{theorem}[Fixed-point consistency]
     \label{thm:irls_convergence}
     If the sequence $\{\mathbf{w}_k\}$ generated by IRLS converges to a point
     $\mathbf{w}^*$ such that $|(w^*)_i| > \varepsilon_{\mathrm{thr}}$ for all $i$,
     then $\mathbf{w}^*$ satisfies the optimality conditions
-    of the original problem~\eqref{eq:irls_objective}.
+    of the original problem.
 \end{theorem}
 
 \begin{proof}
-At a fixed point $\mathbf{w}_k = \mathbf{w}_{k+1} = \mathbf{w}^*$, the weighted
-normal equations~\eqref{eq:irls_normal} give:
+At a fixed point $\mathbf{w}_k = \mathbf{w}_{k+1} = \mathbf{w}^*$, \eqref{eq:irls_normal} gives:
 \[
     \mathbf{X}^T(\mathbf{X}\mathbf{w}^* - \mathbf{y})
     + 2\lambda_{\text{IRLS}}\,\mathbf{W}_*^T\mathbf{W}_*\mathbf{w}^* = \mathbf{0}
 \]
-Since $|(w^*)_i| > \varepsilon_{\text{thr}}$ for all $i$, the threshold
-in~\eqref{eq:irls_weights} is inactive and
-$(\mathbf{W}_*^T\mathbf{W}_*)_{ii} = |(w^*)_i|^{-1}$ exactly.
-The $i$-th component of the regularizer term is then:
+Since $|(w^*)_i| > \varepsilon_{\text{thr}}$ for all $i$, the threshold is inactive and
+$(\mathbf{W}_*^T\mathbf{W}_*)_{ii} = |(w^*)_i|^{-1}$.
+The $i$-th component of the regularizer term is:
 \[
     (\mathbf{W}_*^T\mathbf{W}_*\mathbf{w}^*)_i
     = \frac{(w^*)_i}{|(w^*)_i|}
     = \mathrm{sign}((w^*)_i)
 \]
-Substituting and using $\lambda_{\text{IRLS}} = \frac{1}{2}\lambda_{\text{LASSO}}$
-from~\eqref{eq:lambda_relation}:
+Using \eqref{eq:lambda_relation}:
 \[
     \mathbf{X}^T(\mathbf{X}\mathbf{w}^* - \mathbf{y})
     + \lambda_{\text{LASSO}}\,\mathrm{sign}(\mathbf{w}^*) = \mathbf{0}
 \]
 Since $|(w^*)_i| \neq 0$ for all $i$, the $L_1$ norm is differentiable at
-$\mathbf{w}^*$, so $\partial\|\mathbf{w}^*\|_1 = \{\mathrm{sign}(\mathbf{w}^*)\}$
-\cite[Slides 5--6]{frangioni-slides-nonsmooth}. By the sum rule for subdifferentials
-\cite[Slide 7]{frangioni-slides-nonsmooth}, the equation above is exactly
+$\mathbf{w}^*$, so $\partial\|\mathbf{w}^*\|_1 = \mathrm{sign}(\mathbf{w}^*)$
+\cite{subdifferential-introduction-frangioni}. By the sum rule for subdifferentials
+\cite{subdifferential-sum-rule}, the equation above is exactly
 $\mathbf{0} \in \partial f(\mathbf{w}^*)$, the optimality condition
-of~\eqref{eq:irls_objective} \cite[Slides 5--6]{frangioni-slides-nonsmooth}.
+in \eqref{eq:optimality} is met \cite{subdifferential-introduction-frangioni}.
 \end{proof}
 
 
 \paragraph{Convergence rate.}
-In practice, the IRLS scheme used here exhibits linear (geometric) convergence of the iterates: this is consistent with the analysis carried out by Daubechies et al.~\cite{daubechies2008iterativelyreweightedsquaresminimization} for the closely related basis-pursuit IRLS algorithm, where local exponential (linear-rate) convergence is established under sparsity and null-space assumptions on the design matrix. The error $\|\mathbf{w}_k - \mathbf{w}^*\|$ thus shrinks by a constant factor at each iteration, set by the condition number of $\mathbf{Q}_k = \mathbf{X}^T\mathbf{X} + 2\lambda_{\text{IRLS}}\mathbf{W}_k^T\mathbf{W}_k$. The extra diagonal contribution $2\lambda_{\text{IRLS}}\mathbf{W}_k^T\mathbf{W}_k \succ 0$ behaves like a Tikhonov-style preconditioner, and typically leaves $\mathbf{Q}_k$ better-conditioned than $\mathbf{X}^T\mathbf{X}$ alone, which is what makes the per-iteration linear solve inexpensive and well-conditioned.
-We do not claim a formal proof of linear convergence for the ELM LASSO setting; the empirical linear rate observed in Section~\ref{sec:convergence} is reported as such, with \cite{daubechies2008iterativelyreweightedsquaresminimization} cited only as the closest available analysis under different (basis-pursuit) hypotheses.
+The convergence rate of the algorithm is linear: the error $\|\mathbf{w}_k - \mathbf{w}^* \|$ shrinks by a constant factor each iteration, set by the conditioning number of the matrix $\mathbf{Q}_k = \mathbf{X}^T\mathbf{X} + 2\lambda_{\text{IRLS}}\mathbf{W}_k^T\mathbf{W}_k$. The second term also acts as a Tikhonov preconditioner to improve the conditioning of the matrix. This analysis, observed by us empirically, is consistent with Daubechies et al.'s analysis \cite{daubechies2008iterativelyreweightedsquaresminimization}.
 
 \paragraph{Verification of hypotheses for the ELM problem.}
-The two assumptions of Theorem~\ref{thm:irls_convergence} are satisfied for~\eqref{eq:irls_objective} as follows.
+The two assumptions of Theorem~\ref{thm:irls_convergence} are satisfied for~\eqref{eq:obj_fun} as follows.
 \begin{enumerate}
-\item \emph{Convergence of the sequence.} We work under the assumption that $\mathbf{X} = \sigma(\mathbf{X}_{\mathrm{origin}}\mathbf{W}_1^T)$ has full column rank, which is standard for the ELM setting when $M \ge H$ and $\mathbf{W}_1$ is drawn at random with a nonlinear $\sigma$ \cite{HUANG2006489}. Under this assumption $f$ is strictly convex (Proposition~\ref{prop:irls_prop}) and admits a unique minimizer $\mathbf{w}^*$. The convergence $\mathbf{w}_k \to \mathbf{w}^*$ follows in four steps: \textit{(i)}~IRLS monotonically decreases $f$ (Section~\ref{sec:irls_mm}) and $f \geq 0$, so $\{f(\mathbf{w}_k)\}$ is non-increasing and bounded below, hence it converges; \textit{(ii)}~$f$ is coercive (Proposition~\ref{prop:irls_prop}), so every sublevel set is compact and $\{\mathbf{w}_k\}$ has at least one accumulation point $\bar{\mathbf{w}}$; \textit{(iii)}~continuity of the surrogate $Q(\cdot,\mathbf{w}_k)$ and the MM descent property $Q(\mathbf{w}_{k+1},\mathbf{w}_k) \leq Q(\mathbf{w}_k,\mathbf{w}_k) = f(\mathbf{w}_k)$ force $\bar{\mathbf{w}}$ to be a fixed point of the IRLS iteration; \textit{(iv)}~by Theorem~\ref{thm:irls_convergence}, every such fixed point satisfying $|(\bar{w})_i| > \varepsilon_{\mathrm{thr}}$ is a global minimizer, so $\bar{\mathbf{w}} = \mathbf{w}^*$ by uniqueness; since every accumulation point coincides with $\mathbf{w}^*$, the full sequence converges.
-\item \emph{Non-zero components at convergence.} The hypothesis $|(w^*)_i| > \varepsilon_{\mathrm{thr}}$ holds for the active (non-zero) components of the sparse solution. Components that collapse to zero within $\varepsilon_{\mathrm{thr}}$ are effectively frozen by the weight clipping~\eqref{eq:irls_weights} and drop out of the optimality condition~\eqref{eq:optimality} --- which is exactly the behaviour we want, because these components correspond to features that the $L_1$ penalty has marked as inactive.
+\item \emph{Convergence of the sequence.} Under the assumption that $\mathbf{X}$ has full column rank, $f$ is strictly convex and admits a unique minimizer $\mathbf{w}^*$ (Proposition~\ref{prop:irls_prop}). The convergence $\mathbf{w}_k \to \mathbf{w}^*$ follows in four steps: IRLS monotonically decreases $f_k$ converging to $f \ge 0$. $f$ is coercive (Proposition~\ref{prop:irls_prop}), so every sublevel set is compact and $\{\mathbf{w}_k\}$ has at least one accumulation point $\bar{\mathbf{w}}$. Continuity of the surrogate $Q(\cdot,\mathbf{w}_k)$ and the MM descent property $Q(\mathbf{w}_{k+1},\mathbf{w}_k) \leq Q(\mathbf{w}_k,\mathbf{w}_k) = f(\mathbf{w}_k)$ force $\bar{\mathbf{w}}$ to be a fixed point of the IRLS iteration. By the Theorem~\ref{thm:irls_convergence}, every such fixed point satisfying $|(\bar{w})_i| > \varepsilon_{\mathrm{thr}}$ is a global minimizer, so $\bar{\mathbf{w}} = \mathbf{w}^*$ by uniqueness. Since every accumulation point coincides with $\mathbf{w}^*$, the full sequence converges.
+\item \emph{Non-zero components at convergence.} The hypothesis $|(w^*)_i| > \varepsilon_{\mathrm{thr}}$ holds for the non-zero components of the sparse solution. Components that collapse to zero within $\varepsilon_{\mathrm{thr}}$ are effectively frozen by the weight clipping~\eqref{eq:irls_weights} and drop out of the optimality condition~\eqref{eq:optimality}, which is exactly the behaviour we want, because these components correspond to features that the $L_1$ penalty has marked as inactive.
 \end{enumerate}
 
 % ------------------------------------------------------------------
 \section{Computational cost}
 \label{sec:irls_cost}
 
-The per-iteration cost of IRLS breaks down as follows:
+The computational cost of each iteration of IRLS is the following:
 \begin{itemize}
-    \item \textbf{Weight update} $\mathbf{W}_k$: $O(H)$ — simply iterating over
+    \item \textbf{Weight update} $\mathbf{W}_k$: $O(H)$ simply iterating over
     the components of $\mathbf{w}_k$.
-    \item \textbf{Matrix update} $\mathbf{Q}_k = \mathbf{A} + 2\lambda_{\text{IRLS}}\mathbf{W}_k^T\mathbf{W}_k$:
-    $O(H)$ — since $\mathbf{A} = \mathbf{X}^T\mathbf{X}$ is pre-computed and only
+    \item \textbf{Matrix update} $\mathbf{Q}_k = \mathbf{A} + 2\lambda_{\text{IRLS}}\mathbf{W}_k^T\mathbf{W}_k$: $O(H)$, since $\mathbf{A} = \mathbf{X}^T\mathbf{X}$ is pre-computed and only
     the diagonal changes.
     \item \textbf{Linear system solve} $\mathbf{Q}_k \mathbf{w}_{k+1} = \mathbf{b}$:
-    $O(H^3/3)$ with Cholesky, or $O(pH^2)$ with CG for $p$ CG steps.
+    $O(H^3/3)$ with Cholesky, or $O(pH^2)$ with CG for $p$ CG steps (in the following we assume using Cholesky).
 \end{itemize}
+Also, we need $O(MH^2)$ for the $\mathbf{A}$ matrix computation and $O(MH)$ for the $\mathbf{b}$ vector creation, and, in case of warm start, we need the OLS solution $\mathbf{w}_0 \leftarrow \mathbf{A}^{-1}\mathbf{b}$, computed in $O(H^3)$.
 The dominant cost per iteration is the linear system solve: $O(H^3)$ with Cholesky.
 However, the total number of IRLS iterations is typically small (10--50), and the
-pre-computation of $\mathbf{A} = \mathbf{X}^T\mathbf{X}$ (costing $O(MH^2)$) is
-amortized over all iterations. The overall cost is therefore:
-$$O(MH^2) + k_{\mathrm{IRLS}} \cdot O(H^3)$$
-For problems where $H \ll M$ (many training samples, moderate hidden layer size),
-the pre-computation dominates and IRLS is very efficient.
+pre-computation costs get amortized over all iterations. The overall cost is therefore:
+$$\underbrace{O(MH^2) + O(MH) + O(H^3)}_{\text{pre-computation}} + \underbrace{k_{\mathrm{IRLS}} \cdot O(H^3)}_{\text{iterations cost}}$$
+For problems where $H \ll M$, the pre-computation dominates and IRLS is very efficient.
+
+We can also consider using a cold start initialization for the $\mathbf{w}_0$ vector, dropping the $O(H^3)$ term (same cost of a single loop iteration) in the pre-computation phase. That would result in a much slower convergence, requiring more than one additional loop iteration to achieve the same level of precision as the warm start technique, especially considering that, at the beginning, the changes in the $\mathbf{w}_k$ vector are very small. For these reasons, the cold start is considered a bad practice for this algorithm.
 
 % ------------------------------------------------------------------
 \section{Expected behavior on our problem}
 \label{sec:irls_expected}
 
-From the analysis above we expect the following behaviour on the ELM LASSO problem. The objective $f(\mathbf{w}_k)$ decreases at every iteration, with no oscillations, which makes IRLS easy to monitor and to debug: a single non-decreasing step is a red flag. On a semilog plot of $f(\mathbf{w}_k) - f^*$ against $k$, we expect an approximately straight line, with a slope set jointly by the conditioning of $\mathbf{Q}_k$ and by the safety threshold $\varepsilon_{\mathrm{thr}}$.
+From the analysis above we expect the following behaviour on the ELM LASSO problem. The objective $f(\mathbf{w}_k)$ decreases at every iteration, with no oscillations, which makes IRLS easy to monitor and to debug: a single non-decreasing step signals an error. On a semilog plot of $f(\mathbf{w}_k) - f^*$ against $k$, we expect an approximately straight line, with a slope dependent on the conditioning of $\mathbf{Q}_k$ and the safety threshold $\varepsilon_{\mathrm{thr}}$.
 
-Sparsity is produced dynamically rather than by an external thresholding step: components $(w_k)_i$ that start out small get assigned increasingly large weights $|(w_k)_i|^{-1}$, which pushes them further toward zero at the next iteration; the stable outcome is a weight vector with many components inside an $\varepsilon_{\mathrm{thr}}$-ball of zero. The quantitative trade-offs are then driven by two parameters we chose early on: the regularization strength $\lambda_{\text{LASSO}}$ (the model parameter), and the safety threshold $\varepsilon_{\mathrm{thr}}$ (a purely numerical one). Since $\lambda_{\text{IRLS}} = \tfrac{1}{2}\lambda_{\text{LASSO}}$ is fixed by the majorization, the only free knob in the model is $\lambda_{\text{LASSO}}$: larger values give sparser solutions but a higher training residual, smaller values do the opposite; conditioning of $\mathbf{Q}_k$ also depends on $\lambda_{\text{LASSO}}$, so the convergence speed moves with it. For $\varepsilon_{\mathrm{thr}}$, smaller values approximate the true $L_1$ norm more faithfully and yield sharper sparsity, but pay the price in stability whenever a component drifts very close to zero; a value of order $10^{-8}$ is a reasonable starting point in this trade-off, and we adopt it as our default to be validated experimentally.
+Sparsity is produced dynamically: components $(w_k)_i$ that start out small get assigned increasingly large weights $|(w_k)_i|^{-1}$, which pushes them further toward zero at the next iteration. The stable outcome is a weight vector with many components inside an $\varepsilon_{\mathrm{thr}}$-ball of zero. We have 2 hyperparameters to tune: the regularization strength $\lambda_{\text{LASSO}}$ (the model parameter), and the safety threshold $\varepsilon_{\mathrm{thr}}$ (to define the numercial stability of the algorithm). For $\lambda_{\text{LASSO}}$, larger values give sparser solutions but a higher training residual. Also, the conditioning number of $\mathbf{Q}_k$ also depends on $\lambda_{\text{LASSO}}$, so the convergence speed moves with it. For $\varepsilon_{\mathrm{thr}}$, smaller values approximate the true $L_1$ better, resulting in more sparse solutions, but pay the price in stability whenever a component goes very close to zero. Setting it $10^{-8}$ is our default choice during experiments.
