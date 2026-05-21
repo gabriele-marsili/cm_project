@@ -3,11 +3,7 @@
 
 This chapter reports experiments on the IRLS and SGPTL implementations
 of Chapters~\ref{chap:irls} and~\ref{chap:dsm}, against the predictions
-of Chapter~\ref{chap:comparison}: linear rate with natural sparsity for
-IRLS, sublinear non-monotone progress with approximate sparsity for
-SGPTL, and the
-$O(MH^2)+k_\text{IRLS}\cdot O(H^3)$ versus $k_\text{SGPTL}\cdot O(MH)$
-cost trade-off.
+of Chapter~\ref{chap:comparison}.
 
 \section{Experimental setup}
 \label{sec:setup}
@@ -18,8 +14,8 @@ modules: \texttt{lasso\_utils.py} (shared objective, smooth-part
 gradient, soft-threshold subgradient selection),
 \texttt{linear\_solvers.py} (Cholesky via
 \texttt{scipy.linalg.cho\_factor/cho\_solve} and a hand-rolled
-Jacobi-preconditioned CG), \texttt{irls.py} (Algorithm~A1 driver),
-\texttt{deflected\_subgradient.py} (Algorithm~A2 with deflection
+Jacobi-preconditioned CG), \texttt{irls.py} (Algorithm~\ref{alg:irls} driver),
+\texttt{deflected\_subgradient.py} (Algorithm~\ref{alg:dsm} with deflection
 floor $\gamma_{\min}$, clip $\beta_{i}=\min(\beta,\gamma_{i})$,
 Polyak target-level), and \texttt{elm.py} (random hidden layer plus
 activations). Core algorithms are implemented from scratch; only
@@ -39,7 +35,7 @@ We compute the reference $\mathbf{w}^{*}$ via
     \frac{1}{2 M}\,\norm{\mathbf{X}\mathbf{w} - \mathbf{y}}_2^2
     \;+\; \alpha_\text{sklearn}\,\norm{\mathbf{w}}_1,
 \end{equation}
-which shares an arg-min with our $f$ in
+which is equal to our $f$ in
 eq.~\eqref{eq:original_problem} when
 $\alpha_\text{sklearn} = \lambda_\text{LASSO}/M$. We then evaluate
 $f^{*} = f(\mathbf{w}^{*})$ directly from
@@ -61,8 +57,7 @@ normalised to unit $\ell_{2}$ norm, and set $\mathbf{y} =
 $\boldsymbol{\varepsilon}\sim\mathcal{N}(0, 0.05^{2}\mathbf{I})$. This
 is the \emph{best-case scenario} for LASSO: column-normalised Gaussian
 designs are mutually incoherent~\cite{hastie2009elements} and keep
-$\kappa(\mathbf{X}^{\top}\mathbf{X})$ moderate when $M\ge 2H$ (e.g.\
-$\kappa\approx 14$ at $H=100,\,M=300$ from Marchenko--Pastur). The
+$\kappa(\mathbf{X}^{\top}\mathbf{X})$ moderate when $M\ge 2H$. The
 ground-truth sparsity makes support recovery clean, the noise level
 $\sigma=0.05$ puts the SNR in the $5$--$10\%$ range across tested
 sizes. The benchmark is well-conditioned and validates the algorithms
@@ -72,7 +67,7 @@ inflates $\kappa$ by orders of magnitude.
 
 \emph{ELM-transformed real datasets} (\texttt{diabetes},
 \texttt{california}).
-We pull \texttt{diabetes} ($n=442$, $d=10$) \cite{efron2004least} and
+We load \texttt{diabetes} ($n=442$, $d=10$) \cite{efron2004least} and
 \texttt{california\_housing} ($n=20640$, $d=8$)
 \cite{pace1997sparse} from scikit-learn. Each set is split $80/20$
 into train/test, both features and target standardised on the train
@@ -83,43 +78,42 @@ the LASSO design matrix. We use $H=200$ for the main experiments and
 $H=50$ for the $\delta_{0}$ family sweep of
 Section~\ref{sec:params}, where a smaller matrix lets us
 cross-validate $f^{*}$ with an independent solver
-(\texttt{cvxpy.CLARABEL} interior point); the cross-validation agrees
+(\texttt{cvxpy.CLARABEL} interior point). The cross-validation agrees
 with the IRLS-converged value to relative error below $10^{-9}$ on
 \texttt{diabetes}~$H=50$ (and below $10^{-7}$ on the synthetic
 instances of $H=100,M=300$ where it is also feasible). The sigmoid
 breaks the unit-norm column property and inflates
 $\kappa(\mathbf{X}_\text{hidden}^{\top}\mathbf{X}_\text{hidden})$ to
-$\sim 10^{6}$ on both datasets, so the ELM matrices are markedly
-worse-conditioned than the synthetic benchmark.
+$\sim 10^{6}$ on both datasets, making the matrices worse-conditioned with respect to the synthetic ones.
 
-\emph{Limitations of the benchmark.} Three to flag explicitly. (i) The
-synthetic benchmark is essentially the easy regime: no
-multicollinearity, no heavy-tailed features, deliberately
-well-conditioned. Results that hold there are not automatic on
-harder instances, and we test them on the real ELM matrices when
-feasible. (ii) The ELM-transformed real datasets have no ground-truth
+\emph{Limitations of the benchmark.} There are three limitations:
+\begin{enumerate}
+    \item The synthetic benchmark is essentially the easy regime: no multicollinearity, no heavy-tailed features, deliberately well-conditioned.
+    \item The ELM-transformed real datasets have no ground-truth
 sparsity, so the sparsity claims of Section~\ref{sec:quality} apply
 only to the synthetic instance; on the ELM real data we report
-training-objective gaps and test MSE. (iii) On
+training-objective gaps and test MSE.
+    \item On
 \texttt{california}~at $\lambda_\text{LASSO}=0.1$ the OLS warm start
 already coincides with $f^{*}$ to within $5\cdot 10^{-1}$ on the ELM
-matrix (the $\ell_{1}$ term is weak relative to the data scale on
+matrix (the $L_{1}$ term is weak relative to the data scale on
 this dataset), so warm-started SGPTL has nothing to optimise and the
-configuration is uninformative for sensitivity studies. For the
+configuration is uninformative for sensitivity studies.
+For the
 $\delta_{0}$ sweep of Section~\ref{sec:params} we therefore run
 \texttt{california} from cold start $\mathbf{w}_{0}=\mathbf{0}$, where
-the initial gap is $\sim\!8\cdot 10^{3}$ and SGPTL has substantive
-work to do; we cross-validated this choice by showing that SGPTL
+the initial gap is $\sim\!8\cdot 10^{3}$ and SGPTL has room for improvement. We cross-validated this choice by showing that SGPTL
 reduces the cold-start gap by $99\%$+ on this matrix at every
 $\lambda\in\{10^{-3},10^{-2},0.1,1,10\}$ tested. The
 \texttt{california} comparison study itself is in
 Section~\ref{sec:real_data} and uses OLS warm start for consistency
 with IRLS.
+\end{enumerate}
 
-\paragraph{Timing protocol.}
-Wall-clock times are taken with \texttt{time.perf\_counter} and exclude
-the data-generation step. They reflect single-thread Python execution
-without explicit BLAS-thread tuning.
+% \paragraph{Timing protocol.}
+% Wall-clock times are taken with \texttt{time.perf\_counter} and exclude
+% the data-generation step. They reflect single-thread Python execution
+% without explicit BLAS-thread tuning.
 
 \paragraph{The deflection floor in practice.}
 Section~\ref{sec:dsm_convergence_conditions} motivates the lower
