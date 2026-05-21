@@ -1,12 +1,12 @@
 # Fdb version 4
-["biber main"] 1779351680.68868 "main.bcf" "main.bbl" "main" 1779358978.62618 0
-  "main.bcf" 1779358978.50637 114575 9ae656d9372e35059fd0b44505468b90 "pdflatex"
+["biber main"] 1779351680.68868 "main.bcf" "main.bbl" "main" 1779359225.8699 0
+  "main.bcf" 1779359225.75386 114575 9ae656d9372e35059fd0b44505468b90 "pdflatex"
   "references.bib" 1779295390.33304 5716 44f2972d1c679b28fa7910a6187879a6 ""
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1779358976.61496 "/Users/matt/Desktop/UniPi AI/Semester 1/Computational Mathematics for Learning and Data Analysis/Proj/cm_project/progetto/report/main.tex" "main.pdf" "main" 1779358978.62644 0
+["pdflatex"] 1779359223.88122 "/Users/matt/Desktop/UniPi AI/Semester 1/Computational Mathematics for Learning and Data Analysis/Proj/cm_project/progetto/report/main.tex" "main.pdf" "main" 1779359225.87015 0
   "/Users/matt/Desktop/UniPi AI/Semester 1/Computational Mathematics for Learning and Data Analysis/Proj/cm_project/progetto/report/main.tex" 1779295390.33283 3563 225357a095fb6fc0b4176a727275e7ac ""
   "/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
@@ -191,7 +191,7 @@
   "1_introduction/report.tex" 1779295624.67841 9604 7376569b7604d414f802145e18e7cdb8 ""
   "2_algo_1_IRLS/algo1.tex" 1779351679.82297 19890 eb29b44dc398125fee88b75116a360b5 ""
   "3_algo_2_DSM/chapter3.tex" 1779295390.32428 27256 384aa657ed5b11fbcae9252cb6a1fb35 ""
-  "4_algo_comparison/comparison.tex" 1779354321.1565 7303 00974530ddd28a47e4ead495847068a6 ""
+  "4_algo_comparison/comparison.tex" 1779359222.32346 7297 1359a9e482f542b17aefd51433c98955 ""
   "5_results/results.tex" 1779358974.29352 39882 b2ac6aaacd80949a20d1cf470dfc3383 ""
   "6_conclusions/conclusions.tex" 1779295390.32508 5364 7a3c805467f9475aef2c09770c5fb57c ""
   "images/cherubino_pant541.png" 1779295390.32592 164399 35acb288a44c404ffd063bc22487e4be ""
@@ -208,12 +208,12 @@
   "images/scalability.pdf" 1779295390.33029 27956 df5251d2f646dd0966389ef436dc0050 ""
   "images/solver_comparison.pdf" 1779295390.33041 42433 e6088dcd735dfd9864040ec16ced1927 ""
   "images/warm_vs_cold.pdf" 1779295390.33053 37582 fa5a5b0ab7a27a1c54071ccaa04bc098 ""
-  "main.aux" 1779358978.49825 47320 02df5fabca9d812aa32a3131b1c7f71a "pdflatex"
+  "main.aux" 1779359225.74679 47320 02df5fabca9d812aa32a3131b1c7f71a "pdflatex"
   "main.bbl" 1779351683.13747 26107 0d5df4e656c33ac8af40b662f1c2f39b "biber main"
-  "main.out" 1779358978.50545 11270 5d6b44107d9eb139b7bb5675b02d3b34 "pdflatex"
-  "main.run.xml" 1779358978.50696 2305 52095dfad395b381e9a32937e764a41c "pdflatex"
+  "main.out" 1779359225.75296 11270 5d6b44107d9eb139b7bb5675b02d3b34 "pdflatex"
+  "main.run.xml" 1779359225.75443 2305 52095dfad395b381e9a32937e764a41c "pdflatex"
   "main.tex" 1779295390.33283 3563 225357a095fb6fc0b4176a727275e7ac ""
-  "main.toc" 1779358978.50703 7816 46c5889f64be68dc56cea08c7aaf89f6 "pdflatex"
+  "main.toc" 1779359225.75449 7816 46c5889f64be68dc56cea08c7aaf89f6 "pdflatex"
   (generated)
   "main.aux"
   "main.bcf"

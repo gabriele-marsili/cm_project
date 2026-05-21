@@ -30,7 +30,7 @@ is monotone, so DSM returns $\mathbf{w}_{\mathrm{best}}$ and stops on a fixed bu
 
 \subsection{Rate}
 
-IRLS achieves a \textbf{linear} rate (\ref{sec:irls_convergence}); DSM achieves the optimal \textbf{sublinear} $O(L^2/\varepsilon^2)$ rate for nonsmooth convex functions (Theorem~\ref{thm:dsm_convergence}). Let's analyze the behaviour when we lower $\varepsilon$:
+IRLS achieves a \textbf{linear} rate (\ref{sec:irls_convergence}), DSM achieves the optimal \textbf{sublinear} $O(L^2/\varepsilon^2)$ rate for nonsmooth convex functions (Theorem~\ref{thm:dsm_convergence}). Let's analyze the behaviour when we lower $\varepsilon$:
 \begin{itemize}
   \item DSM: $\bar f_k - f^* \lesssim L\norm{\mathbf{w}_0 - \mathbf{w}^*}_2/(\gamma_{\min}\sqrt k)$ gives $k \propto 1/\varepsilon^2$. Lowering $\varepsilon$ by a factor $10$ therefore multiplies the iteration count by $10^2 = 100$.
   \item IRLS: $f(\mathbf{w}_{k+1}) - f^* \le r\,(f(\mathbf{w}_k) - f^*)$ with $r \in (0,1)$ (Theorem~\ref{thm:irls_convergence}) gives $k \propto \log(1/\varepsilon)/\log(1/r)$. Lowering $\varepsilon$ by a factor $10$ \emph{adds} the constant $\log 10/\log(1/r)$ iterations, independent of $\varepsilon$.
@@ -78,7 +78,7 @@ Accounting for both the precomputation phase and the iteration loop, the total c
     \text{IRLS (OLS warm start):}                 &\quad {O(MH^2) + O(MH) + O(H^3)} + k_{\mathrm{IRLS}} \cdot O(H^3) \\
     \text{IRLS (cold start):}                 &\quad {O(MH^2) + O(MH)} + k_{\mathrm{IRLS}} \cdot O(H^3) \\
     \text{SGPTL with OLS warm start:}             &\quad O(MH^2) + O(H^3) + k_{\mathrm{DSM}} \cdot O(MH), \\
-    \text{SGPTL with cold start $\mathbf{w}_0 = \mathbf{0}$:}\;\;\; &\quad k_{\mathrm{DSM}} \cdot O(MH).
+    \text{SGPTL with cold start $\mathbf{w}_0 = \mathbf{0}$:} &\quad k_{\mathrm{DSM}} \cdot O(MH).
 \end{align*}
 
 On the ELM problem, $M \gg H$ is typical, so $O(MH^2)$ dominates IRLS's total. IRLS therefore wins whenever $k_{\mathrm{DSM}} \gtrsim H$: the warm-start variant of SGPTL already pays the same $O(MH^2)$ overhead and adds the iteration cost on top, while the cold-start variant trades the overhead for $k_{\mathrm{DSM}}$ matrix-vector products at $O(MH)$ each. Since Theorem~\ref{thm:dsm_convergence} forces $k_{\mathrm{DSM}} = O(L^2/\varepsilon^2)$ with $L$ growing in $H$ (the $\ell_1$ subgradient has norm $\le \lambda_{\text{LASSO}}\sqrt{H}$), the inequality $k_{\mathrm{DSM}} > H$ holds at every $H$ we test for any reasonable accuracy.
@@ -90,7 +90,7 @@ On the ELM problem, $M \gg H$ is typical, so $O(MH^2)$ dominates IRLS's total. I
 \subsection{Sparsity}
 
 IRLS yields numerically sparse iterates whenever we have small components of $\mathbf{w}$, which are sent towards $\varepsilon$ (theoretically $0$) (\ref{sec:irls_expected}). DSM gives only
-\textbf{approximate sparsity}; an explicit thresholding step is needed
+\textbf{approximate sparsity}: an explicit thresholding step is needed
 (\ref{sec:dsm_properties}).
 
 \subsection{Accuracy}
