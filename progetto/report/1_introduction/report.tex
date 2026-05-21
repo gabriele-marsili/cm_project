@@ -74,23 +74,22 @@ When adding the $L_1$ regularization term to the Least-Squares, the equation is 
 
 This form is particularly nice since it pushes the weights $w_i \to 0$, but the price we have to pay is the non-differentiability of the function where $w_i = 0$, which prevents direct use of gradient-based methods.
 
-Because of that, we can use the Deflected Subgradient Methods (\ref{alg:dsm}) and the IRLS algorithm (\ref{chap:irls}), which we will see in the following chapters.
+Because of that, we can use the IRLS algorithm (\ref{chap:irls}) and the Deflected Subgradient Methods (\ref{chap:dsm}).
 
 
 
 \section{Objective Function Analysis}
 Let's break down the function to minimize in two parts:
-$$
-\min_{\mathbf{w}} f(\mathbf{w}) = \underbrace{\frac{1}{2}\|\mathbf{Xw} - \mathbf{y}\|_2^2}_{g(\mathbf{w})}
-+ \underbrace{\lambda_{\text{LASSO}}\|\mathbf{w}\|_1}_{h(\mathbf{w})}
-$$
+\begin{equation}
+    \label{eq:obj_fun}
+    \min_{\mathbf{w}} f(\mathbf{w}) = \underbrace{\frac{1}{2}\|\mathbf{Xw} - \mathbf{y}\|_2^2}_{g(\mathbf{w})} + \underbrace{\lambda_{\text{LASSO}}\|\mathbf{w}\|_1}_{h(\mathbf{w})}
+\end{equation}
 
-It is useful to analyse the mathematical properties of $f(\mathbf{w})$, as they
-determine which algorithms can be applied.
+Let's analyse the mathematical properties of $f(\mathbf{w})$.
 
 \subsection{Convexity}
 
-The mathematical properties of the objective function $f(\mathbf{w})$ are heavily dependent on the matrix $\mathbf{X}$. As we establish below, a full-rank matrix provides the strictly convex structure necessary to guarantee a unique solution.
+The mathematical properties of the objective function $f(\mathbf{w})$ are heavily dependent on the matrix $\mathbf{X}$.
 
 \begin{proposition}
     \label{prop:irls_prop}
@@ -111,11 +110,10 @@ function and a convex function is strictly convex \cite[Slides 21--24]{frangioni
  
 \textbf{Existence and uniqueness of the minimizer.}
 Since $\mathbf{X}^T\mathbf{X} \succ 0$, $g$ is coercive:
-$g(\mathbf{w}) \to +\infty$ as $\|\mathbf{w}\| \to \infty$. Because $h \geq 0$,
+$g(\mathbf{w}) \to +\infty$ when $\|\mathbf{w}\| \to \infty$. Because $h \geq 0$,
 $f = g + h$ is also coercive. This means the sub-level set
-$\{\mathbf{w} : f(\mathbf{w}) \leq f(\mathbf{0})\}$ is compact, and since
-$f$ is continuous, it attains its minimum on this set. Strict convexity then
-rules out two distinct minimizers: if $\mathbf{w}_1 \neq \mathbf{w}_2$ both
+$\{\mathbf{w} : f(\mathbf{w}) \leq f(\mathbf{0})\}$ is compact, and, since
+$f$ is continuous, it has its minimum on this set. Strict convexity ensures that there is a single minimizer: if $\mathbf{w}_1 \neq \mathbf{w}_2$ both
 minimized $f$, the midpoint $\frac{\mathbf{w}_1 + \mathbf{w}_2}{2}$ would give
 a strictly smaller value, a contradiction.
 \end{proof}
@@ -133,13 +131,13 @@ At points where some $w_i = 0$, one must reason in terms of
 \subsection{Optimality conditions}
 \label{sec:intro_optimality}
 The optimality condition is expressed
-via the \textbf{subdifferential} \cite[Slides 5--6]{frangioni-slides-nonsmooth}: $\mathbf{w}^*$ is a global minimizer for the problem if and
+using the \textbf{subdifferential} \cite{subdifferential-introduction-frangioni}: $\mathbf{w}^*$ is a global minimizer for the problem if and
 only if:
 $$
 0 \in \partial f(\mathbf{w}^*) = \mathbf{X}^T(\mathbf{Xw}^* - \mathbf{y})
 + \lambda_{\text{LASSO}} \, \partial\|\mathbf{w}^*\|_1
 $$
-where the subdifferential of the $L_1$ norm is given component-wise by:
+where the subdifferential of the $L_1$ norm is given component-wise:
 $$
 [\partial \|\mathbf{w}\|_1]_i =
 \begin{cases}
@@ -148,9 +146,9 @@ $$
     [-1, +1]  & \text{if } w_i = 0.
 \end{cases}
 $$
-This condition can be written component-wise as: for each $i = 1, \ldots, H$,
+Writing it in a component-wise form: for each $i = 1, \ldots, H$
 \begin{equation}
 \label{eq:optimality}
-\left[\mathbf{X}^T(\mathbf{Xw}^* - \mathbf{y})\right]_i + \lambda_{\text{LASSO}} s_i = 0,
-\qquad s_i \in \partial|w_i^*|.
+\left[\mathbf{X}^T(\mathbf{Xw}^* - \mathbf{y})\right]_i + \lambda_{\text{LASSO}} s_i = 0
+\qquad s_i \in \partial|w_i^*|
 \end{equation}

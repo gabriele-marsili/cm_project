@@ -1,0 +1,628 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{nty/global//global/global/global}
+    \entry{bertsekas1999nonlinear}{book}{}{}
+      \name{author}{1}{}{%
+        {{hash=9d82cb170e490607a367aba73aa5668c}{%
+           family={Bertsekas},
+           familyi={B\bibinitperiod},
+           given={Dimitri\bibnamedelima P.},
+           giveni={D\bibinitperiod\bibinitdelim P\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Athena Scientific}%
+      }
+      \strng{namehash}{9d82cb170e490607a367aba73aa5668c}
+      \strng{fullhash}{9d82cb170e490607a367aba73aa5668c}
+      \strng{fullhashraw}{9d82cb170e490607a367aba73aa5668c}
+      \strng{bibnamehash}{9d82cb170e490607a367aba73aa5668c}
+      \strng{authorbibnamehash}{9d82cb170e490607a367aba73aa5668c}
+      \strng{authornamehash}{9d82cb170e490607a367aba73aa5668c}
+      \strng{authorfullhash}{9d82cb170e490607a367aba73aa5668c}
+      \strng{authorfullhashraw}{9d82cb170e490607a367aba73aa5668c}
+      \field{sortinit}{B}
+      \field{sortinithash}{d7095fff47cda75ca2589920aae98399}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{edition}{2nd}
+      \field{title}{Nonlinear Programming}
+      \field{year}{1999}
+    \endentry
+    \entry{Boyd_Vandenberghe_2004}{book}{}{}
+      \name{author}{2}{}{%
+        {{hash=ec94d94cc487dd71939a90cbeaaf47d0}{%
+           family={Boyd},
+           familyi={B\bibinitperiod},
+           given={Stephen},
+           giveni={S\bibinitperiod}}}%
+        {{hash=2608d599a0bc2a784c301329a8da5f7b}{%
+           family={Vandenberghe},
+           familyi={V\bibinitperiod},
+           given={Lieven},
+           giveni={L\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Cambridge University Press}%
+      }
+      \strng{namehash}{436abed3bce8d1b1d30640d4e5ff3d58}
+      \strng{fullhash}{436abed3bce8d1b1d30640d4e5ff3d58}
+      \strng{fullhashraw}{436abed3bce8d1b1d30640d4e5ff3d58}
+      \strng{bibnamehash}{436abed3bce8d1b1d30640d4e5ff3d58}
+      \strng{authorbibnamehash}{436abed3bce8d1b1d30640d4e5ff3d58}
+      \strng{authornamehash}{436abed3bce8d1b1d30640d4e5ff3d58}
+      \strng{authorfullhash}{436abed3bce8d1b1d30640d4e5ff3d58}
+      \strng{authorfullhashraw}{436abed3bce8d1b1d30640d4e5ff3d58}
+      \field{sortinit}{B}
+      \field{sortinithash}{d7095fff47cda75ca2589920aae98399}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Convex Optimization}
+      \field{year}{2004}
+    \endentry
+    \entry{brannlund1993generalized}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=a6f2f9f27ff4b1b862c15e52a56111e2}{%
+           family={Brännlund},
+           familyi={B\bibinitperiod},
+           given={Ulf},
+           giveni={U\bibinitperiod}}}%
+      }
+      \strng{namehash}{a6f2f9f27ff4b1b862c15e52a56111e2}
+      \strng{fullhash}{a6f2f9f27ff4b1b862c15e52a56111e2}
+      \strng{fullhashraw}{a6f2f9f27ff4b1b862c15e52a56111e2}
+      \strng{bibnamehash}{a6f2f9f27ff4b1b862c15e52a56111e2}
+      \strng{authorbibnamehash}{a6f2f9f27ff4b1b862c15e52a56111e2}
+      \strng{authornamehash}{a6f2f9f27ff4b1b862c15e52a56111e2}
+      \strng{authorfullhash}{a6f2f9f27ff4b1b862c15e52a56111e2}
+      \strng{authorfullhashraw}{a6f2f9f27ff4b1b862c15e52a56111e2}
+      \field{sortinit}{B}
+      \field{sortinithash}{d7095fff47cda75ca2589920aae98399}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Mathematical Programming}
+      \field{number}{2}
+      \field{title}{A Generalized Subgradient Method with Relaxation Step}
+      \field{volume}{71}
+      \field{year}{1995}
+      \field{pages}{207\bibrangedash 219}
+      \range{pages}{13}
+    \endentry
+    \entry{bubeck2015convex}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=3d51ee91b7d20d2f26b221a8a3b8b72c}{%
+           family={Bubeck},
+           familyi={B\bibinitperiod},
+           given={Sébastien},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{3d51ee91b7d20d2f26b221a8a3b8b72c}
+      \strng{fullhash}{3d51ee91b7d20d2f26b221a8a3b8b72c}
+      \strng{fullhashraw}{3d51ee91b7d20d2f26b221a8a3b8b72c}
+      \strng{bibnamehash}{3d51ee91b7d20d2f26b221a8a3b8b72c}
+      \strng{authorbibnamehash}{3d51ee91b7d20d2f26b221a8a3b8b72c}
+      \strng{authornamehash}{3d51ee91b7d20d2f26b221a8a3b8b72c}
+      \strng{authorfullhash}{3d51ee91b7d20d2f26b221a8a3b8b72c}
+      \strng{authorfullhashraw}{3d51ee91b7d20d2f26b221a8a3b8b72c}
+      \field{sortinit}{B}
+      \field{sortinithash}{d7095fff47cda75ca2589920aae98399}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{arXiv:1405.4980v2}
+      \field{title}{Convex Optimization: Algorithms and Complexity}
+      \field{year}{2015}
+    \endentry
+    \entry{chartrand2008iteratively}{inproceedings}{}{}
+      \name{author}{2}{}{%
+        {{hash=5168b0319e7fcf8a5d6f3c397685b3a2}{%
+           family={Chartrand},
+           familyi={C\bibinitperiod},
+           given={Rick},
+           giveni={R\bibinitperiod}}}%
+        {{hash=283c439ffb0015e38107aa1c35da9a6b}{%
+           family={Yin},
+           familyi={Y\bibinitperiod},
+           given={Wotao},
+           giveni={W\bibinitperiod}}}%
+      }
+      \list{organization}{1}{%
+        {IEEE}%
+      }
+      \strng{namehash}{a8e5a89ad45b17c4574c6061a90b4342}
+      \strng{fullhash}{a8e5a89ad45b17c4574c6061a90b4342}
+      \strng{fullhashraw}{a8e5a89ad45b17c4574c6061a90b4342}
+      \strng{bibnamehash}{a8e5a89ad45b17c4574c6061a90b4342}
+      \strng{authorbibnamehash}{a8e5a89ad45b17c4574c6061a90b4342}
+      \strng{authornamehash}{a8e5a89ad45b17c4574c6061a90b4342}
+      \strng{authorfullhash}{a8e5a89ad45b17c4574c6061a90b4342}
+      \strng{authorfullhashraw}{a8e5a89ad45b17c4574c6061a90b4342}
+      \field{sortinit}{C}
+      \field{sortinithash}{4d103a86280481745c9c897c925753c0}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{2008 IEEE international conference on acoustics, speech and signal processing}
+      \field{title}{Iteratively reweighted algorithms for compressive sensing}
+      \field{year}{2008}
+      \field{pages}{3869\bibrangedash 3872}
+      \range{pages}{4}
+    \endentry
+    \entry{cortinovis-introleastsquares}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=fbb6aaf7166936ea0986932ecc9821b5}{%
+           family={Cortinovis},
+           familyi={C\bibinitperiod},
+           given={Alice},
+           giveni={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{fbb6aaf7166936ea0986932ecc9821b5}
+      \strng{fullhash}{fbb6aaf7166936ea0986932ecc9821b5}
+      \strng{fullhashraw}{fbb6aaf7166936ea0986932ecc9821b5}
+      \strng{bibnamehash}{fbb6aaf7166936ea0986932ecc9821b5}
+      \strng{authorbibnamehash}{fbb6aaf7166936ea0986932ecc9821b5}
+      \strng{authornamehash}{fbb6aaf7166936ea0986932ecc9821b5}
+      \strng{authorfullhash}{fbb6aaf7166936ea0986932ecc9821b5}
+      \strng{authorfullhashraw}{fbb6aaf7166936ea0986932ecc9821b5}
+      \field{sortinit}{C}
+      \field{sortinithash}{4d103a86280481745c9c897c925753c0}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{Lecture notes: Intro to Least Squares, CM 646AA, Università di Pisa}
+      \field{title}{Introduction to Least Squares Problem}
+      \field{year}{2025}
+    \endentry
+    \entry{dantonio2009deflected}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=24ca96e035722b8315879908e854e152}{%
+           family={d'Antonio},
+           familyi={d\bibinitperiod},
+           given={Giacomo},
+           giveni={G\bibinitperiod}}}%
+        {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
+           family={Frangioni},
+           familyi={F\bibinitperiod},
+           given={Antonio},
+           giveni={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{e0ec50b7a47a63deb79e0ba2f9d37548}
+      \strng{fullhash}{e0ec50b7a47a63deb79e0ba2f9d37548}
+      \strng{fullhashraw}{e0ec50b7a47a63deb79e0ba2f9d37548}
+      \strng{bibnamehash}{e0ec50b7a47a63deb79e0ba2f9d37548}
+      \strng{authorbibnamehash}{e0ec50b7a47a63deb79e0ba2f9d37548}
+      \strng{authornamehash}{e0ec50b7a47a63deb79e0ba2f9d37548}
+      \strng{authorfullhash}{e0ec50b7a47a63deb79e0ba2f9d37548}
+      \strng{authorfullhashraw}{e0ec50b7a47a63deb79e0ba2f9d37548}
+      \field{sortinit}{d}
+      \field{sortinithash}{6f385f66841fb5e82009dc833c761848}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{SIAM Journal on Optimization}
+      \field{number}{1}
+      \field{title}{Convergence Analysis of Deflected Conditional Approximate Subgradient Methods}
+      \field{volume}{20}
+      \field{year}{2009}
+      \verb{doi}
+      \verb 10.1137/080718814
+      \endverb
+      \verb{urlraw}
+      \verb https://pages.di.unipi.it/frangio/papers/DeflProjSubG.pdf
+      \endverb
+      \verb{url}
+      \verb https://pages.di.unipi.it/frangio/papers/DeflProjSubG.pdf
+      \endverb
+    \endentry
+    \entry{daubechies2008iterativelyreweightedsquaresminimization}{misc}{}{}
+      \name{author}{4}{}{%
+        {{hash=fc8f0a493fb89e7630e821dfefb6a2c2}{%
+           family={Daubechies},
+           familyi={D\bibinitperiod},
+           given={Ingrid},
+           giveni={I\bibinitperiod}}}%
+        {{hash=5347ea93f4e6078b3f6bf9b1329eefae}{%
+           family={DeVore},
+           familyi={D\bibinitperiod},
+           given={Ronald},
+           giveni={R\bibinitperiod}}}%
+        {{hash=b737c1799562207b8bafaabddf3e8d01}{%
+           family={Fornasier},
+           familyi={F\bibinitperiod},
+           given={Massimo},
+           giveni={M\bibinitperiod}}}%
+        {{hash=d1f3ddc9f6103bfdaf791fe47c8b2421}{%
+           family={Gunturk},
+           familyi={G\bibinitperiod},
+           given={C.\bibnamedelimi Sinan},
+           giveni={C\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+      }
+      \strng{namehash}{6294d38c60bd9fa1d7fca91520ddaed7}
+      \strng{fullhash}{1a18ed6e1f2e02b64489cef8d19b3fc1}
+      \strng{fullhashraw}{1a18ed6e1f2e02b64489cef8d19b3fc1}
+      \strng{bibnamehash}{6294d38c60bd9fa1d7fca91520ddaed7}
+      \strng{authorbibnamehash}{6294d38c60bd9fa1d7fca91520ddaed7}
+      \strng{authornamehash}{6294d38c60bd9fa1d7fca91520ddaed7}
+      \strng{authorfullhash}{1a18ed6e1f2e02b64489cef8d19b3fc1}
+      \strng{authorfullhashraw}{1a18ed6e1f2e02b64489cef8d19b3fc1}
+      \field{sortinit}{D}
+      \field{sortinithash}{6f385f66841fb5e82009dc833c761848}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprintclass}{math.NA}
+      \field{eprinttype}{arXiv}
+      \field{title}{Iteratively re-weighted least squares minimization for sparse recovery}
+      \field{year}{2008}
+      \verb{eprint}
+      \verb 0807.0575
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/0807.0575
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/0807.0575
+      \endverb
+    \endentry
+    \entry{efron2004least}{article}{}{}
+      \name{author}{4}{}{%
+        {{hash=5470455fc7dceb3ccf6db38cb22a113d}{%
+           family={Efron},
+           familyi={E\bibinitperiod},
+           given={Bradley},
+           giveni={B\bibinitperiod}}}%
+        {{hash=0cb8fe4210baa81c4b0e67913b4d2768}{%
+           family={Hastie},
+           familyi={H\bibinitperiod},
+           given={Trevor},
+           giveni={T\bibinitperiod}}}%
+        {{hash=269caf16d4edd41e34b3e9a22e1d2dc3}{%
+           family={Johnstone},
+           familyi={J\bibinitperiod},
+           given={Iain},
+           giveni={I\bibinitperiod}}}%
+        {{hash=88eea600247d798f8b2ce0b2dc614492}{%
+           family={Tibshirani},
+           familyi={T\bibinitperiod},
+           given={Robert},
+           giveni={R\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Institute of Mathematical Statistics}%
+      }
+      \strng{namehash}{a5fa507ba7d213808e02fe1b5aa1a830}
+      \strng{fullhash}{fbd07af61c83d5c16d5d4308c1ae67e5}
+      \strng{fullhashraw}{fbd07af61c83d5c16d5d4308c1ae67e5}
+      \strng{bibnamehash}{a5fa507ba7d213808e02fe1b5aa1a830}
+      \strng{authorbibnamehash}{a5fa507ba7d213808e02fe1b5aa1a830}
+      \strng{authornamehash}{a5fa507ba7d213808e02fe1b5aa1a830}
+      \strng{authorfullhash}{fbd07af61c83d5c16d5d4308c1ae67e5}
+      \strng{authorfullhashraw}{fbd07af61c83d5c16d5d4308c1ae67e5}
+      \field{sortinit}{E}
+      \field{sortinithash}{8da8a182d344d5b9047633dfc0cc9131}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{The Annals of Statistics}
+      \field{number}{2}
+      \field{title}{Least angle regression}
+      \field{volume}{32}
+      \field{year}{2004}
+      \field{pages}{407\bibrangedash 499}
+      \range{pages}{93}
+      \verb{doi}
+      \verb 10.1214/009053604000000067
+      \endverb
+    \endentry
+    \entry{frangioni-slides-nonsmooth}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
+           family={Frangioni},
+           familyi={F\bibinitperiod},
+           given={Antonio},
+           giveni={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{fullhash}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{fullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{bibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{authorbibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
+      \field{extraname}{1}
+      \field{sortinit}{F}
+      \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{Lecture notes, CM 646AA, Università di Pisa, \url{https://elearning.di.unipi.it/pluginfile.php/90522/mod_resource/content/5/5-nonsmooth\%20unconstrained\%20optimization.pdf}}
+      \field{title}{Nonsmooth Unconstrained Optimization}
+      \field{year}{2026}
+    \endentry
+    \entry{frangioni-slides-smooth}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
+           family={Frangioni},
+           familyi={F\bibinitperiod},
+           given={Antonio},
+           giveni={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{fullhash}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{fullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{bibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{authorbibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
+      \field{extraname}{2}
+      \field{sortinit}{F}
+      \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{Lecture notes, CM 646AA, Università di Pisa, \url{https://elearning.di.unipi.it/pluginfile.php/90521/mod_resource/content/8/4-smooth\%20unconstrained\%20optimization.pdf}}
+      \field{title}{Smooth Unconstrained Optimization}
+      \field{year}{2025}
+    \endentry
+    \entry{frangioni-slides-unconstrained}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=0efdfd90964430ee3d00575c8fb75f0e}{%
+           family={Frangioni},
+           familyi={F\bibinitperiod},
+           given={Antonio},
+           giveni={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{fullhash}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{fullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{bibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{authorbibnamehash}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{authornamehash}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{authorfullhash}{0efdfd90964430ee3d00575c8fb75f0e}
+      \strng{authorfullhashraw}{0efdfd90964430ee3d00575c8fb75f0e}
+      \field{extraname}{3}
+      \field{sortinit}{F}
+      \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{Lecture notes, CM 646AA, Università di Pisa, \url{https://elearning.di.unipi.it/pluginfile.php/90520/mod_resource/content/8/3-unconstrained\%20optimality.pdf}}
+      \field{title}{Unconstrained Multivariate Optimality and Convexity}
+      \field{year}{2025}
+    \endentry
+    \entry{goffin1999convergence}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=6f7c00c505c14a40ca4d3bfc2a0a5b3a}{%
+           family={Goffin},
+           familyi={G\bibinitperiod},
+           given={Jean-Louis},
+           giveni={J\bibinithyphendelim L\bibinitperiod}}}%
+        {{hash=5a297975cc5750164323c6794920feb7}{%
+           family={Kiwiel},
+           familyi={K\bibinitperiod},
+           given={Krzysztof\bibnamedelima C.},
+           giveni={K\bibinitperiod\bibinitdelim C\bibinitperiod}}}%
+      }
+      \strng{namehash}{3d1be705bc85b8e48341211716c6cd61}
+      \strng{fullhash}{3d1be705bc85b8e48341211716c6cd61}
+      \strng{fullhashraw}{3d1be705bc85b8e48341211716c6cd61}
+      \strng{bibnamehash}{3d1be705bc85b8e48341211716c6cd61}
+      \strng{authorbibnamehash}{3d1be705bc85b8e48341211716c6cd61}
+      \strng{authornamehash}{3d1be705bc85b8e48341211716c6cd61}
+      \strng{authorfullhash}{3d1be705bc85b8e48341211716c6cd61}
+      \strng{authorfullhashraw}{3d1be705bc85b8e48341211716c6cd61}
+      \field{sortinit}{G}
+      \field{sortinithash}{32d67eca0634bf53703493fb1090a2e8}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Mathematical Programming}
+      \field{number}{1}
+      \field{title}{Convergence of a Simple Subgradient Level Method}
+      \field{volume}{85}
+      \field{year}{1999}
+      \field{pages}{207\bibrangedash 211}
+      \range{pages}{5}
+    \endentry
+    \entry{hastie2009elements}{book}{}{}
+      \name{author}{3}{}{%
+        {{hash=0cb8fe4210baa81c4b0e67913b4d2768}{%
+           family={Hastie},
+           familyi={H\bibinitperiod},
+           given={Trevor},
+           giveni={T\bibinitperiod}}}%
+        {{hash=88eea600247d798f8b2ce0b2dc614492}{%
+           family={Tibshirani},
+           familyi={T\bibinitperiod},
+           given={Robert},
+           giveni={R\bibinitperiod}}}%
+        {{hash=971cf69058b64a94326dea0f2a8bbcce}{%
+           family={Friedman},
+           familyi={F\bibinitperiod},
+           given={Jerome},
+           giveni={J\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Springer}%
+      }
+      \strng{namehash}{7ca1bfe876d5e037b6aed69704221267}
+      \strng{fullhash}{7ca1bfe876d5e037b6aed69704221267}
+      \strng{fullhashraw}{7ca1bfe876d5e037b6aed69704221267}
+      \strng{bibnamehash}{7ca1bfe876d5e037b6aed69704221267}
+      \strng{authorbibnamehash}{7ca1bfe876d5e037b6aed69704221267}
+      \strng{authornamehash}{7ca1bfe876d5e037b6aed69704221267}
+      \strng{authorfullhash}{7ca1bfe876d5e037b6aed69704221267}
+      \strng{authorfullhashraw}{7ca1bfe876d5e037b6aed69704221267}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{edition}{2nd}
+      \field{title}{The Elements of Statistical Learning: Data Mining, Inference, and Prediction}
+      \field{year}{2009}
+      \verb{urlraw}
+      \verb https://hastie.su.domains/ElemStatLearn/
+      \endverb
+      \verb{url}
+      \verb https://hastie.su.domains/ElemStatLearn/
+      \endverb
+    \endentry
+    \entry{HUANG2006489}{article}{}{}
+      \name{author}{3}{}{%
+        {{hash=3e61709274508b1e36f637c008c31fa7}{%
+           family={Huang},
+           familyi={H\bibinitperiod},
+           given={Guang-Bin},
+           giveni={G\bibinithyphendelim B\bibinitperiod}}}%
+        {{hash=03f2e5c29a4c260c736612d10b1c8857}{%
+           family={Zhu},
+           familyi={Z\bibinitperiod},
+           given={Qin-Yu},
+           giveni={Q\bibinithyphendelim Y\bibinitperiod}}}%
+        {{hash=8c6fc3be3920add48fd579f5385dc34d}{%
+           family={Siew},
+           familyi={S\bibinitperiod},
+           given={Chee-Kheong},
+           giveni={C\bibinithyphendelim K\bibinitperiod}}}%
+      }
+      \strng{namehash}{2c118b39e65fe9afbafa59e092e1479f}
+      \strng{fullhash}{2c118b39e65fe9afbafa59e092e1479f}
+      \strng{fullhashraw}{2c118b39e65fe9afbafa59e092e1479f}
+      \strng{bibnamehash}{2c118b39e65fe9afbafa59e092e1479f}
+      \strng{authorbibnamehash}{2c118b39e65fe9afbafa59e092e1479f}
+      \strng{authornamehash}{2c118b39e65fe9afbafa59e092e1479f}
+      \strng{authorfullhash}{2c118b39e65fe9afbafa59e092e1479f}
+      \strng{authorfullhashraw}{2c118b39e65fe9afbafa59e092e1479f}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Neurocomputing}
+      \field{number}{1}
+      \field{title}{Extreme learning machine: Theory and applications}
+      \field{volume}{70}
+      \field{year}{2006}
+      \field{pages}{489\bibrangedash 501}
+      \range{pages}{13}
+      \verb{doi}
+      \verb 10.1016/j.neucom.2005.12.126
+      \endverb
+    \endentry
+    \entry{nguyen2016introductionmmalgorithmsmachine}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=565901dee05573d111deac94a46fc7c0}{%
+           family={Nguyen},
+           familyi={N\bibinitperiod},
+           given={Hien\bibnamedelima D.},
+           giveni={H\bibinitperiod\bibinitdelim D\bibinitperiod}}}%
+      }
+      \strng{namehash}{565901dee05573d111deac94a46fc7c0}
+      \strng{fullhash}{565901dee05573d111deac94a46fc7c0}
+      \strng{fullhashraw}{565901dee05573d111deac94a46fc7c0}
+      \strng{bibnamehash}{565901dee05573d111deac94a46fc7c0}
+      \strng{authorbibnamehash}{565901dee05573d111deac94a46fc7c0}
+      \strng{authornamehash}{565901dee05573d111deac94a46fc7c0}
+      \strng{authorfullhash}{565901dee05573d111deac94a46fc7c0}
+      \strng{authorfullhashraw}{565901dee05573d111deac94a46fc7c0}
+      \field{sortinit}{N}
+      \field{sortinithash}{22369a73d5f88983a108b63f07f37084}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprintclass}{stat.CO}
+      \field{eprinttype}{arXiv}
+      \field{title}{An Introduction to MM Algorithms for Machine Learning and Statistical}
+      \field{year}{2016}
+      \verb{eprint}
+      \verb 1611.03969
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/1611.03969
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/1611.03969
+      \endverb
+    \endentry
+    \entry{pace1997sparse}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=9a8832836eb21e4894c81e8f83f075f7}{%
+           family={Pace},
+           familyi={P\bibinitperiod},
+           given={R.\bibnamedelimi Kelley},
+           giveni={R\bibinitperiod\bibinitdelim K\bibinitperiod}}}%
+        {{hash=b5b85590544fa5dfd43cdc4ba1633b95}{%
+           family={Barry},
+           familyi={B\bibinitperiod},
+           given={Ronald},
+           giveni={R\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Elsevier}%
+      }
+      \strng{namehash}{9243eaff5e2ddf7750fb870450ae5a3d}
+      \strng{fullhash}{9243eaff5e2ddf7750fb870450ae5a3d}
+      \strng{fullhashraw}{9243eaff5e2ddf7750fb870450ae5a3d}
+      \strng{bibnamehash}{9243eaff5e2ddf7750fb870450ae5a3d}
+      \strng{authorbibnamehash}{9243eaff5e2ddf7750fb870450ae5a3d}
+      \strng{authornamehash}{9243eaff5e2ddf7750fb870450ae5a3d}
+      \strng{authorfullhash}{9243eaff5e2ddf7750fb870450ae5a3d}
+      \strng{authorfullhashraw}{9243eaff5e2ddf7750fb870450ae5a3d}
+      \field{sortinit}{P}
+      \field{sortinithash}{ff3bcf24f47321b42cb156c2cc8a8422}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Statistics \& Probability Letters}
+      \field{number}{3}
+      \field{title}{Sparse spatial autoregressions}
+      \field{volume}{33}
+      \field{year}{1997}
+      \field{pages}{291\bibrangedash 297}
+      \range{pages}{7}
+      \verb{doi}
+      \verb 10.1016/S0167-7152(96)00140-X
+      \endverb
+    \endentry
+    \entry{trefethen1997numerical}{book}{}{}
+      \name{author}{2}{}{%
+        {{hash=e3376455eaec77b00950a1dc9ce095f5}{%
+           family={Trefethen},
+           familyi={T\bibinitperiod},
+           given={Lloyd\bibnamedelima N.},
+           giveni={L\bibinitperiod\bibinitdelim N\bibinitperiod}}}%
+        {{hash=22ad692c20b3b8f8f6a32384dae0ac10}{%
+           family={Bau},
+           familyi={B\bibinitperiod},
+           given={David},
+           giveni={D\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {SIAM}%
+      }
+      \strng{namehash}{37975382dbce969c6946ec910a13d1f7}
+      \strng{fullhash}{37975382dbce969c6946ec910a13d1f7}
+      \strng{fullhashraw}{37975382dbce969c6946ec910a13d1f7}
+      \strng{bibnamehash}{37975382dbce969c6946ec910a13d1f7}
+      \strng{authorbibnamehash}{37975382dbce969c6946ec910a13d1f7}
+      \strng{authornamehash}{37975382dbce969c6946ec910a13d1f7}
+      \strng{authorfullhash}{37975382dbce969c6946ec910a13d1f7}
+      \strng{authorfullhashraw}{37975382dbce969c6946ec910a13d1f7}
+      \field{sortinit}{T}
+      \field{sortinithash}{9af77f0292593c26bde9a56e688eaee9}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Numerical Linear Algebra}
+      \field{year}{1997}
+    \endentry
+  \enddatalist
+  \missing{subdifferential-introduction-frangioni}
+\endrefsection
+\endinput
+
