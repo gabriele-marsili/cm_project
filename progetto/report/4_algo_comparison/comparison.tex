@@ -47,7 +47,7 @@ is monotone, so DSM returns $\mathbf{w}_{\mathrm{best}}$ and stops on a fixed bu
 
 IRLS achieves a \textbf{linear} rate (Section~\ref{sec:irls_convergence}); DSM achieves the optimal \textbf{sublinear} $O(L^2/\varepsilon^2)$ rate for nonsmooth convex functions (Theorem~\ref{thm:dsm_convergence}), where $L$ is the uniform Lipschitz constant of the subgradients on the iterate sublevel set. The contrast between the two rates is sharpest under successive tightening of $\varepsilon$:
 \begin{itemize}
-  \item For DSM, the rate $\bar f_k - f^* \lesssim L\norm{\mathbf{w}_0 - \mathbf{w}^*}_2/(\gamma_{\min}\sqrt k)$ gives $k \propto 1/\varepsilon^2$. Cutting $\varepsilon$ by a factor $10$ therefore multiplies the iteration count by $10^2 = 100$.
+  \item For DSM, the rate $\bar f_k - f^* \lesssim L\norm{\mathbf{w}_0 - \mathbf{w}^*}_2/\sqrt{\gamma_{\min}\,k}$ gives $k \propto 1/(\gamma_{\min}\,\varepsilon^2)$. Cutting $\varepsilon$ by a factor $10$ therefore multiplies the iteration count by $10^2 = 100$.
   \item For IRLS, the linear rate $f(\mathbf{w}_{k+1}) - f^* \le r\,(f(\mathbf{w}_k) - f^*)$ with $r \in (0,1)$ of Theorem~\ref{thm:irls_convergence} gives $k \propto \log(1/\varepsilon)/\log(1/r)$. Cutting $\varepsilon$ by a factor $10$ \emph{adds} the constant $\log 10/\log(1/r)$ iterations, independent of $\varepsilon$.
 \end{itemize}
 The growth in iteration count with required accuracy is therefore polynomial for DSM and only logarithmic (additively constant per decade) for IRLS.

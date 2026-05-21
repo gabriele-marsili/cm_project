@@ -167,10 +167,31 @@ Documento di audit critico interno, scritto in risposta all'email del prof. Copr
 
 ---
 
+## Addendum 2026-05-21 — Theorem 3.1 fix
+
+### `report/3_algo_2_DSM/chapter3.tex`
+- **Theorem statement (eq:def-rate-deflected)**: il fattore di deflazione corretto da `1/(γ_min · √k)` a `1/√(γ_min · (k+1))`. Complessità corretta da `O(L²/(γ_min² ε²))` a `O(L²/(γ_min · ε²))`. Il vecchio numero "moltiplicatore 400 con γ_min=0.05" era doppiamente sbagliato; ora "20×" derivato esplicitamente.
+- **Proof body**: la prosa hand-wavy "the asymptotic rate matches the classical Polyak bound inflated by the deflection floor" sostituita da derivazione esplicita in tre passi:
+  - *Per-step descent*: bound `||w_{i+1}-w*||² ≤ ||w_i-w*||² - β_i(2-β_i)·(f(w_i)-f*)²/||d_i||²` citato da Frangioni Slide 15, poi β_i = γ_i (su [γ_min, 1]) e β_i(2-β_i) = γ_i(2-γ_i) ≥ γ_min.
+  - *Telescoping*: somma da i=0 a k, dropping del LHS non-negativo, bound ||d_i|| ≤ L (combinazione convessa di subgradient).
+  - *Iteration count*: solve per ε, ottieni k+1 ≥ L²||w_0-w*||²/(γ_min ε²).
+- Nuovo `\label{eq:def-step-polyak}` per il bound per-passo.
+- **§"Expected practical behavior"**: aggiornati i 2 punti che citavano la rate (residual scale e curve concava semilog) per usare `1/√(γ_min · k)`.
+- **§"Parameter calibration" γ_min**: "cost of a 1/γ_min factor in the rate" → "cost of a 1/√γ_min factor in the rate (equivalently 1/γ_min in the iteration count)".
+
+### `report/4_algo_comparison/comparison.tex`
+- Citazione rate DSM in §"Rate" aggiornata: `L||w_0-w*||/(γ_min √k)` → `L||w_0-w*||/√(γ_min k)`; complessità `k ∝ 1/(γ_min ε²)` (era `1/ε²` implicito).
+
+### Verifica
+- `pdflatex main.tex` ricompila senza errori `!` (May 21 13:38).
+- Bibliografia ancora stale per bug Biber pre-esistente (non bloccante per il fix matematico).
+
+---
+
 ## Punti residui (non chiusi in questa sessione)
 
 Dal `CRITICAL_REVIEW.md`:
-1. **🔴 Theorem 3.1 rate factor** — andrebbe corretto `1/γ_min` → `1/√γ_min` con derivazione esplicita
+1. ~~**🔴 Theorem 3.1 rate factor** — andrebbe corretto `1/γ_min` → `1/√γ_min` con derivazione esplicita~~ **CHIUSO 2026-05-21** (vedi Addendum sopra).
 2. **🟡 §5.7 SGPTL** — valutare rerun con c=0.5, ρ=0.5 per gap migliori
 3. **🟡 LLM-smell pass** sui 3 file principali del report (`humanizer` skill)
 4. **🟡 Warm-start cost** discussione da espandere

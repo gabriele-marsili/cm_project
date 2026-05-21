@@ -12,7 +12,13 @@ Convenzioni:
 
 ---
 
-## 1. Theorem 3.1: il fattore `1/γ_min` nella rate bound è sospetto (🔴)
+## 1. Theorem 3.1: il fattore `1/γ_min` nella rate bound (✅ CHIUSO 2026-05-21)
+
+**STATUS**: corretto. La derivazione esplicita sotto è ora nel `chapter3.tex` proof body. Il theorem statement ha `1/√(γ_min(k+1))` nella rate e `O(L²/(γ_min ε²))` nella complessità. I cite a valle (chapter3 §"Expected behavior", chapter3 §"Parameter calibration", chapter4 §"Rate") sono allineati.
+
+Il resto di questa sezione è conservato come documentazione del bug e della sua correzione.
+
+### Vecchia versione del bug
 
 ### Cosa dice il report ora (chapter3.tex:181-186)
 Sotto le ipotesi (subgradient bounded `||g_i|| ≤ L`, stepsize-restricted
