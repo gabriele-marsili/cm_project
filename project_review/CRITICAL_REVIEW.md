@@ -155,7 +155,20 @@ Aggiungere un paragrafo conciso (~6 righe) in chapter3.tex §"Parameter calibrat
 
 ---
 
-## 4. §5.7 SGPTL "mal configurato" (🟡)
+## 4. §5.7 SGPTL "mal configurato" (✅ CHIUSO 2026-05-21)
+
+**STATUS**: verificato empiricamente che il default $c=0.1$ è la scelta corretta sui real-data. Un sweep $c \in \{0.1, 0.5, 1.0\}$ con $w_0$ best-per-instance dà:
+
+| | $c=0.1$ | $c=0.5$ | $c=1.0$ |
+|---|---|---|---|
+| diabetes (cold) | gap 0.22, 14 contractions | gap 0.26, 18 | gap 0.29, 20 |
+| California (warm) | gap 0.46, 1196 contr. | gap 0.46, 2106 | gap 0.46, 2108 |
+
+Su diabetes-ELM aumentare $c$ peggiora marginalmente (più aggressivo $\delta_0$ → più contractions iniziali ma non più progresso utile). Su California-ELM il gap è dominato dalla quasi-ottimalità dell'OLS warm-start (cf. §1 del review), non da $c$. **Conclusione**: $c=0.1$ rimane il default. Il "miglioramento $c=1.0$ vs $c=0.1$" osservato nel sweep sintetico non si trasferisce ai real-data, e cambiare il default per allinearlo ai numeri real-data sarebbe esattamente il "tuning sul test set" che il prof critica.
+
+Il resto di questa sezione è conservato come documentazione del sospetto e della sua refutazione empirica.
+
+### Vecchia sezione (sospetto, prima della verifica)
 
 ### Critica del prof
 *"Il comportamento di SGPTL nella §5.7 mi farebbe pensare che sia stato molto

@@ -137,7 +137,7 @@ Section~\ref{sec:intro_optimality} already gives the subdifferential of the ELM 
   \mathbf{g} = \mathbf{X}^\top(\mathbf{X}\mathbf{w} - \mathbf{y}) + \lambda_{\text{LASSO}}\, \mathbf{s},
   \qquad s_i = \mathrm{sign}(w_i) \in \partial|w_i|,
 \end{equation}
-with the convention $\mathrm{sign}(0) = 0$, which is admissible since $0 \in [-1,1] = \partial|0|$. This choice is not the minimum-norm element of $\partial f(\mathbf{w}_i)$, but Theorem~\ref{thm:dsm_convergence} only requires admissibility.
+with the convention $\mathrm{sign}(0) = 0$, which is admissible since $0 \in [-1,1] = \partial|0|$. This choice is not the minimum-norm element of $\partial f(\mathbf{w}_i)$, but Theorem~\ref{thm:dsm_convergence} only requires admissibility. The event $(\mathbf{w}_i)_j = 0$ exactly is non-generic for a subgradient method --- iterates are updated continuously by $\mathbf{w}_{i+1} = \mathbf{w}_i - \alpha_i \mathbf{d}_i$ and never land on a coordinate hyperplane unless $\mathbf{w}_0$ is placed there to begin with; the cold start $\mathbf{w}_0 = \mathbf{0}$ is the only case where the convention is exercised, and only at $i = 0$.
 
 % ------------------------------------------------------------------
 \subsection{Convergence analysis and hypothesis verification for ELM LASSO}
@@ -199,7 +199,7 @@ The unfloored Polyak bound (same derivation with $\gamma_{\min}$ replaced by $1$
 \end{proof}
 
 \paragraph{Verification of theorem assumptions for ELM LASSO.}
-Convexity of $f$, coercivity, and compactness of every sublevel set were established in Proposition~\ref{prop:irls_prop}; the same proposition also shows that the minimum value $f^* > -\infty$ is attained at a unique $\mathbf{w}^*$ when $\mathbf{X}$ has full column rank. The only remaining hypothesis of Theorem~\ref{thm:dsm_convergence} is the uniform bound on subgradients along the run. The $\ell_1$ part contributes a bounded term $\norm{\lambda_{\text{LASSO}}\mathbf{s}}_2 \le \lambda_{\text{LASSO}}\sqrt{H}$ (each $|s_i| \le 1$), but the smooth part $\mathbf{X}^\top(\mathbf{X}\mathbf{w} - \mathbf{y})$ grows with $\norm{\mathbf{w}}$ so $f$ is not globally Lipschitz. The iterates $\{\mathbf{w}_i\}$ nonetheless stay in a compact set: this is part of the conclusions of \cite[Theorem~3.7]{dantonio2009deflected} on the convergence of the target-level deflected scheme. A convex function is Lipschitz on any compact set \cite[Slide 9]{frangioni-slides-smooth}, which gives a uniform bound $L$ on $\norm{\mathbf{g}_i}_2$ along the run.
+Convexity, coercivity, and uniqueness of $\mathbf{w}^*$ under full column rank of $\mathbf{X}$ follow from Proposition~\ref{prop:irls_prop}. The subgradient bound used in the proof requires only that $f$ is Lipschitz on the iterate sublevel set, not globally: the smooth part $\mathbf{X}^\top(\mathbf{X}\mathbf{w} - \mathbf{y})$ grows with $\norm{\mathbf{w}}$, but $\{\mathbf{w}_i\}$ stays in a compact set (\cite[Theorem~3.7]{dantonio2009deflected}), so the local Lipschitz constant $L$ in~\eqref{eq:def-rate-deflected} is finite.
 
 \paragraph{Complexity.}
 The lower bound for first-order methods on nonsmooth convex problems is $\Omega(L^2/\varepsilon^2)$ \cite[Slide 8]{frangioni-slides-nonsmooth},~\cite{bubeck2015convex}; Algorithm~\ref{alg:dsm} attains it. Deflection improves constants, not the order.
