@@ -2378,7 +2378,7 @@
     <bcf:citekey order="4" intorder="1">Boyd_Vandenberghe_2004</bcf:citekey>
     <bcf:citekey order="5" intorder="1">frangioni-slides-unconstrained</bcf:citekey>
     <bcf:citekey order="6" intorder="1">frangioni-slides-nonsmooth</bcf:citekey>
-    <bcf:citekey order="7" intorder="1">subdifferential-introduction-frangioni</bcf:citekey>
+    <bcf:citekey order="7" intorder="1">frangioni-slides-nonsmooth</bcf:citekey>
     <bcf:citekey order="8" intorder="1">daubechies2008iterativelyreweightedsquaresminimization</bcf:citekey>
     <bcf:citekey order="9" intorder="1">chartrand2008iteratively</bcf:citekey>
     <bcf:citekey order="10" intorder="1">nguyen2016introductionmmalgorithmsmachine</bcf:citekey>
