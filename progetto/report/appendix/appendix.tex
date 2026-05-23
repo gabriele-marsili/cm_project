@@ -1,0 +1,107 @@
+\chapter{Full \texorpdfstring{$\delta_{0}$}{delta\_0} family sweep}
+\label{app:delta0-families}
+
+Section~\ref{sec:params} summarises, in Table~\ref{tab:delta0-ratio}, the
+agreement between the admissible scale $\delta_{0}=c\,f(\mathbf{w}_{0})$
+and the inadmissible oracle $\delta_{0}=c\,f^{*}$. This appendix gives the
+full per-instance evidence behind that summary.
+
+We compare the admissible scale Family~A $\delta_{0}=c\,f(\mathbf{w}_{0})$
+(the choice adopted in the report) against the inadmissible oracle
+Family~C $\delta_{0}=c\,f^{*}$ over $c\in\{0.01,0.05,0.1,0.5,1\}$ on
+five instances. On four of the five $f^{*}$ is CVXPY-verified
+(\texttt{CLARABEL}, cross-validated against the IRLS-converged value to
+relative agreement below $10^{-9}$); on \texttt{california}~$H=200$ the
+size puts CVXPY beyond a reasonable budget and we use the IRLS-converged
+proxy. The instance configurations are summarised in
+Table~\ref{tab:delta0-families-summary}.
+
+The figure additionally plots a third curve, Family~B
+$\delta_{0}=c\,\tfrac12\norm{\mathbf{X}\mathbf{w}_{0}-\mathbf{y}}^{2}$
+(the smooth-part-only variant of A), kept here as an artefact of the
+original sweep but not adopted as a candidate: it has no theoretical
+preference over A and is empirically comparable.
+
+On \texttt{california} at $\lambda_\text{LASSO}=0.1$ the OLS warm start
+already attains $f^{*}$ to within $5\cdot 10^{-1}$, so a warm-started run
+leaves SGPTL nothing to optimise and the three families coincide
+trivially at the starting gap; we therefore run \texttt{california} from
+the cold start $\mathbf{w}_{0}=\mathbf{0}$ (initial gap
+$\norm{\mathbf{y}}^{2}/2\approx 8.3\cdot 10^{3}$), where SGPTL closes
+$99\%$+ of the gap and the comparison is meaningful.
+
+\begin{table}[H]
+    \centering
+    \small
+    \setlength{\tabcolsep}{6pt}
+    \begin{tabular}{lrrll}
+        \toprule
+        instance & seeds & $M\times H$ & start & $f^{*}$ source \\
+        \midrule
+        synthetic               & 5 & $300\times 100$  & OLS warm & CVXPY-verified \\
+        \texttt{diabetes}~$H=50$  & 1 & $354\times 50$   & OLS warm & CVXPY-verified \\
+        \texttt{diabetes}~$H=200$ & 1 & $354\times 200$  & OLS warm & CVXPY-verified \\
+        \texttt{california}~$H=50$  & 1 & $16512\times 50$  & cold $\mathbf{w}_{0}=\mathbf{0}$ & CVXPY-verified \\
+        \texttt{california}~$H=200$ & 1 & $16512\times 200$ & cold $\mathbf{w}_{0}=\mathbf{0}$ & IRLS-converged proxy \\
+        \bottomrule
+    \end{tabular}
+    \caption{Instances used in the $\delta_{0}$ family sweep.
+    \texttt{california} runs cold because the OLS solution coincides with
+    $f^{*}$ to machine precision at $\lambda_\text{LASSO}=0.1$. All runs
+    share $\lambda_\text{LASSO}=0.1$, $i_{\max}=8000$, $\rho=0.7$,
+    $\gamma_{\min}=0.05$, $\beta=1$, $R=1$.}
+    \label{tab:delta0-families-summary}
+\end{table}
+
+Across every instance, in the regime where SGPTL is actually optimising,
+Family~A and the oracle Family~C agree within a factor of two
+(Table~\ref{tab:delta0-ratio}). The single exception is
+\texttt{diabetes}~$H=50$ at $c\ge 0.5$, where both scales stall at a
+common plateau $\bar f^{i}-f^{*}\approx 1.4\cdot 10^{-1}$ because the
+over-aggressive $\delta_{0}$ overshoots the sufficient-descent test from
+the first iteration and only the travel-distance counter drives
+progress; they coincide there because neither recovers from the initial
+overshoot, which is a regime limit of the sweep rather than a statement
+about the calibration.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/delta0_families.pdf}
+    \caption{Sensitivity of the final record gap to $\delta_{0}$, three
+    families across five instances (rows): synthetic ($5$ seeds, per-seed
+    thin traces and aggregate-mean thick), \texttt{diabetes}~$H=50$
+    (warm), \texttt{diabetes}~$H=200$ (warm), \texttt{california}~$H=50$
+    (cold), \texttt{california}~$H=200$ (cold). All runs use
+    $\lambda_\text{LASSO}=0.1$, $\rho=0.7$, $\gamma_{\min}=0.05$,
+    $i_{\max}=8000$. Family~A: $\delta_{0}=c\,f(\mathbf{w}_{0})$
+    (default). Family~B:
+    $\delta_{0}=c\,\tfrac12\norm{\mathbf{X}\mathbf{w}_{0}-\mathbf{y}}^{2}$.
+    Family~C: $\delta_{0}=c\,f^{*}$ (oracle, inadmissible). The
+    Family~A/Family~C ratio falls in $[0.5,2.0]$ in every regime where
+    SGPTL admits progress.}
+    \label{fig:delta0-families}
+\end{figure}
+
+\chapter{IRLS warm vs cold start on the synthetic instance}
+\label{app:irls-synth-warm-cold}
+
+Section~\ref{sec:warm_cold} reports the warm-vs-cold contrast for IRLS on
+the two real-data instances directly in the body
+(Figure~\ref{fig:irls-warm-cold}). The analogue on the synthetic
+benchmark ($H=100$, $M=300$, $\lambda_\text{LASSO}=0.1$, $200$ iterations,
+$\varepsilon_\text{thr}=10^{-8}$) is reported here for completeness.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/irls_synthetic_warm_vs_cold.pdf}
+    \caption{IRLS warm (OLS) vs cold ($\mathbf{w}_{0}=\mathbf{0}$) start
+    on the synthetic instance ($H=100$, $M=300$,
+    $\lambda_\text{LASSO}=0.1$, $k_{\max}=2000$,
+    $\varepsilon_\text{thr}=10^{-8}$), log--log axes. Both starts converge
+    to the $\varepsilon_\text{thr}$ floor ($\bar f - f^{*}\approx 1.8\cdot
+    10^{-8}$) at iteration $940$ (warm) and $922$ (cold); the warm curve
+    sits below the cold one throughout the descent, consistent with the
+    multiplicative role of $\norm{\mathbf{w}_{0}-\mathbf{w}^{*}}$ in the
+    bound of Theorem~\ref{thm:irls_convergence}.}
+    \label{fig:irls-synth-warm-cold}
+\end{figure}

@@ -32,7 +32,7 @@ SEED          = 42
 H             = 200
 LAMBDA        = 0.1
 TEST_FRACTION = 0.2
-IRLS_KMAX     = 200
+IRLS_KMAX     = 2000
 EPS_THR       = 1e-8
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
@@ -166,65 +166,38 @@ def run() -> None:
         return
 
     n_datasets = len(rows)
-    fig, axes = plt.subplots(n_datasets, 2, figsize=(14, 5 * n_datasets), squeeze=False)
+    fig, axes = plt.subplots(1, n_datasets, figsize=(7 * n_datasets, 5),
+                             squeeze=False)
 
     for i, row in enumerate(rows):
-        ax_iter = axes[i, 0]
-        ax_time = axes[i, 1]
+        ax = axes[0, i]
 
         f_warm = np.asarray(row["fvals_warm"], dtype=float)
         f_cold = np.asarray(row["fvals_cold"], dtype=float)
         f_star = row["f_star"]
 
-        # Determinare il vero minimo globale empirico
         f_min = min(f_warm.min(), f_cold.min(), f_star)
         floor = 1e-12
-        
         gw = np.maximum(f_warm - f_min, floor)
         gc = np.maximum(f_cold - f_min, floor)
 
-        t_warm = row["time_warm"]
-        t_cold = row["time_cold"]
-
-        # ---------------------------------------------------------
-        # Panel 1: Error vs Iterations (Linear X-Axis)
-        # ---------------------------------------------------------
         iters_w = np.arange(1, len(gw) + 1)
         iters_c = np.arange(1, len(gc) + 1)
 
-        ax_iter.semilogy(iters_w, gw, color=COLOR_DSM, linewidth=2.0, label=f"Warm Start (OLS) [{t_warm:.2f}s]")
-        ax_iter.semilogy(iters_c, gc, color=COLOR_FCUR, linewidth=2.0, label=rf"Cold Start ($w_0=0$) [{t_cold:.2f}s]")
-        
-        ax_iter.scatter([len(gw)], [gw[-1]], s=40, color=COLOR_DSM, zorder=5)
-        ax_iter.scatter([len(gc)], [gc[-1]], s=40, color=COLOR_FCUR, zorder=5)
+        ax.loglog(iters_w, gw, color=COLOR_DSM, linewidth=2.0,
+                  label="Warm Start (OLS)")
+        ax.loglog(iters_c, gc, color=COLOR_FCUR, linewidth=2.0,
+                  label=r"Cold Start ($w_0 = 0$)")
+        ax.scatter([len(gw)], [gw[-1]], s=40, color=COLOR_DSM, zorder=5)
+        ax.scatter([len(gc)], [gc[-1]], s=40, color=COLOR_FCUR, zorder=5)
 
-        ax_iter.set_xlabel("Iterations (linear scale)")
-        ax_iter.set_ylabel(r"$f(\mathbf{w}_k) - f_{\min}$ (log scale)")
-        ax_iter.set_title(f"{row['name'].capitalize()} - IRLS convergence vs iterations")
-        ax_iter.legend(loc="upper right")
-        style_axes(ax_iter)
+        ax.set_xlabel(r"Iteration $k$  (log scale)")
+        ax.set_ylabel(r"$f(\mathbf{w}_{k}) - f_{\min}$  (log scale)")
+        ax.set_title(f"{row['name'].capitalize()} ($M={row['M_train']}$, $H={row['H']}$)")
+        ax.legend(loc="lower left")
+        style_axes(ax)
 
-        # ---------------------------------------------------------
-        # Panel 2: Error vs Time (Linear X-Axis)
-        # ---------------------------------------------------------
-        time_arr_w = np.linspace(0, t_warm, len(gw))
-        time_arr_c = np.linspace(0, t_cold, len(gc))
-
-        ax_time.semilogy(time_arr_w, gw, color=COLOR_DSM, linewidth=2.0, label="Warm Start (OLS)")
-        ax_time.semilogy(time_arr_c, gc, color=COLOR_FCUR, linewidth=2.0, label=r"Cold Start ($w_0=0$)")
-        
-        ax_time.scatter([time_arr_w[-1]], [gw[-1]], s=40, color=COLOR_DSM, zorder=5)
-        ax_time.scatter([time_arr_c[-1]], [gc[-1]], s=40, color=COLOR_FCUR, zorder=5)
-
-        ax_time.set_xlabel("Time [seconds] (linear scale)")
-        ax_time.set_ylabel(r"$f(\mathbf{w}_k) - f_{\min}$ (log scale)")
-        ax_time.set_title(f"{row['name'].capitalize()} - IRLS convergence vs time")
-        ax_time.legend(loc="upper right")
-        style_axes(ax_time)
-
-    fig.suptitle("IRLS Initialization Impact: Warm Start vs Cold Start on Real Data", fontsize=16, y=1.02)
     fig.tight_layout()
-    
     fig_path = os.path.join(FIG_DIR, "irls_real_data_warm_vs_cold.pdf")
     fig.savefig(fig_path, bbox_inches="tight")
     print(f"\nSaved plots to: {fig_path}")

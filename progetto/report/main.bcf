@@ -2439,13 +2439,7 @@
     <bcf:citekey order="61" intorder="1">efron2004least</bcf:citekey>
     <bcf:citekey order="62" intorder="1">pace1997sparse</bcf:citekey>
     <bcf:citekey order="63" intorder="1">dantonio2009deflected</bcf:citekey>
-    <bcf:citekey order="64" intorder="1">brannlund1993generalized</bcf:citekey>
-    <bcf:citekey order="64" intorder="2">goffin1999convergence</bcf:citekey>
-    <bcf:citekey order="64" intorder="3">bertsekas1999nonlinear</bcf:citekey>
-    <bcf:citekey order="65" intorder="1">frangioni-slides-nonsmooth</bcf:citekey>
-    <bcf:citekey order="66" intorder="1">efron2004least</bcf:citekey>
-    <bcf:citekey order="67" intorder="1">pace1997sparse</bcf:citekey>
-    <bcf:citekey order="68" intorder="1">dantonio2009deflected</bcf:citekey>
+    <bcf:citekey order="64" intorder="1">dantonio2009deflected</bcf:citekey>
   </bcf:section>
   <!-- SORTING TEMPLATES -->
   <bcf:sortingtemplate name="nty">

@@ -80,7 +80,8 @@ def run() -> None:
     axes[0].set_xlabel(r"Iteration $k$")
     axes[0].set_ylabel(r"$f(w_k) - f^{*}$  (log scale)")
     axes[0].set_title(r"IRLS: effect of $\varepsilon_{\mathrm{thr}}$")
-    axes[0].legend(loc="upper right", fontsize=10)
+    axes[0].legend(loc="upper right", fontsize=9, framealpha=0.92,
+                   borderaxespad=0.8)
     style_axes(axes[0])
 
     print("\n--- IRLS: varying lambda ---")
@@ -105,7 +106,8 @@ def run() -> None:
     axes[1].set_xlabel(r"Iteration $k$")
     axes[1].set_ylabel(r"$f(w_k) - f^{*}$  (log scale)")
     axes[1].set_title(r"IRLS: effect of $\lambda_{\mathrm{LASSO}}$")
-    axes[1].legend(loc="upper right", fontsize=10)
+    axes[1].legend(loc="upper right", fontsize=9, framealpha=0.92,
+                   borderaxespad=0.8)
     style_axes(axes[1])
 
     fig.tight_layout()

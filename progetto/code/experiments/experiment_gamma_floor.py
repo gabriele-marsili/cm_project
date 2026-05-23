@@ -128,11 +128,17 @@ def run() -> None:
 
     ax = axes[0]
     for gmin, arr in arrays.items():
-        ax.hist(arr["gamma"], bins=50, range=(0, 1), alpha=0.55,
-                color=colors[gmin], label=labels[gmin], density=True)
-    ax.set_xlabel(r"$\gamma_i$"); ax.set_ylabel("density")
-    ax.set_title(r"Distribution of $\gamma_i$ over iterations")
-    ax.legend(); style_axes(ax)
+        g = np.maximum(arr["gamma"], 1e-12)
+        n = len(g)
+        # geometric subsample for a readable log-x trace
+        idx = np.unique(np.geomspace(1, max(n - 1, 1), 400).astype(int))
+        ax.loglog(idx + 1, g[idx], color=colors[gmin], linewidth=1.4,
+                  label=labels[gmin], alpha=0.85)
+    ax.axhline(0.05, color="grey", linestyle=":", linewidth=1.0)
+    ax.set_xlabel(r"iteration $i$  (log scale)")
+    ax.set_ylabel(r"$\gamma_i$  (log scale)")
+    ax.set_title(r"Trajectory of $\gamma_i$ over iterations")
+    ax.legend(loc="lower left"); style_axes(ax)
 
     ax = axes[1]
     for gmin, arr in arrays.items():

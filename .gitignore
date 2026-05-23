@@ -14,3 +14,10 @@ progetto/code/bin/
 progetto/code/lib/
 progetto/code/share/
 progetto/code/pyvenv.cfg
+
+# Archived/orphan report files (kept locally for reference, not built)
+progetto/report/old/
+
+# Biber/latexmk crash artefacts
+*.bbl-SAVE-ERROR
+*.bcf-SAVE-ERROR

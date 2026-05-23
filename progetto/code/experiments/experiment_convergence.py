@@ -184,12 +184,12 @@ def run() -> None:
     print(f"Saved: {path}")
     plt.close(fig)
 
-    # ---- Figure 2: gap vs CPU time, log-log axes ----
+    # ---- Figure 2: gap vs CPU time (in ms), log-log axes ----
     # OLS warm-start time is 0; substitute a small offset to plot in log scale.
-    irls_t = np.asarray(res_irls["times"], dtype=float)
-    dsm_t  = np.asarray(res_dsm["times"],  dtype=float)
-    smallest = min(irls_t[1] if len(irls_t) > 1 else 1e-5,
-                   dsm_t[1]  if len(dsm_t)  > 1 else 1e-5)
+    irls_t = np.asarray(res_irls["times"], dtype=float) * 1000.0
+    dsm_t  = np.asarray(res_dsm["times"],  dtype=float) * 1000.0
+    smallest = min(irls_t[1] if len(irls_t) > 1 else 1e-2,
+                   dsm_t[1]  if len(dsm_t)  > 1 else 1e-2)
     t_start = smallest / 2.0
     irls_t_plot = irls_t.copy(); irls_t_plot[0] = t_start
     dsm_t_plot  = dsm_t.copy();  dsm_t_plot[0]  = t_start
@@ -203,7 +203,7 @@ def run() -> None:
               label=r"SGPTL  ($\bar{f}^{i}$)")
     ax.scatter([t_start], [irls_gaps[0]], s=80, marker="*",
                color="black", zorder=6, label="OLS warm start (shared)")
-    ax.set_xlabel("CPU time (s)  (log scale)")
+    ax.set_xlabel("CPU time (ms)  (log scale)")
     ax.set_ylabel(r"gap to $f^{*}$  (log scale)")
     ax.set_title(rf"Gap vs wall-clock time  ($H={H}$, $M={M}$, "
                  rf"$\lambda_{{\mathrm{{LASSO}}}}={LAMBDA}$)")

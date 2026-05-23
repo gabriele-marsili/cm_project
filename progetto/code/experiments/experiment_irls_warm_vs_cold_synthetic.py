@@ -26,7 +26,7 @@ SEED      = 42
 LAMBDA    = 0.10
 NOISE     = 0.05
 H, M      = 100, 300
-IRLS_KMAX = 200
+IRLS_KMAX = 2000
 EPS_THR   = 1e-8
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
@@ -68,63 +68,27 @@ def run() -> None:
     print(f"Warm start execution time: {time_ols:.4f} s")
     print(f"Cold start execution time: {time_cold:.4f} s")
 
-    fig, axes = plt.subplots(1, 2, figsize=SIZE_DOUBLE)
-
-    # In IRLS, the function decreases monotonically, so f_vals is sufficient
     fw = np.asarray(sol_ols["f_vals"], dtype=float)
     fc = np.asarray(sol_cold["f_vals"], dtype=float)
-    
-    # Calculate global f_min securely
     f_min = min(fw.min(), fc.min(), f_star)
     floor = 1e-12
-    
     gw = np.maximum(fw - f_min, floor)
     gc = np.maximum(fc - f_min, floor)
 
-    # ---------------------------------------------------------
-    # Panel 1: Error vs Iterations (Linear X-Axis)
-    # ---------------------------------------------------------
-    ax1 = axes[0]
-    ax1.semilogy(np.arange(1, len(gw) + 1), gw,
-                 color=COLOR_DSM, linewidth=2.0, label=f"warm start (OLS) [{time_ols:.4f}s]")
-    ax1.semilogy(np.arange(1, len(gc) + 1), gc,
-                 color=COLOR_FCUR, linewidth=2.0, label=rf"cold start ($w_0=0$) [{time_cold:.4f}s]")
-    
-    ax1.scatter([len(gw)], [gw[-1]], s=40, color=COLOR_DSM, zorder=5)
-    ax1.scatter([len(gc)], [gc[-1]], s=40, color=COLOR_FCUR, zorder=5)
-    
-    ax1.set_xlabel("Iterations (linear scale)")
-    ax1.set_ylabel(r"$f(\mathbf{w}_k) - f_{\min}$ (log scale)")
-    ax1.set_title("IRLS convergence vs iterations")
-    ax1.legend(loc="upper right")
-    style_axes(ax1)
-
-    # ---------------------------------------------------------
-    # Panel 2: Error vs Time (Linear X-Axis)
-    # ---------------------------------------------------------
-    ax2 = axes[1]
-    
-    # Approximate time per iteration linearly across the execution time
-    time_array_w = np.linspace(0, time_ols, len(gw))
-    time_array_c = np.linspace(0, time_cold, len(gc))
-
-    ax2.semilogy(time_array_w, gw, color=COLOR_DSM, linewidth=2.0, label="warm start (OLS)")
-    ax2.semilogy(time_array_c, gc, color=COLOR_FCUR, linewidth=2.0, label=r"cold start ($w_0=0$)")
-    
-    ax2.scatter([time_array_w[-1]], [gw[-1]], s=40, color=COLOR_DSM, zorder=5)
-    ax2.scatter([time_array_c[-1]], [gc[-1]], s=40, color=COLOR_FCUR, zorder=5)
-    
-    ax2.set_xlabel("Time [seconds] (linear scale)")
-    ax2.set_ylabel(r"$f(\mathbf{w}_k) - f_{\min}$ (log scale)")
-    ax2.set_title("IRLS convergence vs Time")
-    ax2.legend(loc="upper right")
-    style_axes(ax2)
-
-    # ---------------------------------------------------------
-    # Finalize Figure
-    # ---------------------------------------------------------
-    fig.suptitle(rf"IRLS on Synthetic Data ($H={H}$, $M={M}$, $\lambda={LAMBDA}$)",
-                 y=1.02, fontsize=14)
+    fig, ax = plt.subplots(figsize=(7, 4.5))
+    ax.loglog(np.arange(1, len(gw) + 1), gw,
+              color=COLOR_DSM, linewidth=2.0,
+              label="Warm Start (OLS)")
+    ax.loglog(np.arange(1, len(gc) + 1), gc,
+              color=COLOR_FCUR, linewidth=2.0,
+              label=r"Cold Start ($w_0 = 0$)")
+    ax.scatter([len(gw)], [gw[-1]], s=40, color=COLOR_DSM, zorder=5)
+    ax.scatter([len(gc)], [gc[-1]], s=40, color=COLOR_FCUR, zorder=5)
+    ax.set_xlabel(r"Iteration $k$  (log scale)")
+    ax.set_ylabel(r"$f(\mathbf{w}_{k}) - f_{\min}$  (log scale)")
+    ax.set_title(rf"IRLS on synthetic ($H={H}$, $M={M}$, $\lambda={LAMBDA}$)")
+    ax.legend(loc="lower left")
+    style_axes(ax)
     fig.tight_layout()
     path = os.path.join(FIG_DIR, "irls_synthetic_warm_vs_cold.pdf")
     fig.savefig(path)
