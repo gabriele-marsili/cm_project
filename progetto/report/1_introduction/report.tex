@@ -24,7 +24,7 @@
 Extreme Learning Machine (ELM) \cite{HUANG2006489} is a machine learning model implemented as a neural network with a single hidden layer, in which:
 \begin{itemize}
     \item $\mathbf{W_1} \in \mathbb{R}^{H \times N}$ is the input-to-hidden weight matrix (where $H$ is the number of nodes in the hidden layer and $N$ is the number of input nodes) that is \textbf{randomly generated} and \textbf{static} (does not change during training) \cite{HUANG2006489}.
-    \item $\sigma(\cdot)$ is the element-wise (nonlinear) activation function applied to the $\mathbf{W_1x} \in \mathbb{R}^H$ vector, where $\textbf{x} \in \mathbb{R}^N$ is the input vector. The choice of using an activation function for the hidden layer results, under mild assumptions and with high probability, in the hidden layer feature matrix with full rank when $M \ge H$, since random projections through a nonlinear function produce linearly independent features.
+    \item $\sigma(\cdot)$ is the element-wise (nonlinear) activation function applied to $\mathbf{W_1x} \in \mathbb{R}^H$, where $\textbf{x} \in \mathbb{R}^N$ is the input vector. We assume henceforth that the hidden-layer feature matrix $\mathbf{X} \in \mathbb{R}^{M \times H}$ has full column rank, which is the regime studied in the original ELM analysis~\cite[Theorem~2.1]{HUANG2006489} for $M \ge H$ with random $\mathbf{W}_1$ and an infinitely differentiable activation; in our experiments (sigmoid, $\mathbf{W}_1$ Gaussian, $M \ge H$) it is verified numerically by the conditioning checks of Section~\ref{sec:datasets}.
     \item $\mathbf{w} \in \mathbb{R}^{H}$ is the hidden-to-output weight vector.
     \item $\hat{y} = \mathbf{w}^T\sigma(\mathbf{W_1x}) \in \mathbb{R}$ is the prediction of the model.
 \end{itemize}
@@ -53,12 +53,11 @@ The Least-Squares problem always admits at least one solution, and the solution 
 \begin{equation}
 \min_\mathbf{w} \frac{1}{2}\mathbf{w}^T\mathbf{X}^T\mathbf{X}\mathbf{w} - \mathbf{y}^T\mathbf{X}\mathbf{w} + \frac{1}{2}\mathbf{y}^T\mathbf{y}
 \end{equation}
-since the gradient of this function is $\mathbf{X}^T\mathbf{X}\mathbf{w} - \mathbf{X}^T\mathbf{y}$, the Hessian matrix is $\mathbf{X}^T\mathbf{X} \succ 0$, which means that the function is strictly convex. In this case, the minimum exists and is unique, and can be found solving the equation:
-$$
-\mathbf{X}^T\mathbf{X}\mathbf{w} - \mathbf{X}^T\mathbf{y} = 0
-$$
-where $\mathbf{X}^T\mathbf{X}$ is square invertible since it's positive definite.   The unique solution is $\mathbf{w}_0 = (\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}^T\mathbf{y}$.
-However, adding the $L_1$ regularization term (Section~\ref{sec:regularization}) destroys the closed-form structure, requiring iterative methods.
+whose gradient $\mathbf{X}^T\mathbf{X}\mathbf{w} - \mathbf{X}^T\mathbf{y}$ vanishes uniquely at the closed-form solution
+\[
+\mathbf{w}_0 = (\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}^T\mathbf{y}.
+\]
+Adding the $L_1$ regularization term (Section~\ref{sec:regularization}) destroys the closed-form structure and requires iterative methods.
 
 \section{Regularization Techniques}
 \label{sec:regularization}
@@ -69,27 +68,23 @@ However, adding the $L_1$ regularization term (Section~\ref{sec:regularization})
 When adding the $L_1$ regularization term to the Least-Squares, the equation is the following:
 \begin{equation}
 \label{eq:original_problem}
-\min_{\mathbf{w}} f(\mathbf{w}) = \frac{1}{2}|| \mathbf{Xw} - \mathbf{y} ||^2_2 + \lambda_{\text{LASSO}} \sum_i^H|w_i|
+\min_{\mathbf{w}} f(\mathbf{w}) = \frac{1}{2}|| \mathbf{Xw} - \mathbf{y} ||^2_2 + \lambda_{\text{LASSO}} \sum_{i=1}^{H}|w_i|
 \end{equation}
 
-This form is particularly nice since it pushes the weights $w_i \to 0$, but the price we have to pay is the non-differentiability of the function where $w_i = 0$, which prevents direct use of gradient-based methods.
-
-Because of that, we can use the IRLS algorithm (\ref{chap:irls}) and the Deflected Subgradient Methods (\ref{chap:dsm}).
+This form induces $w_i \to 0$ at the cost of non-differentiability where $w_i = 0$, which prevents direct use of gradient methods. We handle the non-smoothness with IRLS (Chapter~\ref{chap:irls}) and the deflected subgradient method (Chapter~\ref{chap:dsm}).
 
 
 
 \section{Objective Function Analysis}
-Let's break down the function to minimize in two parts:
+We decompose the objective as
 \begin{equation}
     \label{eq:obj_fun}
     \min_{\mathbf{w}} f(\mathbf{w}) = \underbrace{\frac{1}{2}\|\mathbf{Xw} - \mathbf{y}\|_2^2}_{g(\mathbf{w})} + \underbrace{\lambda_{\text{LASSO}}\|\mathbf{w}\|_1}_{h(\mathbf{w})}
 \end{equation}
-
-Let's analyse the mathematical properties of $f(\mathbf{w})$.
+and analyse its properties below.
 
 \subsection{Convexity}
-
-The mathematical properties of the objective function $f(\mathbf{w})$ are heavily dependent on the matrix $\mathbf{X}$.
+The properties of $f$ depend on $\mathbf{X}$.
 
 \begin{proposition}
     \label{prop:irls_prop}
