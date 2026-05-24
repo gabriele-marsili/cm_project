@@ -21,3 +21,10 @@ progetto/report/old/
 # Biber/latexmk crash artefacts
 *.bbl-SAVE-ERROR
 *.bcf-SAVE-ERROR
+
+# LaTeX build artefacts (regenerated on every compile)
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.run.xml
