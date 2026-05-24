@@ -1,26 +1,33 @@
 """Synthetic and real data generators for the experiments."""
 
+from typing import Tuple
+
 import numpy as np
+from sklearn.datasets import fetch_california_housing, load_diabetes
 from sklearn.linear_model import Lasso as SklearnLasso
-from sklearn.datasets import load_diabetes, fetch_california_housing
 from sklearn.preprocessing import StandardScaler
 
-from .lasso_utils import f_lasso
 from .elm import _ACTIVATIONS
+from .lasso_utils import f_lasso
+
+# sklearn minimises (1/(2M))*||Xw - y||^2 + alpha*||w||_1; our f_lasso uses
+# (1/2)*||Xw - y||^2 + lam*||w||_1. Same argmin iff alpha = lam / M.
 
 
-# sklearn minimises (1/(2M))||Xw - y||² + α||w||₁; our f_lasso uses
-# (1/2)||Xw - y||² + λ||w||₁. Same argmin iff α = λ/M.
-
-
-def make_lasso_problem(n=100, m=200, sparsity=0.1, noise_std=0.1,
-                       lam=0.1, random_state=42):
+def make_lasso_problem(
+    n: int = 100,
+    m: int = 200,
+    sparsity: float = 0.1,
+    noise_std: float = 0.1,
+    lam: float = 0.1,
+    random_state: int = 42,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, float, np.ndarray]:
     """Synthetic linear LASSO problem with a planted sparse w_true.
 
-    Steps: (1) draw N(0,1) design and normalise columns to unit ℓ₂ norm;
-    (2) draw sparse w_true with ⌊n·sparsity⌋ N(0,1) entries; (3) add Gaussian
-    noise; (4) compute the reference (f*, w*) with sklearn Lasso. Returns
-    (X, y, w_true, f_star, w_star).
+    Steps: (1) draw N(0,1) design and normalise columns to unit l2 norm;
+    (2) draw sparse w_true with floor(n*sparsity) N(0,1) entries; (3) add
+    Gaussian noise; (4) compute the reference (f*, w*) with sklearn Lasso.
+    Returns (X, y, w_true, f_star, w_star).
     """
     rng = np.random.RandomState(random_state)
 
@@ -43,14 +50,22 @@ def make_lasso_problem(n=100, m=200, sparsity=0.1, noise_std=0.1,
     return X, y, w_true, f_star, w_star
 
 
-def make_elm_problem(d=20, p=100, m=500, sparsity=0.1, noise_std=0.1,
-                     activation='sigmoid', lam=0.1, random_state=42):
+def make_elm_problem(
+    d: int = 20,
+    p: int = 100,
+    m: int = 500,
+    sparsity: float = 0.1,
+    noise_std: float = 0.1,
+    activation: str = "sigmoid",
+    lam: float = 0.1,
+    random_state: int = 42,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, np.ndarray]:
     """Synthetic ELM-transformed LASSO problem.
 
-    Like make_lasso_problem but the design is X_hid = σ(X_raw @ W1^T) with a
-    random ELM hidden layer (W1 ~ N(0,1), shape (p, d)). Columns of X_hid are
-    NOT renormalised: bounded activations already keep them in a fixed range.
-    Returns (X_raw, X_hid, y, W1, w_true, f_star, w_star).
+    Like make_lasso_problem but the design is X_hid = sigma(X_raw @ W1^T)
+    with a random ELM hidden layer (W1 ~ N(0,1), shape (p, d)). Columns of
+    X_hid are NOT renormalised: bounded activations already keep them in a
+    fixed range. Returns (X_raw, X_hid, y, W1, w_true, f_star, w_star).
     """
     sigma = _ACTIVATIONS[activation]
     rng = np.random.RandomState(random_state)
@@ -75,7 +90,11 @@ def make_elm_problem(d=20, p=100, m=500, sparsity=0.1, noise_std=0.1,
     return X_raw, X_hid, y, W1, w_true, f_star, w_star
 
 
-def load_real_dataset(name='diabetes', test_size=0.2, random_state=42):
+def load_real_dataset(
+    name: str = "diabetes",
+    test_size: float = 0.2,
+    random_state: int = 42,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Load a real regression dataset and split, scaling features on the train
     split only (no test-set leakage).
 

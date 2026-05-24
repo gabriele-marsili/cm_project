@@ -41,10 +41,12 @@ def test_irls_converges_to_sklearn_fstar(medium_problem):
 def test_irls_kkt_residual_small(medium_problem):
     p = medium_problem
     res = irls(p.X, p.y, p.lam, eps_thr=1e-10, eps_stop=1e-12, k_max=300)
-    # KKT violation tolerance proportional to eps_thr (small components are
-    # frozen by the safety threshold and may have residual up to lam*eps_thr).
+    # KKT violation tolerance proportional to lam * eps_thr (small components
+    # are frozen at the safety threshold and may have residual up to that
+    # scale). Observed viol on this fixture is ~1e-6 (~1e-5 relative to lam),
+    # so 1e-5 is a tight bound with ~10x margin against numerical noise.
     viol = check_optimality(p.X, p.y, res["w"], p.lam, zero_tol=1e-6)
-    assert viol < 1e-2, f"KKT violation {viol:.2e}"
+    assert viol < 1e-5, f"KKT violation {viol:.2e}"
 
 
 # ---------------------------------------------------------------------------

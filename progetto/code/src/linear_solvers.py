@@ -1,22 +1,36 @@
 """SPD solvers used by IRLS: dense Cholesky and Jacobi-preconditioned CG."""
 
+from typing import Optional, Tuple, Union
+
 import numpy as np
 import scipy.linalg as la
 
 
-def cholesky_solve(Q, b):
+def cholesky_solve(Q: np.ndarray, b: np.ndarray) -> np.ndarray:
     """Solve Q x = b for SPD Q via Cholesky factorization (Q = L L^T)."""
     c, low = la.cho_factor(Q, lower=True, check_finite=False)
     return la.cho_solve((c, low), b, check_finite=False)
 
 
-def conjugate_gradient(Q, b, x0=None, tol=1e-10, max_iter=None, precond=None):
+# Numerical safety floor: below this value an inner product treated as a
+# squared norm is considered numerically zero, signalling either CG breakdown
+# on a non-SPD matrix or that the algorithm has reached fixed-point.
+_NUMERICAL_FLOOR = 1e-30
+
+
+def conjugate_gradient(
+    Q: np.ndarray,
+    b: np.ndarray,
+    x0: Optional[np.ndarray] = None,
+    tol: float = 1e-10,
+    max_iter: Optional[int] = None,
+    precond: Optional[np.ndarray] = None,
+) -> Tuple[np.ndarray, int]:
     """Preconditioned CG for SPD Q x = b. Returns (x, iters_done).
 
-    precond: vector applied as M^{-1} = diag(precond). If None, uses Jacobi
-    (precond_i = 1 / Q_ii), which requires strictly positive diag(Q).
-    Stops on relative residual ||r|| <= tol * ||b||. In exact arithmetic,
-    converges in at most n iterations.
+    precond: M^{-1} = diag(precond). Default: Jacobi precond_i = 1 / Q_ii
+    (requires strictly positive diag(Q)). Stops on ||r|| <= tol * ||b||
+    or on numerical breakdown (p @ Qp <= 0, signalling loss of SPD).
     """
     n = len(b)
     if max_iter is None:
@@ -26,7 +40,7 @@ def conjugate_gradient(Q, b, x0=None, tol=1e-10, max_iter=None, precond=None):
     r = b - Q @ x
 
     if precond is None:
-        precond = 1.0 / np.diag(Q)   # Jacobi preconditioner (assumes diag(Q) > 0)
+        precond = 1.0 / np.diag(Q)
     z = precond * r
     p = z.copy()
     rz = r @ z
@@ -39,28 +53,40 @@ def conjugate_gradient(Q, b, x0=None, tol=1e-10, max_iter=None, precond=None):
         if np.linalg.norm(r) <= tol * bn:
             return x, k
         Qp = Q @ p
-        alpha = rz / (p @ Qp)
+        pQp = p @ Qp
+        if pQp <= _NUMERICAL_FLOOR:
+            # SPD lost to round-off; return current iterate rather than
+            # propagating a NaN. Caller can fall back to Cholesky.
+            return x, k
+        alpha = rz / pQp
         x += alpha * p
         r -= alpha * Qp
         z = precond * r
         rz_new = r @ z
+        if abs(rz) <= _NUMERICAL_FLOOR:
+            return x, k
         p = z + (rz_new / rz) * p
         rz = rz_new
 
     return x, max_iter
 
 
-def solve_spd(Q, b, method='cholesky', return_info=False, **kwargs):
-    """Solve SPD system Q x = b. method ∈ {'cholesky', 'cg'}.
+def solve_spd(
+    Q: np.ndarray,
+    b: np.ndarray,
+    method: str = "cholesky",
+    return_info: bool = False,
+    **kwargs,
+) -> Union[np.ndarray, Tuple[np.ndarray, Optional[int]]]:
+    """Solve SPD system Q x = b. method in {'cholesky', 'cg'}.
 
-    return_info=False (default): returns x.
-    return_info=True: returns (x, info) where info is None for Cholesky and
-    the number of CG iterations performed for CG. Useful for diagnostics.
+    return_info=True returns (x, info) where info is None for Cholesky and
+    the CG iteration count for CG.
     """
-    if method == 'cholesky':
+    if method == "cholesky":
         x = cholesky_solve(Q, b)
         return (x, None) if return_info else x
-    if method == 'cg':
+    if method == "cg":
         x, n_iter = conjugate_gradient(Q, b, **kwargs)
         return (x, n_iter) if return_info else x
     raise ValueError(f"Unknown method: {method!r}")
