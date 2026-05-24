@@ -57,3 +57,67 @@ def style_axes(ax) -> None:
     ax.tick_params(direction="out", length=3.0, width=0.8)
     for spine in ("left", "bottom"):
         ax.spines[spine].set_color("#333333")
+
+
+# ---------------------------------------------------------------------------
+# Shared plot panel for the SGPTL long-run figure.
+# Used by experiment_sgptl_long_run.py (full run) and
+# _replot_sgptl_long_run.py (CSV-only re-plot).
+# ---------------------------------------------------------------------------
+def plot_long_run_panel(
+    ax,
+    ks,
+    obs_gaps,
+    gap0: float,
+    title: str,
+    floor: float = None,
+) -> None:
+    """Draw one panel of the SGPTL long-run figure on `ax`.
+
+    Args:
+        ks: iteration indices (1-D array).
+        obs_gaps: observed record gap at each k.
+        gap0: initial gap, used to draw the g_0 / sqrt(i) envelope.
+        title: panel title.
+        floor: if given, clip obs_gaps from below and add an annotation at
+            the first floored point (used by the CSV replot to handle the
+            1e-300 underflow on diabetes).
+    """
+    import numpy as np
+
+    ks = np.asarray(ks, dtype=float)
+    obs = np.asarray(obs_gaps, dtype=float)
+    if floor is not None:
+        obs = np.maximum(obs, floor)
+
+    ks_dense = np.geomspace(ks.min(), ks.max(), 200)
+    env_dense = gap0 / np.sqrt(ks_dense)
+
+    ax.loglog(
+        ks_dense, env_dense,
+        color="grey", linestyle="--", linewidth=1.4,
+        label=r"$g_{0} / \sqrt{i}$  (theoretical envelope)",
+    )
+    ax.loglog(
+        ks, obs,
+        color=COLOR_DSM, marker="o", markersize=7, linewidth=1.8,
+        label=r"SGPTL record  $\bar{f}^{\,i} - f^{*}$",
+    )
+    if floor is not None:
+        floored = np.where(obs <= floor * 5)[0]
+        if len(floored) > 0:
+            j = int(floored[0])
+            ax.annotate(
+                rf"$\leq 10^{{{int(np.log10(floor))}}}$",
+                xy=(ks[j], obs[j]),
+                xytext=(10, 10),
+                textcoords="offset points",
+                ha="left", fontsize=9, color=COLOR_DSM,
+            )
+        ax.set_ylim(floor / 5, max(env_dense.max(), obs.max()) * 5)
+
+    ax.set_xlabel(r"Iteration $i$  (log scale)")
+    ax.set_ylabel(r"gap $\bar{f}^{\,i} - f^{*}$  (log scale)")
+    ax.set_title(title)
+    ax.legend(loc="lower left", fontsize=9)
+    style_axes(ax)

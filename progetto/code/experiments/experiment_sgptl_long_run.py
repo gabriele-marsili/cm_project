@@ -39,11 +39,11 @@ from src.lasso_utils import f_lasso
 from src.linear_solvers import solve_spd
 
 from _plot_style import (
-    apply_style,
-    style_axes,
     COLOR_DSM,
     COLOR_IRLS,
     SIZE_DOUBLE,
+    apply_style,
+    plot_long_run_panel,
 )
 
 apply_style()
@@ -237,30 +237,11 @@ def plot(rows):
         # geometric subsample to keep the plot file small
         idx = np.unique(np.geomspace(1, max(n - 1, 1), 2000).astype(int))
         iters = idx + 1
-        ax.loglog(
-            iters,
-            gaps[idx],
-            color=COLOR_DSM,
-            linewidth=1.8,
-            label=r"SGPTL record  $\bar{f}^{\,i} - f^{*}$",
-        )
-        env = r["gap0"] / np.sqrt(iters)
-        ax.loglog(
-            iters,
-            env,
-            color="grey",
-            linewidth=1.4,
-            linestyle="--",
-            label=r"$g_{0} / \sqrt{i}$  (theoretical envelope)",
-        )
-        ax.set_xlabel(r"Iteration $i$  (log scale)")
-        ax.set_ylabel(r"gap $\bar{f}^{\,i} - f^{*}$  (log scale)")
-        ax.set_title(
+        title = (
             rf"{r['name']} cold (ELM, $H={H}$, $\lambda={LAMBDA}$, "
             rf"$i_{{\max}}={{{r['i_max']:,}}}$)".replace(",", r"{,}")
         )
-        ax.legend(loc="lower left", fontsize=9)
-        style_axes(ax)
+        plot_long_run_panel(ax, iters, gaps[idx], r["gap0"], title)
     fig.tight_layout()
     path = os.path.join(FIG_DIR, "sgptl_long_run.pdf")
     fig.savefig(path)
