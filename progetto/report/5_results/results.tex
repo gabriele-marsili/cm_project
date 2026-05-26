@@ -70,8 +70,8 @@ $H=200$ for the main experiments and $H=50$ where an independent
 solver (\texttt{cvxpy.CLARABEL}) is affordable for cross-validation. The
 sigmoid breaks the unit-norm column property and inflates
 $\kappa(\mathbf{X}_\text{hidden}^{\top}\mathbf{X}_\text{hidden})$ to
-$\sim 10^{6}$ on both datasets --- orders of magnitude worse than the
-synthetic design, which is the stress regime we want to probe.
+$\sim 10^{6}$ on both datasets, orders of magnitude above the synthetic
+design. This is the ill-conditioned regime targeted by the experiments.
 
 \emph{Limitations.} (i)~The synthetic benchmark lives in the
 well-conditioned, incoherent regime by construction, so positive results
@@ -101,8 +101,8 @@ $\mathbf{w}_{0}$ (Section~\ref{sec:dsm_parameters}) is charged to both
 wall-clock totals. The relevant objective values of this instance are
 $f(\mathbf{0})\approx 76$ at the origin, $f(\mathbf{w}_{0})\approx 1.56$
 at the warm start, and $f^{*}\approx 1.13$ at the sklearn reference,
-which puts the initial gap $f(\mathbf{w}_{0})-f^{*}\approx 0.43$ --- the
-$y$-intercept of Figure~\ref{fig:convergence-iter}.
+which puts the initial gap $f(\mathbf{w}_{0})-f^{*}\approx 0.43$ (the
+$y$-intercept of Figure~\ref{fig:convergence-iter}).
 
 \paragraph{IRLS: linear rate (Theorem~\ref{thm:irls_convergence}).}
 The expected behaviour from Chapter~\ref{chap:irls} is linear convergence of the MM iteration.
@@ -155,8 +155,8 @@ below $10^{-2}$ within $\sim\!10$~ms and then crawls to $\sim\!5\cdot
 
 Both convergence curves above track the SGPTL \emph{record}
 $\bar f^{\,i} = \min_{h\le i} f(\mathbf{w}_{h})$ rather than the raw
-current value $f(\mathbf{w}_{i})$, because --- as expected from
-Section~\ref{sec:dsm_target_level} --- the subgradient dynamics are not
+current value $f(\mathbf{w}_{i})$: as anticipated in
+Section~\ref{sec:dsm_target_level}, the subgradient dynamics are not
 monotone, and only the record carries the rate guarantee of
 Theorem~\ref{thm:dsm_convergence}. Figure~\ref{fig:dsm-nonmonotone} makes
 this explicit: the current gap spikes well above the record at several
@@ -212,8 +212,8 @@ final gaps; the rest of the section interprets them.
     floor on the synthetic, by $\varepsilon_\text{stop}$ on the real
     data); the warm vs cold contrast is therefore in iteration count, not
     final accuracy. SGPTL runs $8\,000$ iterations everywhere with the
-    defaults of Section~\ref{sec:params}; here the final gap is the
-    differentiator. The $f^{*}$ reference is the sklearn-converged value
+    defaults of Section~\ref{sec:params}; here the comparison is in the
+    final gap. The $f^{*}$ reference is the sklearn-converged value
     on the synthetic and the IRLS-converged value on the real data,
     cross-validated against CVXPY-Clarabel to ten significant digits
     (Section~\ref{sec:real_data}); the IRLS gaps on real data are
@@ -247,7 +247,7 @@ sublevel-set radius is largest there.
 Both starts converge to $f^{*}$ on every instance; the IRLS curves in
 Figure~\ref{fig:irls-warm-cold} flatten to the
 $\varepsilon_\text{stop}/\varepsilon_\text{thr}$ floor regardless of
-start, so the differentiator is the \emph{iteration count}: cold needs
+start, so the comparison is in \emph{iteration count}, not final accuracy: cold needs
 $\sim\!25\%$ more iterations than warm on \texttt{diabetes} ($1\,118$ vs
 $894$) and $\sim\!13\%$ more on \texttt{california} ($115$ vs $102$);
 on the synthetic the two coincide within rounding. The pattern matches
@@ -270,7 +270,7 @@ $\norm{\mathbf{w}_{0}-\mathbf{w}^{*}}$ enters multiplicatively.
 \end{figure}
 
 \paragraph{SGPTL.}
-The sublinear rate makes the warm--cold contrast much less decisive
+The sublinear rate makes the warm--cold contrast much less pronounced
 than for IRLS: the bound~\eqref{eq:def-rate-deflected} shrinks the
 residual as $1/\sqrt{i}$, so unless $\mathbf{w}_{\mathrm{OLS}}$ is
 already very close to $\mathbf{w}^{*}$ the two starts end the budget at
@@ -313,7 +313,7 @@ measured directly, $0.13$\,ms on \texttt{diabetes}~($H=200$) and $2.9$\,ms
 on \texttt{california}~($H=200$), against an IRLS body of $165$\,ms and
 $1577$\,ms respectively (\texttt{warm\_start\_cost.csv}); the warm-start
 share is below $0.2\%$ of the total in both regimes, so the
-$\sim\!13$--$25\%$ iteration savings reported above more than amortise
+$\sim\!13$--$25\%$ iteration savings reported above more than offset
 it. For SGPTL we adopt the cold start $\mathbf{w}_{0}=\mathbf{0}$ as the
 default (it is the method's natural initialisation) and pass an explicit
 warm start only where its final gap is empirically smaller, as on
@@ -322,8 +322,8 @@ warm start only where its final gap is empirically smaller, as on
 \subsection{SGPTL beyond the submitted iteration budget}
 \label{sec:dsm_long_run}
 The estimate above predicts the SGPTL real-data gaps at $k=8\,000$ from
-the rule of thumb $g_{0}/\sqrt{k}$. We push the experiment much further
-to see how the gap evolves: SGPTL cold to $i_{\max}=10^{7}$ on
+the rule of thumb $g_{0}/\sqrt{k}$. We extend the run to characterise
+the asymptotic descent of the gap: SGPTL cold to $i_{\max}=10^{7}$ on
 \texttt{diabetes}-ELM ($3.3$\,min wall-clock) and to $i_{\max}=10^{6}$ on
 \texttt{california}-ELM ($23$\,min). Figure~\ref{fig:sgptl-long-run}
 overlays the empirical record gap against the heuristic envelope
@@ -332,8 +332,8 @@ $g_{0}/\sqrt{i}$.
 The empirical trace stays \emph{below} the envelope and descends faster
 than its worst-case slope (Table~\ref{tab:sgptl-long-run-samples}). On
 \texttt{diabetes} the gap drops from $0.26$ at $k=8\,000$ to
-$\le 10^{-12}$ by $k=8\cdot 10^{6}$ --- SGPTL reaches the
-floating-point floor on this instance with enough budget. On
+$\le 10^{-12}$ by $k=8\cdot 10^{6}$: SGPTL reaches the floating-point
+floor on this instance within the extended budget. On
 \texttt{california} it descends from $41$ at $k=8\,000$ to $1.2\cdot
 10^{-6}$ at $k=8\cdot 10^{5}$.
 
@@ -420,9 +420,10 @@ to the cap $1/\varepsilon_\text{thr}=10^{8}$, $\kappa(\mathbf{Q}_{k})$
 blows up; the Jacobi preconditioner on $\operatorname{diag}(\mathbf{Q}_{k})$ is what
 keeps CG matching Cholesky iteration-by-iteration, but the iterative
 overhead still doubles the wall-clock time. In the project regime
-($M\gg H$, $H\le 1000$) Cholesky is the default --- faster, MM-descent
-guaranteed unconditionally, no inner tolerance to tune; CG remains a
-drop-in for $H$ large enough that the $O(H^{3})$ term dominates.
+($M\gg H$, $H\le 1000$) Cholesky is the default: it is faster and the
+exact solve preserves MM-descent unconditionally with no inner tolerance
+to tune. CG becomes an alternative for $H$ large enough that the
+$O(H^{3})$ term dominates.
 
 \begin{table}[H]
     \centering
@@ -493,10 +494,10 @@ $\sim\!19$, leaving the gap stuck at $\sim\!4\cdot 10^{-2}$ (centre and
 right panels). With $\gamma_{\min}=0.05$ the floor binds whenever the
 greedy would hit zero, $\beta_{i}$ stays $\ge 0.05$, the Polyak step
 remains effective, and the staircase descent of $\delta$ that the theory
-predicts takes place --- the gap drops by two more orders of magnitude.
-The chain reaction is structural to ELM~LASSO with the greedy $\gamma$
-(the failure depends on the algorithm's choice of $\gamma$, not on the
-specific instance), and we observed it on all $15$ unfloored seeds.
+predicts takes place; the gap drops by two more orders of magnitude.
+This failure depends on the algorithm's greedy $\gamma$ choice rather
+than on the specific instance, and we observed it on all $15$ unfloored
+seeds.
 
 \paragraph{Which value of $\gamma_{\min}$ (calibration sweep).}
 We sweep $\gamma_{\min}$ over $0.05$, $0.1$, $0.2$ and $0.5$ on the
@@ -528,7 +529,7 @@ so we adopt $\gamma_{\min}=0.05$.
 Of the four target-level parameters of SGPTL, $\beta$ and $R$ are
 settled analytically in Section~\ref{sec:dsm_parameters} and not swept
 here. The remaining two, $\delta_{0}=c\,f(\mathbf{w}_{0})$ and $\rho$,
-have intrinsically empirical tradeoffs and are calibrated below. The sweeps of
+have empirical tradeoffs and are calibrated below. The sweeps of
 Figure~\ref{fig:params-dsm} ($H=100$, $M=400$, $5000$ iterations) show
 the method is robust to both: $c\in\{0.01,\dots,1.0\}$ at $\rho=0.7$
 gives final gaps in $[5.6\cdot 10^{-5},1.6\cdot 10^{-4}]$, within one
@@ -659,22 +660,22 @@ appear as the $O(H^{3})$ and $O(H^{2})$ slopes drawn in
 Figure~\ref{fig:scalability} (left) at $M=5H$.
 
 \paragraph{What we measure.}
-Both algorithms get more expensive as $H$ grows
+Both algorithms scale up with $H$
 (Table~\ref{tab:scalability}), but IRLS stays faster than SGPTL
 throughout the tested range and reaches a final gap roughly two
 orders of magnitude smaller. At $H=2000$: IRLS takes $2.4$\,s to reach
 gap $10^{-5}$; SGPTL takes $30$\,s to reach $5.3\cdot 10^{-4}$. The
 right panel of Figure~\ref{fig:scalability} confirms the per-iteration
-ordering --- SGPTL is cheaper there --- but the cumulative time tells
-the opposite story because SGPTL needs many more iterations.
+ordering (SGPTL is cheaper there), but the cumulative time inverts
+because SGPTL needs many more iterations.
 
 \paragraph{Why the fixed-budget table flatters SGPTL.}
 This comparison fixes iterations, not accuracy. To reach a target
 $\varepsilon$ Theorem~\ref{thm:dsm_convergence} forces
 $\Omega(L^{2}/(\gamma_{\min}^{2}\varepsilon^{2}))$ SGPTL iterations with
 $L$ growing in $H$; the cost-to-accuracy ratio is then much wider than
-Table~\ref{tab:scalability} suggests, as Section~\ref{sec:iters-to-eps}
-makes quantitative.
+Table~\ref{tab:scalability} suggests, as quantified in
+Section~\ref{sec:iters-to-eps}.
 
 \begin{table}[H]
     \centering
@@ -710,7 +711,7 @@ makes quantitative.
 Table~\ref{tab:iters-to-eps} and Figure~\ref{fig:comparison} report the
 cost to reach $f-f^{*}\le\varepsilon$ on the moderate problem ($H=50$,
 $M=200$). At the loosest accuracy the two are competitive ($2$ vs $1$ at
-$10^{-1}$); past that the gap widens fast --- SGPTL needs
+$10^{-1}$); past that the gap widens fast: SGPTL needs
 $108,674,2477$ iterations for $10^{-2},10^{-3},10^{-4}$ against IRLS's
 $3,7,19$ ($54$\,ms vs $0.7$\,ms at $10^{-4}$). The per-decade ratio
 predicted by Chapter~\ref{chap:comparison} (constant increment for
@@ -761,7 +762,7 @@ residual gap to $f^{*}$ of $+1.4\cdot 10^{-3}$ on \texttt{diabetes} and
 $+2.82$ on \texttt{california}.
 sklearn CD is therefore not a usable oracle on these problems, and we
 build $f^{*}$ instead by running IRLS to convergence
-($k_{\max}=500,\varepsilon_\text{stop}=10^{-14}$) and cross-validating it
+($k_{\max}=3000,\varepsilon_\text{thr}=10^{-14}$) and cross-validating it
 against CVXPY's interior-point solver Clarabel. The two are structurally
 different (MM~+~linear solve vs.\ primal--dual interior point) and agree
 to ten significant digits on both instances.
@@ -809,11 +810,9 @@ $i_{\max}=10^{7}$/$10^{6}$ is the one of Section~\ref{sec:dsm_long_run}.
     \caption{Cost to reach a uniform target accuracy
     $f - f^{*} \le 10^{-6}$ on the two ELM-transformed real datasets,
     $H=200$, $\lambda_\text{LASSO}=0.1$, single-thread CPU timings. The
-    reference $f^{*}$ is obtained by running IRLS to convergence
-    (\,$\varepsilon_\text{thr}=10^{-14}$, $k_{\max}=3000$\,) and
-    cross-validating against CVXPY-Clarabel at
-    \texttt{tol\_gap}$=10^{-9}$; the two structurally different
-    optimisers agree to ten significant digits on both instances. The
+    reference $f^{*}$ is the cross-validated value of the introduction
+    (IRLS at $\varepsilon_\text{thr}=10^{-14}$, $k_{\max}=3000$ against
+    CVXPY-Clarabel at \texttt{tol\_gap}$=10^{-9}$). The
     \emph{iter} column counts the inner loop of each method (Newton
     interior-point steps for Clarabel, IRLS outer iterations each one
     Cholesky solve, SGPTL subgradient steps); Ridge requires one
@@ -885,8 +884,7 @@ instance.
 \paragraph{Target-level scale $\delta_{0}$.}
 \emph{Before:} $\delta_{0}=c\,f^{*}$.
 \emph{Why wrong:} $f^{*}$ is the very quantity SGPTL exists to estimate,
-so using it to set an algorithmic parameter assumes access to the
-answer; it is the optimisation analogue of training on the test set
+so using it to set an algorithmic parameter assumes access to the answer
 and disqualifies the result.
 \emph{After:} $\delta_{0}=c\,f(\mathbf{w}_{0})$.
 \emph{Why right:} $f(\mathbf{w}_{0})$ is computable from the starting
