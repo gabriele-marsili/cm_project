@@ -54,7 +54,7 @@ becomes competitive. The warm-vs-cold SGPTL contrast on
 \texttt{california} is partly a statement about the data
 (Section~\ref{sec:warm_cold}). A stochastic or block-coordinate
 version of SGPTL would lower the $O(MH)$ iteration cost across
-mini-batches or coordinate blocks --- the natural direction for the
+mini-batches or coordinate blocks; this targets the
 $H^{2}\!\gg\!M$ or out-of-core regimes where IRLS' factorisation is
 the bottleneck. On the IRLS side, the inner Cholesky solve can be
 replaced by an inexact iterative solver with a tolerance tied to the
