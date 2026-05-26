@@ -24,9 +24,9 @@
 Extreme Learning Machine (ELM) \cite{HUANG2006489} is a machine learning model implemented as a neural network with a single hidden layer, in which:
 \begin{itemize}
     \item $\mathbf{W_1} \in \mathbb{R}^{H \times N}$ is the input-to-hidden weight matrix (where $H$ is the number of nodes in the hidden layer and $N$ is the number of input nodes) that is \textbf{randomly generated} and \textbf{static} (does not change during training) \cite{HUANG2006489}.
-    \item $\sigma(\cdot)$ is the element-wise (nonlinear) activation function applied to $\mathbf{W_1x} \in \mathbb{R}^H$, where $\textbf{x} \in \mathbb{R}^N$ is the input vector. We assume henceforth that the hidden-layer feature matrix $\mathbf{X} \in \mathbb{R}^{M \times H}$ has full column rank, which is the regime studied in the original ELM analysis~\cite[Theorem~2.1]{HUANG2006489} for $M \ge H$ with random $\mathbf{W}_1$ and an infinitely differentiable activation; in our experiments (sigmoid, $\mathbf{W}_1$ Gaussian, $M \ge H$) it is verified numerically by the conditioning checks of Section~\ref{sec:datasets}.
+    \item $\sigma(\cdot)$ is the element-wise (nonlinear) activation function applied to $\mathbf{W_1x} \in \mathbb{R}^H$, where $\textbf{x} \in \mathbb{R}^N$ is the input vector. We assume from now on that the hidden-layer feature matrix $\mathbf{X} \in \mathbb{R}^{M \times H}$ has full column rank, which is the regime studied in the original ELM analysis~\cite[Theorem~2.1]{HUANG2006489} for $M \ge H$ with random $\mathbf{W}_1$ and an infinitely differentiable activation. In our experiments (sigmoid, $\mathbf{W}_1$ Gaussian, $M \ge H$) it is verified numerically by the conditioning checks of Section~\ref{sec:datasets}.
     \item $\mathbf{w} \in \mathbb{R}^{H}$ is the hidden-to-output weight vector.
-    \item $\hat{y} = \mathbf{w}^T\sigma(\mathbf{W_1x}) \in \mathbb{R}$ is the prediction of the model.
+    \item $\hat{y} = \mathbf{w}^T\sigma(\mathbf{W_1x}) \in \mathbb{R}$ is the prediction of the model, and $y \in \mathbb{R}$ is the ground truth (target).
 \end{itemize}
 
 Once $\mathbf{W_1}$ is fixed, knowing that $\mathbf{X}_\text{origin} \in \mathbb{R}^{M \times N}$ is the matrix of all the inputs, the hidden-layer activations $\mathbf{X} = \sigma(\mathbf{X}_\text{origin} \mathbf{W}_1^T)$ are constant, and finding $\mathbf{w}$ reduces to solving the Least-Squares problem described in the following section.
@@ -46,14 +46,14 @@ Once $\mathbf{W_1}$ is fixed, knowing that $\mathbf{X}_\text{origin} \in \mathbb
 % \end{equation}
 The definition of the Least Squares Problem \cite{cortinovis-introleastsquares} in the ELM case is the following:
 \begin{equation}
-\min_{\mathbf{w}} || \mathbf{Xw} - \mathbf{y} ||^2_2
+\min_{\mathbf{w}}  \frac{1}{2}  || \mathbf{Xw} - \mathbf{y} ||^2_2
 \end{equation}
 
 The Least-Squares problem always admits at least one solution, and the solution is unique if and only if the matrix $\mathbf{X}$ has full column rank. In that case, we can write the optimization problem as follows:
 \begin{equation}
 \min_\mathbf{w} \frac{1}{2}\mathbf{w}^T\mathbf{X}^T\mathbf{X}\mathbf{w} - \mathbf{y}^T\mathbf{X}\mathbf{w} + \frac{1}{2}\mathbf{y}^T\mathbf{y}
 \end{equation}
-whose gradient $\mathbf{X}^T\mathbf{X}\mathbf{w} - \mathbf{X}^T\mathbf{y}$ vanishes uniquely at the closed-form solution
+whose gradient $\mathbf{X}^T\mathbf{X}\mathbf{w} - \mathbf{X}^T\mathbf{y} = 0$ uniquely when
 \[
 \mathbf{w}_0 = (\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}^T\mathbf{y}.
 \]
