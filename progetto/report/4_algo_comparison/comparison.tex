@@ -30,15 +30,15 @@ is monotone, so DSM returns $\mathbf{w}_{\mathrm{best}}$ and stops on a fixed bu
 
 \subsection{Rate}
 
-IRLS achieves a \textbf{linear} rate (Section~\ref{sec:irls_convergence}), DSM achieves the optimal \textbf{sublinear} $O(L^2/\varepsilon^2)$ rate for nonsmooth convex functions (Theorem~\ref{thm:dsm_convergence}). Lowering $\varepsilon$:
+IRLS achieves a \textbf{linear} rate (Section~\ref{sec:irls_convergence}), DSM achieves the optimal \textbf{sublinear} $O(L^2/\varepsilon^2)$ rate for nonsmooth convex functions~\cite[Slide 8]{frangioni-slides-nonsmooth} (Theorem~\ref{thm:dsm_convergence}). Lowering $\varepsilon$:
 \begin{itemize}
-  \item DSM: $\bar f_k - f^* \lesssim L\norm{\mathbf{w}_0 - \mathbf{w}^*}_2/(\gamma_{\min}\,\sqrt{k})$ gives $k \propto 1/(\gamma_{\min}^{2}\,\varepsilon^2)$. Lowering $\varepsilon$ by a factor $10$ therefore multiplies the iteration count by $10^2 = 100$ (the $\gamma_{\min}$ floor inflates the constant but not the per-decade cost).
+  \item DSM: $\bar f_k - f^* \lesssim L\norm{\mathbf{w}_0 - \mathbf{w}^*}_2/(\gamma_{\min}\,\sqrt{k+1})$ gives $k \propto 1/(\gamma_{\min}^{2}\,\varepsilon^2)$. Lowering $\varepsilon$ by a factor $10$ therefore multiplies the iteration count by $10^2 = 100$ (the $\gamma_{\min}$ floor inflates the constant but not the per-decade cost).
   \item IRLS: $f(\mathbf{w}_{k+1}) - f^* \le r\,(f(\mathbf{w}_k) - f^*)$ with $r \in (0,1)$ (Theorem~\ref{thm:irls_convergence}) gives $k \propto \log(1/\varepsilon)/\log(1/r)$. Lowering $\varepsilon$ by a factor $10$ \emph{adds} the constant $\log 10/\log(1/r)$ iterations, independent of $\varepsilon$.
 \end{itemize}
 
 \subsection{Convergence on the ELM problem}
 
-As expressed before, $\mathbf{X}$ has full column rank, so $f$ is $\mu$-strongly convex with $\mu = \lambda_{\min}(\mathbf{X}^\top\mathbf{X}) > 0$ and admits a unique minimizer $\mathbf{w}^*$ (\ref{prop:irls_prop}). Both algorithms are theoretically guaranteed to converge on this problem, but with different notions of convergence: Theorem~\ref{thm:irls_convergence} gives IRLS iterates $\mathbf{w}_k \to \mathbf{w}^*$ at a linear rate, while Theorem~\ref{thm:dsm_convergence} gives SGPTL only the weaker guarantee $\bar f_i \to f^*$ on the record sequence $\bar f_i = \min_{h \le i} f(\mathbf{w}_h)$, but single iterates $\{\mathbf{w}_i\}$ may oscillate.
+By Proposition~\ref{prop:irls_prop}, $\mathbf{X}$ full column rank makes $f$ $\mu$-strongly convex with $\mu = \lambda_{\min}(\mathbf{X}^\top\mathbf{X}) > 0$, with a unique minimizer $\mathbf{w}^*$. Both algorithms are theoretically guaranteed to converge on this problem, but with different notions of convergence: Theorem~\ref{thm:irls_convergence} gives IRLS iterates $\mathbf{w}_k \to \mathbf{w}^*$ at a linear rate, while Theorem~\ref{thm:dsm_convergence} gives SGPTL only the weaker guarantee $\bar f_i \to f^*$ on the record sequence $\bar f_i = \min_{h \le i} f(\mathbf{w}_h)$, but single iterates $\{\mathbf{w}_i\}$ may oscillate.
 
 % ------------------------------------------------------------------
 \section{Computational cost}
@@ -123,4 +123,4 @@ Preferred when & High accuracy, $H \ll M$ & Large $H$, moderate accuracy \\
 \label{tab:comp_summary}
 \end{table}
 
-Making the assumption that $M \gg H$, IRLS algorithm is preferred: the $O(MH^2)$ precomputation of $\mathbf{A}$ amortizes over a few cheap Cholesky solves, inducing sparsity, while only having to tune $\varepsilon_{\mathrm{thr}}$. DSM is the better choice only when $H^2 \gg M$ or $\mathbf{X}^T\mathbf{X}$ does not fit in memory, and the accuracy target is moderate ($\varepsilon \sim 10^{-3}$).
+Making the assumption that $M \gg H$, IRLS is preferred: the $O(MH^2)$ precomputation of $\mathbf{A}$ is paid back over a few cheap Cholesky solves that produce sparse iterates, with $\varepsilon_{\mathrm{thr}}$ the only tunable parameter. DSM is the better choice only when $H^2 \gg M$ or $\mathbf{X}^T\mathbf{X}$ does not fit in memory, and the accuracy target is moderate ($\varepsilon \sim 10^{-3}$).
