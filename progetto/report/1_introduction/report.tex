@@ -21,10 +21,10 @@
 % In this section, we will cover the background needed to solve this problem, and we will leave the learning algorithms' explanation in their respective chapters.
 
 \section{Extreme Learning Machine}
-Extreme Learning Machine (ELM) \cite{HUANG2006489} is a machine learning model implemented as a neural network with a single hidden layer, in which:
+Extreme Learning Machine (ELM) \cite{HUANG2006489} is a single-hidden-layer neural network, in which:
 \begin{itemize}
     \item $\mathbf{W_1} \in \mathbb{R}^{H \times N}$ is the input-to-hidden weight matrix (where $H$ is the number of nodes in the hidden layer and $N$ is the number of input nodes) that is \textbf{randomly generated} and \textbf{static} (does not change during training) \cite{HUANG2006489}.
-    \item $\sigma(\cdot)$ is the element-wise (nonlinear) activation function applied to $\mathbf{W_1x} \in \mathbb{R}^H$, where $\textbf{x} \in \mathbb{R}^N$ is the input vector. We assume from now on that the hidden-layer feature matrix $\mathbf{X} \in \mathbb{R}^{M \times H}$ has full column rank, which is the regime studied in the original ELM analysis~\cite[Theorem~2.1]{HUANG2006489} for $M \ge H$ with random $\mathbf{W}_1$ and an infinitely differentiable activation. In our experiments (sigmoid, $\mathbf{W}_1$ Gaussian, $M \ge H$) it is verified numerically by the conditioning checks of Section~\ref{sec:datasets}.
+    \item $\sigma(\cdot)$ is the element-wise (nonlinear) activation function applied to $\mathbf{W_1x} \in \mathbb{R}^H$, where $\textbf{x} \in \mathbb{R}^N$ is the input vector. We assume from now on that the hidden-layer feature matrix $\mathbf{X} \in \mathbb{R}^{M \times H}$ has full column rank, which is the regime studied in the original ELM analysis~\cite[Theorem~2.1]{HUANG2006489} for $M \ge H$ with random $\mathbf{W}_1$ and an infinitely differentiable activation (our sigmoid satisfies this). In our experiments ($\mathbf{W}_1$ Gaussian, $M \ge H$) it is verified numerically by the conditioning checks of Section~\ref{sec:datasets}.
     \item $\mathbf{w} \in \mathbb{R}^{H}$ is the hidden-to-output weight vector.
     \item $\hat{y} = \mathbf{w}^T\sigma(\mathbf{W_1x}) \in \mathbb{R}$ is the prediction of the model, and $y \in \mathbb{R}$ is the ground truth (target).
 \end{itemize}
@@ -49,7 +49,7 @@ The definition of the Least Squares Problem \cite{cortinovis-introleastsquares} 
 \min_{\mathbf{w}}  \frac{1}{2}  || \mathbf{Xw} - \mathbf{y} ||^2_2
 \end{equation}
 
-The Least-Squares problem always admits at least one solution, and the solution is unique if and only if the matrix $\mathbf{X}$ has full column rank. In that case, we can write the optimization problem as follows:
+The Least-Squares problem admits a unique solution if and only if the matrix $\mathbf{X}$ has full column rank; otherwise solutions exist but are not unique. When the rank condition holds, we can rewrite the problem as
 \begin{equation}
 \min_\mathbf{w} \frac{1}{2}\mathbf{w}^T\mathbf{X}^T\mathbf{X}\mathbf{w} - \mathbf{y}^T\mathbf{X}\mathbf{w} + \frac{1}{2}\mathbf{y}^T\mathbf{y}
 \end{equation}
@@ -57,7 +57,7 @@ whose gradient $\mathbf{X}^T\mathbf{X}\mathbf{w} - \mathbf{X}^T\mathbf{y} = 0$ u
 \[
 \mathbf{w}_0 = (\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}^T\mathbf{y}.
 \]
-Adding the $L_1$ regularization term (Section~\ref{sec:regularization}) destroys the closed-form structure and requires iterative methods.
+Adding the $L_1$ regularization term (Section~\ref{sec:regularization}) destroys the closed-form structure of the normal equations and requires iterative methods.
 
 \section{Regularization Techniques}
 \label{sec:regularization}
@@ -121,7 +121,7 @@ $$
 $$
 where $\operatorname{sign}(\mathbf{w})$ is applied element-wise.
 At points where some $w_i = 0$, one must reason in terms of
-\textit{subgradients} (see Chapter~\ref{alg:dsm}).
+\textit{subgradients} (see Chapter~\ref{chap:dsm}).
 
 \subsection{Optimality conditions}
 \label{sec:intro_optimality}
