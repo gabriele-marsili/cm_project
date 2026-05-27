@@ -28,7 +28,7 @@ where $\mathbf{W}_k \in \mathbb{R}^{H \times H}$ is a diagonal matrix with entri
 \end{equation}
 This bounds the non-smooth $L_1$ term using a \textit{smooth, quadratic} expression
 $\frac{1}{2}\mathbf{w}^T \mathbf{W}_k^T \mathbf{W}_k \mathbf{w}$, plus a constant term that depends only on the current iteration $\mathbf{w}_k$.
-$\mathbf{W}_k^T \mathbf{W}_k$ assigns each component of $\mathbf{w}$ a per-iteration weight $|(w_k)_i|^{-1}$ \cite{chartrand2008iteratively}: small components are pushed further toward zero by a larger weight, large ones are left almost free.
+$\mathbf{W}_k^T \mathbf{W}_k$ assigns each component of $\mathbf{w}$ a per-iteration weight $|(w_k)_i|^{-1}$ \cite{chartrand2008iteratively}: components with $|(w_k)_i| \ll 1$ receive a larger penalty (suppressing them), components with $|(w_k)_i| \gg 1$ receive a smaller one.
 
 \paragraph{Handling near-zero components.}
 Equation~\eqref{eq:irls_weights_exact} becomes numerically unstable when $(w_k)_i
@@ -170,7 +170,7 @@ Because $\mathbf{Q}_k$ is SPD, two efficient methods can be used:
     \end{algorithmic}
 \end{algorithm}
 
-\paragraph{Initialization.} We initialize $\mathbf{w}_0$ with the unregularized least-squares solution $\mathbf{A}^{-1}\mathbf{b}$ (\textbf{warm start}): the weights $(\mathbf{W}_0)_{ii} = |(w_0)_i|^{-1/2}$ are well defined without having to lean on $\varepsilon_{\mathrm{thr}}$ at the first step. A \textbf{cold start} with $\mathbf{w}_0 = \mathbf{0}$ would instead force every weight onto the threshold and slow the first iterations down. In the implementation we add a vanishing ridge $10^{-12}\mathbf{I}$ to $\mathbf{A}$ before this first solve: numerically indistinguishable from $\mathbf{A}^{-1}\mathbf{b}$ when $\mathbf{A} \succ 0$, it keeps the warm start well-posed if $\mathbf{X}$ is rank-deficient.
+\paragraph{Initialization.} We initialize $\mathbf{w}_0$ with the unregularized least-squares solution $\mathbf{A}^{-1}\mathbf{b}$ (\textbf{warm start}): the weights $(\mathbf{W}_0)_{ii} = |(w_0)_i|^{-1/2}$ are well defined without having to lean on $\varepsilon_{\mathrm{thr}}$ at the first step. A \textbf{cold start} $\mathbf{w}_0 = \mathbf{0}$ places all weights at $\varepsilon_{\mathrm{thr}}$, delaying the first iterations. In the implementation we add a vanishing ridge $10^{-12}\mathbf{I}$ to $\mathbf{A}$ before this first solve: numerically indistinguishable from $\mathbf{A}^{-1}\mathbf{b}$ when $\mathbf{A} \succ 0$, it keeps the warm start well-posed if $\mathbf{X}$ is rank-deficient.
 
 \paragraph{Stopping criterion.} The algorithm ends when the relative change between successive iterations goes below $\varepsilon_{\mathrm{stop}}$:
 $$\frac{\|\mathbf{w}_{k+1} - \mathbf{w}_k\|}{\max(1, \|\mathbf{w}_k\|)} < \varepsilon_{\mathrm{stop}}$$
@@ -219,7 +219,7 @@ in \eqref{eq:optimality} is met.
 
 
 \paragraph{Convergence rate.}
-We expect a linear rate empirically: $\|\mathbf{w}_{k+1} - \mathbf{w}^*\|$ contracts by a factor governed by the conditioning of $\mathbf{Q}_k = \mathbf{X}^T\mathbf{X} + 2\lambda_{\text{IRLS}}\mathbf{W}_k^T\mathbf{W}_k$, whose second term regularises the small components and improves the conditioning of $\mathbf{X}^T\mathbf{X}$ via a diagonal shift. A formal linear-rate result for IRLS on $\ell_q$ minimisation ($q \le 1$) appears in~\cite[Theorem~5.3]{daubechies2008iterativelyreweightedsquaresminimization} under a \emph{null space property} (NSP) on the matrix~$\mathbf{X}$ (no sparse vector is in the kernel of $\mathbf{X}$). That hypothesis does not hold in general for ELM features (no sparsity-recovery guarantee is claimed for the random $\mathbf{W}_1$ regime), so we use Daubechies et al.\ only as the closest available analysis. The linear rate is verified empirically in Section~\ref{sec:convergence}.
+We expect a linear rate empirically: $\|\mathbf{w}_{k+1} - \mathbf{w}^*\|$ contracts by a factor governed by the conditioning of $\mathbf{Q}_k = \mathbf{X}^T\mathbf{X} + 2\lambda_{\text{IRLS}}\mathbf{W}_k^T\mathbf{W}_k$, whose second term regularises the small components and improves the conditioning of $\mathbf{X}^T\mathbf{X}$ via a diagonal shift. A formal linear-rate result for IRLS on $\ell_q$ minimisation ($q \le 1$) appears in~\cite[Theorem~5.3]{daubechies2008iterativelyreweightedsquaresminimization} under a \emph{null space property} (NSP) on the matrix~$\mathbf{X}$ (no sparse vector is in the kernel of $\mathbf{X}$). That hypothesis does not hold in general for ELM features and we are not aware of a sparsity-recovery guarantee for the random $\mathbf{W}_1$ regime; we use Daubechies et al.\ only as the closest available analysis. On the synthetic instance IRLS recovers the planted support exactly (Section~\ref{sec:quality}); the real datasets have no ground-truth support (Section~\ref{sec:datasets}). The linear rate is verified empirically in Section~\ref{sec:convergence}.
 
 \paragraph{Verification of hypotheses for the ELM problem.}
 The two assumptions of Theorem~\ref{thm:irls_convergence} are satisfied for~\eqref{eq:obj_fun} as follows.
@@ -242,9 +242,9 @@ The computational cost of each iteration of IRLS is the following:
     $O(H^3/3)$ with Cholesky, or $O(pH^2)$ with CG for $p$ CG steps (in the following we assume using Cholesky).
 \end{itemize}
 Also, we need $O(MH^2)$ for the $\mathbf{A}$ matrix computation and $O(MH)$ for the $\mathbf{b}$ vector creation, and, in case of warm start, we need the OLS solution $\mathbf{w}_0 \leftarrow \mathbf{A}^{-1}\mathbf{b}$, computed in $O(H^3)$.
-The dominant cost per iteration is the linear system solve: $O(H^3)$ with Cholesky.
-However, the total number of IRLS iterations is typically small (50--100), and the
-pre-computation costs get amortized over all iterations. The overall cost is therefore:
+The dominant per-iteration cost is the linear system solve: $O(H^3)$ with Cholesky.
+Since IRLS typically converges in $50$--$100$ iterations, the $O(MH^2)$ pre-computation
+is paid back over the iteration loop. The overall cost is therefore:
 $$\underbrace{O(MH^2) + O(MH) + O(H^3)}_{\text{pre-computation}} + \underbrace{k_{\mathrm{IRLS}} \cdot O(H^3)}_{\text{iterations cost}}$$
 For problems where $H \ll M$, the pre-computation dominates and IRLS is very efficient.
 
