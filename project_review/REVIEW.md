@@ -1,367 +1,253 @@
-# Review pre-consegna — CM Project 25 ML (Group 63)
+# Review pre-consegna finale — CM Project 25 ML (Group 63)
 
-Synthesis di 4 agent paralleli (chapters 1–3, chapters 4–6, code, style sweep) +
-cross-check con i 5 punti dell'email del prof.
+**Data**: 2026-05-27
+**Branch**: `main` @ `ca5475f`
+**Stato baseline**: commits `3337573` (Matthew, cap 1→4) + `19c1021`/`f69bf47`/`56d58da`/`ca5475f` (sweep stilistico cap 3/5/6 + PDF rebuild).
 
-Severità: **CRITICO** = must-fix prima della consegna · **IMPORTANTE** = correzione sostantiva ·
-**STILE** = pattern LLM/ripetizioni (esplicitamente flaggati dal prof).
+Audit eseguito da 4 review pass paralleli su domini disgiunti (cap 1+2, cap 3+4, cap 5+6+appendici, code+bibliografia). Sintesi consolidata di seguito.
 
-Workflow: applico fix per gruppi numerati. Tu approvi/scarti ogni gruppo prima che proceda.
-
----
-
-## GRUPPO 0 — I 5 punti dell'email del prof (PRIORITÀ MASSIMA)
-
-### P1 [CRITICO] §5.3.1 — claim su Pr(w_i = 0)
-**Stato attuale**: chapter3.tex:139 dice "non-generic … cold start w_0=0 is the only case …".
-**Mossa del prof**: "la possibilità che w_i sia 0 tende ad essere bassa quindi non mi pare critico" — chiede solo di dirlo esplicitamente.
-**Fix**: aggiungere una frase: "for i≥1 l'update w_{i+1}=w_i − α_i d_i ha w_i con distribuzione continua, quindi Pr((w_i)_j=0)=0 per ogni j; il caso w_0=0 è gestito dalla convenzione sign(0)=0."
-
-### P2 [CRITICO] Theorem 3.1 — bug rilevato, fix concreto
-**Stato attuale**: chapter3.tex:179–181 asserisce per-step inequality con costante β_i(2−β_i), citando [Slide 15 Frangioni].
-**Bug rilevato in d'Antonio–Frangioni 2009**: il paper, p.369 proof of Theorem 3.5 eq. (3.17), dà la per-step inequality per direzione deflessa con costante **β_k(2α_k − β_k)**, NON β_k(2 − β_k).
-
-Derivazione (caso esatto σ_k=0, γ_k=0, x̄=x*):
-- Eq. (2.9): ‖x_{k+1}−x̄‖² − ‖x_k−x̄‖² ≤ −2ν_k⟨d_k, x_k−x̄⟩ + ν_k²‖d_k‖²
-- Cor. 3.2 (via Lemma 2.4 / cond. 2.13 + Lemma 3.1): ⟨d_k, x_k−x̄⟩ ≥ α_k(f_k−f*) − [f(x̄)−f*+σ̄_k]
-- ν_k = β_k λ_k/‖d_k‖², λ_k = f_k−f* (caso esatto)
-- Combinando: descent ≤ −β_k(2α_k − β_k)(f_k−f*)²/‖d_k‖²
-
-Il "2" del report viene da convessità ⟨g_k, x_k−x*⟩ ≥ f_k−f* (vale solo per plain subgradient, non per deflesso d_k).
-
-**Nel nostro algoritmo** β_i = γ_i = α_i (clip mette β_i = min(1,γ_i)=γ_i con γ_i∈[γ_min,1]), quindi:
-- per-step descent factor = γ_i(2γ_i − γ_i) = **γ_i² ≥ γ_min²** (NON γ_i(2−γ_i)≥γ_min)
-- telescoping: (k+1) min(f_i−f*)² ≤ L²‖w_0−w*‖²/γ_min²
-- **rate corretta**: f̄_k − f* ≤ L‖w_0−w*‖ / **(γ_min · √(k+1))** (NON √(γ_min·(k+1)))
-- iter to ε: k+1 ≥ L²‖w_0−w*‖²/(γ_min² · ε²); inflazione vs plain Polyak = **1/γ_min² = 400×** per γ_min=0.05 (report dice 20×, è la radice)
-- order O(L²/ε²) inalterato
-
-**Bonus**: la rate corretta (400× peggiore) si allinea meglio con l'osservazione empirica di §5.7 (SGPTL ~100× iter per decade vs IRLS), mentre il 20× del report è troppo ottimista.
-
-**Fix concreto in chapter3.tex**:
-- Theorem 3.1 statement (linea 150): cambiare denominatore da `\sqrt{\gamma_{\min}(k+1)}` a `\gamma_{\min}\sqrt{k+1}`
-- Proof (linee 176–197): rimpiazzare riferimento a [Slide 15] con citazione esplicita a Corollary 3.2 + eq. (3.17) di [dantonio2009deflected]; sostituire β_i(2−β_i) con β_i(2α_i−β_i); ricalcolare costante telescopica e iter inflation
-- Linea 197: "20× multiplier" → "400× multiplier" e "1/γ_min" → "1/γ_min²"
-- Update propagation in §5.2.3 (results.tex:123–130) e §6 (conclusions:39–47) dove la rate è citata
-
-### P3 [CRITICO] Costo del warm-start w_0 non discusso nel cost totale
-**Stato attuale**:
-- §4.3.2 (comparison.tex:76–84) lista il costo asintotico O(MH²+H³) ma non lo numerizza
-- §5.3 e §5.5 non quantificano OLS-cost / total-IRLS-cost
-- §5.3 Defaults raccomanda warm start "ovunque" senza weighing del costo
-**Suggerimento del prof**: forse il punto sinistro di Figure 5.3 (gap-vs-CPU) lo mostra — se sì, **dirlo esplicitamente**.
-**Fix**: 
-- Aggiungere a §5.3 una micro-tabella o 3 righe: "Per diabetes H=200, Cholesky OLS = X ms, totale IRLS = Y ms, OLS è Z% del totale. Stesso conto su california. Per H grande il warm start è giustificato perché Z stays < N%."
-- In §4.3.2 spiegare: "il costo OLS è caricato in tab. 5.8 al wall-clock totale di IRLS-warm" se non già fatto.
-- In §6 menzionare il trade-off invece di tacerlo.
-
-### P4 [CRITICO] §5.3.3 — δ_0 calibrato usando f* = "training sul test set"
-**Stato attuale**:
-- §3.5.2 (chapter3.tex:117–119) introduce δ_0 = c·f(w_0) (admissible)
-- §5.4.5 (results.tex:570–598) confronta admissible scale vs **Family C = c·f*** (oracolo) per giustificare il default
-- App. A usa la stessa Family C come riferimento; su california H=200 usa "IRLS-converged proxy" come f*, doppia circolarità
-- §5.7 riconosce il problema e reframes ma §5.4.5/App.A restano contraddittorie
-**Mossa del prof**: "usare il valore ottimo per determinare i parametri algoritmici … è come usare il test set per fare training in ML: semplicemente non si fa. Chiarite questo punto, quantomeno discutetelo."
-**Fix**:
-- §5.4.5 + App.A: aggiungere disclaimer all'inizio dichiarando esplicitamente che la sezione è un'**analisi astratta di sensitività** non usata per scegliere il default; il default operativo è δ_0 = c·f(w_0) come spiegato in §3.5.2 e usato in tutti gli esperimenti di §5.5–§5.6.
-- Su california H=200 (App.A): dichiarare la doppia circolarità (proxy IRLS-converged usato come f*, poi f* usato come Family C) e marcare l'instance come "abstract only".
-- In §3.5.2 (chapter3.tex:119) aggiungere "All experiments in Ch.5 use δ_0=c·f(w_0); the c·f* scale appears only as abstract reference in Fig. delta0-families."
-
-### P5 [IMPORTANTE] §5.7 SGPTL "molto mal configurato" (prof anticipa orale)
-**Stato attuale**: §5.7 spiega correzione di R e fallback + reframe δ_0. Ma non difende esplicitamente:
-- β=1 (perché senza shrinkage?)
-- R=1 (è 1000× il step-length tipico → ~10³ iter tra contractions; "matched" è post-hoc)
-- ρ=0.7 (best su 1/3 instances; ρ=0.5 sarebbe il compromesso safer)
-**Fix**: aggiungere paragrafo "These remaining values are compromises, not per-instance optima. We hold β=1 because [Polyak descent argument from chapter3:111], R=1 because [travel-distance argument], ρ=0.7 because [sweep §5.4.4 shows it's within factor-2 of best on all three instances]. A per-instance tuning would buy ≤ factor-2 in final gap (see §5.4.4)."
-
-### P6 [IMPORTANTE — direttiva del prof] Test-MSE rimangono ma deemphasized
-**Stato**: §5.6 line 836 ancora presenta MSE come *risultato* ("optimisers agree"); §6:78–81 ha già il disclaimer corretto.
-**Fix**: aggiungere a §5.6 una frase: "Test MSE figures are reported for completeness but are not part of the optimisation comparison (cf. comando §4.5 — out-of-sample performance is not in scope here)."
+**Severità**:
+- **CRITICO** = bug visibile in lettura, errore nel PDF, o mismatch report↔codice. Da fixare PRIMA della consegna.
+- **IMPORTANTE** = correzione sostantiva (citazione mancante, ipotesi non discussa, passaggio algebrico mancante).
+- **STILE** = residui di pattern LLM/colloquialismi/ripetizioni.
 
 ---
 
-## GRUPPO 1 — Coerenza interna (CRITICI)
+## Executive summary
 
-### C1 [CRITICO] Numeri inconsistenti Clarabel↔IRLS agreement
-- Table 5.8 caption: "nine significant digits"
-- §5.6 line 777: "six significant digits"
-- §6 line 35: "six significant digits"
-- CSV reali: diabetes ~10 digits, california ~10 digits
-**Fix**: scegliere UN numero ("ten" è quello vero; "six" è conservativo) e usarlo in tutti e 3 i posti.
+| Capitolo / dominio | CRITICO | IMPORTANTE | STILE | Stato |
+|---|---:|---:|---:|---|
+| Cap 1 (Introduzione) | 1 | 2 | 3 | Ref rotta + 2 citazioni vaghe |
+| Cap 2 (IRLS) | 1 | 2 | 2 | Asserzione non citata + 2 passaggi algebrici |
+| Cap 3 (DSM) | 0 | 0 | 1 | Solo "amortizes" figurato |
+| Cap 4 (Comparison) | 1 | 2 | 1 | Cross-ref rotta + rate mismatch + citation missing |
+| Cap 5 (Results) | 0 | 0 | 0 | **pulito** (sweep esaustivo) |
+| Cap 6 (Conclusions) | 0 | 0 | 0 | **pulito** |
+| Appendici | 0 | 0 | 0 | **pulito** |
+| Code (src/) | 1 | 0 | 1 | `rho` default mismatch + magic number |
+| Bibliografia | 0 | 1 | 0 | 3 orphan refs + 1 key/year mismatch |
+| **Totale** | **4** | **7** | **8** | **19 findings** |
 
-### C2 [CRITICO] Table 5.8 wall-times SGPTL sono interpolati/extrapolati, non misurati
-- `real_data.csv` ha iter_dsm=8000 (budget cap)
-- I numeri 3.25·10⁵ iter / 6.6s (diabetes), 9.33·10⁵ iter / 1115s (california) vengono dal long-run trace, **interpolati** al crossing 10⁻⁶
-- Su california il crossing avviene tra k=8·10⁵ e k=8·10⁶ → l'iter count è interpolato; il wall-time è estrapolato per scaling
-**Fix**: aggiungere alla caption: "SGPTL iter and wall-clock at gap 10⁻⁶ are linearly interpolated from the long-run trace of §5.3.1 (the 8000-iter budget does not reach this threshold)." CLAUDE.md vieta "no allucinazioni di esperimenti" se non dichiarate.
-
-### C3 [CRITICO] Table 5.1 caption: f* reference mismatch
-- Caption dice: real-data f* = IRLS+CVXPY-Clarabel
-- Ma "IRLS final gap <10⁻¹¹" sarebbe vs IRLS-converged (autoreferenziale)
-- CSV: IRLS vs Clarabel ~10⁻¹⁰ su diabetes, ~6.5·10⁻⁸ su california → **non** <10⁻¹¹ su california
-**Fix**: o caption diventa "vs IRLS-converged proxy" (e si dichiara la circolarità), o numero corretto è ~6.5·10⁻⁸ su california.
-
-### C4 [IMPORTANTE] IRLS california wall-time anomalo
-Table 5.8: california 34 iter / 18.7 ms su M=16512, H=200. Per-iter ~0.55ms → 1.3 TFlop/s.
-Confronto con diabetes 0.08 ms/iter su M=354 → ratio osservato 6.7× ma teorico ~46×.
-**Fix**: verificare se 18.7 ms include o esclude la precomputation A=XᵀX. Se include, rerun con timer separato per setup vs iter. Se no, esplicitare nella caption.
-
-### C5 [IMPORTANTE] §5 cita §5.3.3 ma sezione si chiama §5.4.5
-L'email del prof riferisce "§5.3.3 δ_0" ma nel PDF corrente è §5.4.5. Discrepanza tra il numero che il prof vede e quello attuale.
-**Fix**: nel cover-letter di risubmission specificare la mappatura "§5.3.3 in your reading → §5.4.5 + §5.7 in this version, both restructured".
+**Verdetto**: il report è quasi pronto. Quattro CRITICI sono tutti fixabili in <30 min. Cap 5/6/appendici sono passati pulitamente — lo sweep precedente ha fatto il suo lavoro. Il problema principale residuo è in cap 1 e cap 4 (che il sweep non aveva toccato).
 
 ---
 
-## GRUPPO 2 — Teoria (Ch. 1–3): correzioni e citazioni
+## CRITICI (must-fix prima della consegna)
 
-### T1 [CRITICO] report.tex:27 — "with high probability, full rank when M≥H" senza citazione
-Claim affidato a "random projections through a nonlinear function produce linearly independent features" — vuoto.
-**Fix**: o cita Huang 2006 con ipotesi esplicite su σ e distribuzione di W_1, o rephrase "We assume X has full column rank, which holds for generic random W_1 with sigmoidal σ when M≥H."
+### CR-1 — Cap 1 r124: cross-reference rotta `\ref{alg:dsm}` invece di `\ref{chap:dsm}`
 
-### T2 [IMPORTANTE] algo1.tex Theorem 2.1 — ipotesi violata su LASSO
-Theorem 2.1 richiede |(w*)_i| > ε_thr per **ogni** i, ma il punto di LASSO è (w*)_j=0 sparsi. La "verification" alle linee 226–229 dice "components going to zero drop out", che **non è quello che il theorem dice**: il theorem fa un'ipotesi che è violata.
-**Fix**: o restate Theorem 2.1 per l'active set (provare versione active-set), o citare Daubechies et al. Theorem 5.3 che gestisce gli inactive components.
+**File**: `progetto/report/1_introduction/report.tex:124`
 
-### T3 [IMPORTANTE] algo1.tex:222 — "linear convergence … Tikhonov preconditioner"
-- "Linear convergence" è enunciata, non provata su ELM LASSO
-- Daubechies et al. provano linear convergence sotto Null Space Property per ℓ_q, q≤1 — ipotesi da verificare
-- "Tikhonov preconditioner" è terminologia sbagliata: W_k^T W_k è regolarizzatore, non preconditioner
-**Fix**: "Daubechies et al. [ref] prove linear convergence under [NSP]. On ELM LASSO these hypotheses [are/are not] verified because [...]; in our experiments we observe a linear-looking decay (§5.x)." Rimuovere "Tikhonov preconditioner" → "regularising term".
+**Codice attuale**:
+```latex
+\textit{subgradients} (see Chapter~\ref{alg:dsm}).
+```
 
-### T4 [IMPORTANTE] chapter3.tex — ripetizione di Condition (3.5) di [dantonio2009] tre volte
-Linee 33, 114, 160–164. Stessa condizione enunciata 3×.
-**Fix**: enunciarla una volta in §3.5.2 (parameter calibration); §3.2 e §3.6 referenziano.
+**Problema**: `alg:dsm` è il label di `\begin{algorithm}` (chapter3.tex:69), non il label del capitolo. Il LaTeX renderà "Chapter 1" (il numero dell'algoritmo) invece di "Chapter 3". Lo stesso file usa correttamente `\ref{chap:dsm}` alla riga 74.
 
-### T5 [IMPORTANTE] chapter3.tex:201 — verification trae in ipotesi non necessarie
-Theorem `thm:dsm_convergence` richiede solo "f* > -∞ attained at some w*"; la verification cita uniqueness via Prop. `prop:irls_prop` che non serve.
-**Fix**: lasciare solo "coercivity ⇒ compactness ⇒ f* attained".
-
-### T6 [IMPORTANTE] chapter3.tex:33 — "sweep numbers" leakano in sezione teorica
-"A sweep γ_min ∈ {0.05, 0.1, 0.2, 0.5} … gives record gaps in [10⁻⁷, 10⁻⁵]" dentro §3.2, prima che §5 sia esposto. Forward-ref a §5 violato.
-**Fix**: cut dalla §3.2; tenere solo in §3.5.2 + §5.4.3.
-
-### T7 [IMPORTANTE] chapter3.tex:171–172 — "verbatim" troppo forte su patience strategy
-"Lines 16–21 implement that strategy verbatim under μ↔ρ" → l'incremento di r_i nella tua implementazione è ∑α_j‖d_j‖; verificare se Lemma 3.8 di [dantonio2009] usa lo stesso.
-**Fix**: se identico, OK; se up-to-constant, sostituire "verbatim" con "matching Lemma 3.8 up to a positive constant".
-
-### T8 [IMPORTANTE] chapter3.tex:204 — contraddizione constanti vs empirico
-Proof conclude: floor inflates constant by 1/√γ_min (worst-case **peggiore**). Empirico (dichiarato altrove): floor migliora. Contraddizione da riconoscere.
-**Fix**: una frase: "Worst-case the floor inflates the rate constant by 1/√γ_min; empirically the opposite, because the floor binds only on the few near-stationarity steps of §3.2."
-
-### T9 [IMPORTANTE] chapter3.tex:10 — footnote Bubeck Thm 3.2 ambigua
-"$O(L^2/ε^2)$ vs $O(L/ε^2)$ … same order after rescaling ε by L" — non sono lo stesso order; rescaling è corretto ma confusione. Inoltre "Theorem 3.2" di Bubeck va precisato (capitolo).
-**Fix**: rephrase "Some references absorb L into ε reporting O(1/ε²); we keep L explicit." Citare capitolo/sezione di Bubeck.
-
-### T10 [STILE/IMPORTANTE] report.tex:73 — `\sum_i^H` (missing lower bound)
-Cosmetico ma visibile. Fix: `\sum_{i=1}^{H}`.
-
-### T11 [IMPORTANTE] report.tex:60 — restatement of strict convexity 30 righe prima di Prop 1.1
-Cut la frase intermedia o la Proposition (tenere la Proposition).
-
-### T12 [IMPORTANTE] report.tex:77 — \ref usato dove serve \Cref
-Renderizza "(2) and (3)" invece di "Chapter 2 and Chapter 3". Fix.
-
-### T13 [IMPORTANTE] algo1.tex:96 — derivazione di λ_IRLS=λ_LASSO/2 cancellata
-Era commentata e mai rimpiazzata. Reader vede l'equazione `eq:lambda_relation` senza giustificazione on-page.
-**Fix**: aggiungere una riga "il factor 1/2 è la majorization constant da `eq:irls_quadratic`".
-
-### T14 [STILE] algo1.tex:190 — `\ref{eq:optimality}` invece di `\eqref{eq:optimality}`
-Cosmetico.
-
-### T15 [IMPORTANTE] verifica slide numbers di `frangioni-slides-nonsmooth`
-Citato con Slide 4, 5, 8, 10, 12, 14, 15. Verificare ogni numero contro il deck reale (il prof è co-autore).
-
-### T16 [IMPORTANTE] verifica numeri di teorema/lemma di `dantonio2009deflected`
-"(3.1)", "(3.5)", "Theorem 3.7", "Lemma 3.8" — verificare contro il paper pubblicato.
+**Fix**: `\ref{alg:dsm}` → `\ref{chap:dsm}`. Verifica anche con `latexmk` che il render sia "Chapter 3".
 
 ---
 
-## GRUPPO 3 — Esperimenti (Ch. 4–6): coerenza e completezza
+### CR-2 — Cap 4 r41: "As expressed before" autocitazione rotta
 
-### E1 [IMPORTANTE] §6 troppo lungo, restatement di §5
-Conclusions chapter ricapitola tutto §5. Trim a 5–8 righe: lista predizioni, "confirmed at §5.5.3, §5.6, §5.3", drop play-by-play di california timings.
+**File**: `progetto/report/4_algo_comparison/comparison.tex:41`
 
-### E2 [IMPORTANTE] §6 paragrafo "Recommendation" tono promozionale
-Suona da sales pitch. Rendere neutrale + bullet citation alle sezioni di supporto.
+**Problema**: la frase "As expressed before" rimanda al cap 2 (IRLS) ma il lettore è già nel cap di comparison; il rimando è opaco e rompe la self-containedness della sezione.
 
-### E3 [STILE] §5 line 7–10 — opener promotional
-"the guiding questions are the two of a numerical study" + "play out". Replace con frase neutra.
+**Fix proposto**: sostituire con un riferimento esplicito al teorema:
+> "As Theorem 2.1 (Chapter 2) establishes, X has full column rank..."
 
-### E4 [STILE] §5 lines 444–500 — "chain reaction" / closing meta-comment
-Tenere il fenomeno descritto; cut "the gap drops by two more orders of magnitude" (restatement della tabella).
+(o riformulazione equivalente che cita il risultato per nome anziché in modo anaforico).
 
 ---
 
-## GRUPPO 4 — Ripetizioni cross-sezione (priorità del prof)
+### CR-3 — Cap 4 r35: rate SGPTL inconsistente con Theorem 3.1 (√k vs √(k+1))
 
-Per ogni concetto: tenere SOLO la versione marcata KEEP, sostituire le altre con `(cf. §X)`.
+**File**: `progetto/report/4_algo_comparison/comparison.tex:35` vs `progetto/report/3_algo_2_DSM/chapter3.tex:155`
 
-### R1 — "OLS warm start sits within 0.46 of f* on california / nothing to optimise"
-- ❌ ch.3:108 (cut frase, replace con forward ref a §5.3)
-- ✅ KEEP ch.5:88–93 (§5.1 Limitations) OR ch.5:291–302 (§5.3 SGPTL paragraph) — scegliere una
-- ❌ ch.5:291–302 OR ch.5:88–93 (cut quella non scelta)
-- ❌ ch.6:75–78 (compress a "cf. §5.3")
-- ❌ appendix:25–31 (replace paragrafo con one-line ref)
+**Cap 4 (r35) scrive**:
+> f̄_k − f* ≲ L ‖w₀−w*‖ / (γ_min · √k)
 
-### R2 — "Cost per decade: IRLS constant increment, SGPTL ~100× multiplier"
-- ✅ KEEP ch.4:34–38 (definizione teorica)
-- ❌ ch.5:683–686 (cut)
-- ✅ KEEP ch.5:722–727 (proof empirica con table)
-- ❌ ch.6:44–47 (cut)
+**Cap 3 (r155, Theorem 3.1)** scrive:
+> f̄_k − f* ≤ L ‖w₀−w*‖ / (γ_min · √(k+1))
 
-### R3 — "ρ ∈ [0.3, 0.7] within factor 2, adopt ρ=0.7"
-- ❌ ch.3:122 (trim a "we adopt ρ=0.7, sensitivity sweep §5.4")
-- ✅ KEEP ch.5:543–546 (full sweep)
+**Problema**: il denominatore differisce per `+1`. Asintoticamente equivalente, ma in un report tecnico **un capitolo che riassume un teorema deve usare la stessa formula del teorema**. Il prof noterà la discrepanza.
 
-### R4 — "γ_min=0.05 marginally best, sweep [0.05, 0.1, 0.2, 0.5]"
-- ❌ ch.3:33 (cut sweep, lasciare solo "floor needed")
-- ⚠️ ch.3:114 (rationale + costo 1/√γ_min, tenere; numerical sweep → §5)
-- ✅ KEEP ch.5:505–511 (full sweep + decisione)
-
-### R5 — "Theorem still bounds, empirical below envelope" (PROF-FLAGGED PATTERN)
-- ❌ ch.5:240–249 (CUT — questo è il pattern esplicitamente criticato da CLAUDE.md)
-- ✅ KEEP ch.5:335–340 (table-supported)
-- ❌ ch.5:361–363 caption (trim restatement)
-- ❌ ch.6:39–44 (cut "well below envelope")
-
-### R6 — "OLS warm start is IRLS default everywhere"
-- ✅ KEEP ch.2:173 (definizionale)
-- ❌ ch.2:251 (cut intero paragrafo — restatement)
-- ❌ ch.5:262–263 (cut "natural IRLS default")
-- ✅ KEEP ch.5:316–317 (Defaults paragraph)
-
-### R7 — "SGPTL needs thresholding for sparsity"
-- ✅ KEEP ch.3:214 (definizionale)
-- ✅ KEEP ch.4:92–94 (comparison context)
-- ❌ ch.5:627 (cut "as anticipated")
-
-### R8 — "δ-contraction staircase"
-- ✅ KEEP ch.3:59 + ch.3:170 (definizione + verifica)
-- ❌ ch.5:246 (cut closing meta-comment)
-- ✅ KEEP ch.5:499–504 (figure context)
-
-### R9 — "cold start is the one that genuinely optimizes"
-- ❌ ch.3:108 (già coperto in R1 cut)
-- ✅ KEEP ch.5:319–321 (Defaults, neutrale)
+**Fix**: allineare cap 4 a `√(k+1)` (come Theorem 3.1), oppure aggiungere esplicitamente "asintoticamente √k" se si vuole tenere la versione semplificata.
 
 ---
 
-## GRUPPO 5 — Sweep stilistico anti-LLM (aggressivo)
+### CR-4 — `deflected_subgradient.py:60`: default `rho=0.95` non coerente con report
 
-### S-cut puntuali (replace o cut)
-- **"the picture is different"** → cut/sostituire (ch.5:289, ch.5:853)
-- **"play out"** (ch.5:10) → cut
-- **"bear (it) out"** (ch.5:608) → "confirm"
-- **"tells the … story"** (ch.5:673) → "reverses the ordering"
-- **"sweet spot"** (ch.5:399) → "default"
-- **"genuinely"** (ch.3:108) → cut
-- **"silently"** (ch.3:59) → cut
-- **"sort of personalized penalization"** (algo1.tex:31) → "weight |(w_k)_i|^{-1}"
-- **"core idea"** (algo1.tex:6, header §2.1) → drop
-- **"This reweighting mechanism is what drives IRLS to produce sparse iterates"** (algo1.tex:31) → cut (closing meta-comment)
-- **"a sort of"** ovunque → cut
-- **"easy to monitor and to debug"** (algo1.tex:257) → "any non-decreasing step indicates an implementation error" (più stretto)
-- **"particularly nice"** (report.tex:75) → "induces sparsity at the cost of"
-- **"Let's"** (report.tex:82, 88; comparison.tex:33) → "We" o cut
+**File**: `progetto/code/src/deflected_subgradient.py:60`
 
-### S-empty intensifiers (rimuovere ogni occorrenza)
-- `essentially` (ch.5:92, 247; chapter3.tex:varie)
-- `actually` (ch.5:320, 502; ch.6:varie)
-- `naturally` (ch.3:varie)
-- `clearly`, `dramatically`, `decisively` (verificare con grep)
-- `Importantly,`, `Crucially,`, `Notably,`, `It is worth noting that`
+**Discrepanza**:
+- Modulo `deflected_subgradient.py:60`: `rho: float = 0.95` (default)
+- Report §3.4.1, §5.4.4, §5.6:777: `ρ = 0.7` (default operativo)
+- `experiment_real_data.py:38`: `DSM_RHO = 0.7` (override esplicito; `DSM_RHO_OLD = 0.9` come "as-submitted")
 
-### S-em-dash decorativi (sostituire con virgola o parentesi)
-- ch.3:33 "--- the iterate freezes"
-- ch.3:119 "--- the latter being usable only as a reference …"
-- ch.3:212 "--- the two coincide at λ=0 and vary continuously with it ---"
-- ch.5:284 "--- consistent with the well-conditioned regime …"
-- ch.5:300 "--- the warm-start number 0.46 therefore measures …"
-- ch.5:500 "--- the gap drops by two more orders of magnitude"
-- ch.6:42, ch.6:46 (analoghi)
+**Conseguenza**: chi chiama `deflected_subgradient(...)` senza passare `rho` esplicitamente ottiene 0.95, non 0.7. Tutti gli script di esperimento passano `rho=DSM_RHO=0.7`, quindi i risultati del report non sono inficiati. Ma:
+- il prof può ispezionare il codice e trovare la discrepanza;
+- chi userà il modulo in futuro (anche solo per replicare) cade nella trappola.
 
-### S-rule-of-three forzate
-- ch.5:608 "accuracy/sparsity, scaling, and iterations" → bullet list invece di prosa-triadica
-- comparison.tex:127 "amortizes, induces sparsity, while only having to tune" → tightenare
-
-### S-closing meta-commentary (cut)
-- comparison.tex:38 (restate dei bullet sopra)
-- ch.5:484–500 trailing clause
-- ch.5:684–685 "Numbers therefore understate IRLS advantage"
-- ch.5:727–729 "This is the quantitative form …"
-- ch.5:854–856 "follows the envelope …"
-- ch.5:922–925 "qualitative ranking unaffected"
-
-### S-other typos
-- algo1.tex:258 "numercial" → "numerical"
-- algo1.tex:259 "Setting it 10^-8" → "Default: 10^-8"
+**Fix**: `rho: float = 0.95` → `rho: float = 0.7` in `deflected_subgradient.py:60`. Eventualmente aggiungere un commento `# matches report §3.4.1 / §5.4.4 default`. Verificare poi che `_OLD = 0.9` in experiment_real_data.py resti come riferimento storico ma non sia il default attivo.
 
 ---
 
-## GRUPPO 6 — Codice (src + experiments)
+## IMPORTANTI
 
-### K1 [IMPORTANTE] `skip_hist` length inconsistency
-`src/deflected_subgradient.py:77,110,112`: append solo sui branch `num<=0` e "not skipped". Early break (`:89-90`) e non-finite (`:117-124`) non appendono → misalign con `f_vals` downstream.
-**Fix**: append sentinel sul non-finite branch + accounting after early break.
+### IM-1 — Cap 1 r27: claim full-rank ELM appoggiato a verifica numerica invece che a citazione completa
 
-### K2 [IMPORTANTE] Non-finite branch silenzioso
-`deflected_subgradient.py:117-124`: quando w_new non-finite, iterate non avanza ma `f_vals.append(f_curr)` duplica → plot mostra stallo finto.
-**Fix**: log warning o terminate.
+**File**: `progetto/report/1_introduction/report.tex:27`
 
-### K3 [IMPORTANTE] CG breakdown non guarded
-`src/linear_solvers.py:38-48`: no check `p@Qp<=0` (loss of SPD su Q ill-conditioned con 1/eps_thr~1e8), no check `rz==0`. Possibili NaN silenti.
-**Fix**: aggiungere guard + fallthrough a Cholesky.
+Il claim "M ≥ H ⇒ full rank con W₁ random + σ liscio" è citato come `[Huang 2006, Thm 2.1]` ma il collegamento al regime sperimentale ELM-LASSO è fatto via "verified numerically in Section X". Il prof può chiedere "perché non lo dimostrate?" — la dimostrazione completa di Huang richiede sigmoide infinitamente derivabile, mentre noi ne usiamo solo C∞ generico.
 
-### K4 [IMPORTANTE] KKT tolerance loose nei test
-`src/lasso_utils.py:51-65` + `test_irls.py:46`: viol < 1e-2 con lam=0.05 = 20% di lam. Tollerare ~ eps_thr·lam.
+**Proposta**: aggiungere mezza frase che dichiari esplicitamente quali ipotesi Huang richiede (random Gaussian, σ analytic non-polynomial) e che noi le rispettiamo nella scelta `sigmoid`.
 
-### K5 [STILE] Unicode in source code (λ, δ, γ, ε, →, ‖·‖² in docstrings)
-`irls.py`, `deflected_subgradient.py`, `lasso_utils.py`, `data_generation.py`. Portability hazard + signature LLM.
-**Fix**: ASCII in source; math nel report.
+### IM-2 — Cap 1 r60: "destroys the closed-form structure" è asserzione non citata
 
-### K6 [STILE] Em-dash decorativi in docstring
-`linear_solvers.py:1`, `data_generation.py:1,79-82`, `lasso_utils.py:34-35`, `irls.py:47-49`.
+**File**: `progetto/report/1_introduction/report.tex:60`
 
-### K7 [STILE] Magic numbers senza giustificazione
-- `irls.py:36` 1e-12 ridge → constant nominata o riferimento
-- `irls.py:69` `max_iter=10*H` per CG → giustificare o droppare
-- `deflected_subgradient.py:19,23` 1e-30 → documentare
-- `elm.py:73,79` 1e-8 sparsity → match con `support_metrics`
-- `lasso_utils.py:51,60` zero_tol=1e-6 → docstring
+Tecnicamente vero ma vago. Può essere lasciato com'è (è didattico nell'intro) oppure precisato in mezza riga: "the non-smoothness of ‖w‖₁ at coordinates where wᵢ=0 destroys the differentiability needed for closed-form normal equations." Marginale.
 
-### K8 [STILE] Docstring più lunghi del codice
-`solve_spd` (linear_solvers.py:53-66), `irls.py:34-49`. Trim.
+### IM-3 — Cap 2 r14: salto algebrico nella majorization IRLS
 
-### K9 [STILE] Commenti che restano il codice
-`irls.py:64`, `deflected_subgradient.py:97-100`. Move citation to docstring.
+**File**: `progetto/report/2_algo_1_IRLS/algo1.tex:14`
 
-### K10 [IMPORTANTE] Type hints mancanti su funzioni pubbliche
-`irls`, `deflected_subgradient`, `f_lasso`, `solve_spd`, `ELM.__init__`. Inconsistente con uso di `NamedTuple` altrove.
+Il passaggio da (|wᵢ| − |wₖᵢ|)² ≥ 0 alla majorization (eq. 16) salta 2-3 step algebrici (espansione del quadrato, divisione per 2|wₖᵢ|, riarrangiamento). Per il prof è banale ma per la rubrica vale uno step.
 
-### K11 [STILE] `_replot_sgptl_long_run.py` smell
-Plotting duplicato vs `_plot_style.py`. Refactor.
+**Proposta**: aggiungere una riga di derivazione esplicita prima di (16), o spostare in appendice e referenziare.
 
-### K12 [IMPORTANTE] Code-report coherence: orphan complexity
-- CG path implementato e testato; se §5 usa solo Cholesky, è orphan
-- `check_optimality` solo nei test, mai usato come stopping criterion → se report lo cita, dev'essere invocato
-- `ELM.fit(solver='dsm')` → se report usa solo IRLS sull'ELM, è orphan
-**Fix**: o togliere orphan, o aggiungere riga in §4.4 (code description) che dice "CG implementato per benchmark §5.4.2; check_optimality usato in tests/...".
+### IM-4 — Cap 2 r223: claim "NSP non vale su ELM" non citato
 
-### K13 [STILE] `_sigmoid` clip ±500 commento fuorviante
-`elm.py:11-13`. Threshold pratico ~36/700; il valore 500 funziona ma il commento "stability via clipping" è impreciso.
+**File**: `progetto/report/2_algo_1_IRLS/algo1.tex:223`
 
-### K14 [STILE] Recall convention quando supporto vero è vuoto
-`lasso_utils.py:37`: recall=1.0 (sklearn fa 0+warning). Documentare in docstring.
+> "no sparsity-recovery guarantee is claimed for the random W₁ regime"
+
+È un'asserzione sostanziosa (negativa) ma non ha riferimento. Bisognerebbe o citare un lavoro che lo dimostra (Donoho-Tanner phase transitions for random Gaussian + sigmoidal), oppure qualificarla: "we are not aware of a sparsity-recovery guarantee for the random W₁ regime; in our experiments support recovery succeeds on the synthetic instance (§5.5.1) but is not measured on real data."
+
+### IM-5 — Cap 4 r33: citation missing per lower bound nonsmooth
+
+**File**: `progetto/report/4_algo_comparison/comparison.tex:33`
+
+> "DSM achieves the optimal sublinear O(L²/ε²) rate for nonsmooth convex functions"
+
+Manca la citazione del lower bound. In cap 3 r212 c'è già la coppia corretta `[Slide 8 Frangioni], [Theorem 3.13 Bubeck]`. Cap 4 dovrebbe usare le stesse.
+
+**Fix**: aggiungere `\cite[Slide 8]{frangioni-slides-nonsmooth}` (e opzionalmente Bubeck).
+
+### IM-6 — Bibliografia: `brannlund1993generalized` chiave/anno mismatch
+
+**File**: `progetto/report/references.bib:154-162`
+
+Chiave dice `1993`, campo `year = {1995}`. Verificare contro il paper originale e correggere la chiave (`brannlund1995generalized`) o l'anno. Marginale ma il prof può aprire il bib.
+
+### IM-7 — Bibliografia: 3 entries orphan (citate da nessuno)
+
+**File**: `progetto/report/references.bib`
+
+- `cortinovis-leastsquares` (rr 87-92) — non citato; presente forse come duplicato di `cortinovis-introleastsquares` (che è citato in report.tex:47)
+- `goodfellow2016deep` (rr 95-101) — non citato
+- `rahimi2007random` (rr 103-109) — non citato
+
+**Fix**: rimuoverle (oppure mantenere ma documentare il perché). LaTeX non le include nel PDF se non `\cite`ed, ma fanno rumore.
 
 ---
 
-## Esecuzione proposta
+## STILE (residui)
 
-Approvi gruppi e io eseguo nell'ordine: **GRUPPO 0 → GRUPPO 1 → GRUPPO 2 → GRUPPO 3 → GRUPPO 4 → GRUPPO 5 → GRUPPO 6**.
-Ogni gruppo è un commit atomico. Dopo ogni commit ricompilo PDF e verifico no-regression.
+### ST-1 — Cap 1 r24: "is a machine learning model" filler
 
-Punti dove mi serve la TUA decisione prima di muovermi:
-1. **P2 Theorem 3.1**: opzione (a) riprovare con citazione corretta di d'Antonio–Frangioni 2009 vs (b) rinunciare alla rate e tenere solo convergenza qualitativa. **A** è più ambizioso ma richiede di rileggere il paper; **B** è safer per la consegna.
-2. **R1**: tenere ch.5:88–93 (§5.1 Limitations) o ch.5:291–302 (§5.3 paragraph)?
-3. **C1**: scegliere "ten" (vero) o "six" (conservativo) per Clarabel↔IRLS agreement.
-4. **C2**: rerun SGPTL real-data fino al crossing 10⁻⁶ (costoso, possibili ore di compute) oppure aggiungere disclaimer in caption (gratis, ma il prof potrebbe notare). **B** è la mossa pragmatica.
+**File**: `progetto/report/1_introduction/report.tex:24`. Riformulare: "is a single-hidden-layer neural network with fixed random hidden weights and a linear output layer trained by solving a regularised least-squares problem." Marginale.
+
+### ST-2 — Cap 1 r84: struttura "always... but if..." (falso bilanciamento)
+
+**File**: `progetto/report/1_introduction/report.tex:84`. Riformulare causalmente: "The LS problem admits a unique solution iff X has full column rank; otherwise solutions exist but are not unique."
+
+### ST-3 — Cap 2 r30: "pushed further toward zero" / "left almost free" antropomorfi
+
+**File**: `progetto/report/2_algo_1_IRLS/algo1.tex:30`. Sostituire con descrizione neutra: "The weights assign larger penalties to components with |wᵢ| ≪ 1 (suppressing them) and smaller penalties to components with |wᵢ| ≫ 1."
+
+### ST-4 — Cap 2 r173: "force every weight onto the threshold and slow the first iterations down" colloquiale
+
+**File**: `progetto/report/2_algo_1_IRLS/algo1.tex:173`. Sostituire: "A cold start w₀=0 places all weights at εthr, delaying the first iterations." Più formale.
+
+### ST-5 — Cap 2 r246: "However, ... typically small" falsa compensazione
+
+**File**: `progetto/report/2_algo_1_IRLS/algo1.tex:246`. Riformulare diretto: "The per-iteration cost is O(H³) for Cholesky; total complexity is O(k·H³) with k ≈ 50–100 typical."
+
+### ST-6 — Cap 3 r126: "amortizes over a few cheap Cholesky solves" verbo figurato
+
+**File**: `progetto/report/3_algo_2_DSM/chapter3.tex:126`. CLAUDE.md vieta "amortise" figurato. Sostituire: "the O(MH²) precomputation cost is paid back over several cheap Cholesky solves" oppure "is offset by".
+
+### ST-7 — Cap 4 r126 (presumibile, da verificare): stesso "amortizes" + "inducing sparsity"
+
+**File**: `progetto/report/4_algo_comparison/comparison.tex` paragrafo costo IRLS. Riformulazione analoga al precedente. Verificare anche l'imprecisione "IRLS induces sparsity" → IRLS converge ad iterate sparse per via della majorization (non "induce").
+
+### ST-8 — Code `data_generation.py:40,45,85`: magic numbers `1e-12`, `max_iter=100000`, `tol=1e-12` non documentati
+
+Aggiungere nomi simbolici o commenti inline (`# tol per evitare divisione per zero su colonne nulle`, etc.). Stile non bloccante.
+
+---
+
+## Cap 5 / Cap 6 / Appendici — nessun finding
+
+Il sweep `f69bf47` (19 fix cap 5) + `56d58da` (1 fix cap 6) + il lavoro su appendici di sessioni precedenti hanno reso questi capitoli puliti rispetto ai pattern LLM:
+
+- Em-dash `---` solo dove tecnicamente necessari (tabelle/separatori, non come inciso decorativo)
+- Niente "essentially/clearly/naturally/dramatically/decisively/particularly/genuinely/actually"
+- Niente "amortise"/"leverage"/"unlock"/"drop-in"
+- Niente "Importantly,/Crucially,/Notably,/It is worth noting that"
+- Numeri anchor (0.46 california, 4.8e-5 synthetic, "ten significant digits") compaiono come anchor narrativo unico, non ripetuti verbatim cross-paragrafo
+- Caption tabelle/figure non duplicano i paragrafi precedenti
+- App. C/D supportano cap 3 senza ripetere statement
+- App. A ha il disclaimer "abstract sensitivity" visibile
+
+**Cross-check numerico**:
+- f* reference params (k_max=3000, ε_thr=10⁻¹⁴) coerenti tra §5.6 testo, §5.6 caption, e `experiment_real_data.py:124-126`
+- Clarabel ↔ IRLS agreement: "ten significant digits" coerente in §5.6 (riga 218), §5.6 (riga 768), §6 (riga 39)
+- california: 340× ratio coerente tra cap 5 (riga 844) e cap 6 (riga 27)
+
+---
+
+## Cose già verificate e OK
+
+Non riapro questi punti — sono stati controllati e sono a posto:
+
+- Brace balance `{`/`}` e `\begin/\end` per tutti i .tex toccati (1040/1040 in results.tex, 599/599 in chapter3.tex)
+- Compilazione `latexmk -pdf -bibtex`: 56 pp, no undefined refs, no errori semantici (solo overfull hbox cosmetici già presenti pre-sweep)
+- Theorem 3.1 (cap 3): rate corretta vs d'Antonio-Frangioni 2009 eq. (3.17), iter inflation 400× con γ_min=0.05
+- Appendice C/D (derivazioni Polyak + γ*) collegate correttamente al cap 3
+- Test code: 53/53 passano
+- `progetto/code/src/` codice principale: type hints, named constants K1-K14 già applicati
+
+---
+
+## Checklist esecuzione fix
+
+Suggested order (CRITICI prima, poi IMPORTANTI, poi STILE, poi bib + code stile a chiudere):
+
+- [ ] CR-1: fix `\ref{alg:dsm}` → `\ref{chap:dsm}` in `report.tex:124`
+- [ ] CR-2: riscrivere "As expressed before" in `comparison.tex:41`
+- [ ] CR-3: allineare formula rate in `comparison.tex:35` a `√(k+1)` come `chapter3.tex:155`
+- [ ] CR-4: cambiare `rho: float = 0.95` → `0.7` in `deflected_subgradient.py:60`
+- [ ] IM-1: precisare ipotesi Huang in `report.tex:27`
+- [ ] IM-3: aggiungere step algebrici majorization in `algo1.tex:14`
+- [ ] IM-4: qualificare claim NSP non valido in `algo1.tex:223`
+- [ ] IM-5: aggiungere `[Slide 8 Frangioni]` in `comparison.tex:33`
+- [ ] IM-6: fix `brannlund` key vs year in `references.bib:154`
+- [ ] IM-7: rimuovere 3 orphan refs in `references.bib` (cortinovis-leastsquares, goodfellow2016deep, rahimi2007random)
+- [ ] ST-1 → ST-8: fix di stile minori
+- [ ] Recompile + verify no new warnings + git diff
+- [ ] Atomic commits per gruppo, push a main
+
+**Tempo stimato totale**: ~45-60 min per tutti i fix + rebuild PDF + commit/push.
+
+---
+
+## Note per l'orale (non in scope per questa review, ma da tenere a mente)
+
+- T15/T16 della review precedente (verifica numeri Slide Frangioni + Theorem/Lemma in dantonio2009) restano pendenti — non posso verificarli senza accesso alle slide originali. Da fare manualmente con il prof in possesso del materiale.
+- Cover letter risubmission: mapping "§5.3.3 (your reading) → §5.4.5 + §5.7 (current version)" come già discusso.
+- Discrepanza `DSM_RHO_OLD = 0.9` (as-submitted) vs `0.7` (revised): se il prof chiede perché abbiamo cambiato, ricordarsi che la giustificazione è in §5.4.4 (sweep ρ ∈ {0.3,...,0.95} mostra ρ=0.7 within factor-2 best on all three instances).
