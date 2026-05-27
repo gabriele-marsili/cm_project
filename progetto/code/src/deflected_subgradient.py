@@ -57,7 +57,7 @@ def deflected_subgradient(
     beta: float = 1.0,
     delta0: Optional[float] = None,
     R: Optional[float] = None,
-    rho: float = 0.95,
+    rho: float = 0.7,
     f_star: Optional[float] = None,
     verbose: bool = False,
     verbose_freq: int = 500,

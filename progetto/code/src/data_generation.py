@@ -13,6 +13,10 @@ from .lasso_utils import f_lasso
 # sklearn minimises (1/(2M))*||Xw - y||^2 + alpha*||w||_1; our f_lasso uses
 # (1/2)*||Xw - y||^2 + lam*||w||_1. Same argmin iff alpha = lam / M.
 
+_COL_NORM_FLOOR = 1e-12      # guard against zero-norm columns when normalising
+_SK_REF_MAX_ITER = 100_000   # sklearn Lasso budget for the reference w*
+_SK_REF_TOL = 1e-12          # sklearn Lasso tol for the reference w*
+
 
 def make_lasso_problem(
     n: int = 100,
@@ -37,12 +41,12 @@ def make_lasso_problem(
     w_true[active] = rng.randn(n_active)
 
     X_raw = rng.randn(m, n)
-    X = X_raw / (np.linalg.norm(X_raw, axis=0, keepdims=True) + 1e-12)
+    X = X_raw / (np.linalg.norm(X_raw, axis=0, keepdims=True) + _COL_NORM_FLOOR)
 
     y = X @ w_true + noise_std * rng.randn(m)
 
     sk = SklearnLasso(alpha=lam / m, fit_intercept=False,
-                      max_iter=100000, tol=1e-12)
+                      max_iter=_SK_REF_MAX_ITER, tol=_SK_REF_TOL)
     sk.fit(X, y)
     w_star = sk.coef_
     f_star = f_lasso(X, y, w_star, lam)
@@ -82,7 +86,7 @@ def make_elm_problem(
     y = X_hid @ w_true + noise_std * rng.randn(m)
 
     sk = SklearnLasso(alpha=lam / m, fit_intercept=False,
-                      max_iter=100000, tol=1e-12)
+                      max_iter=_SK_REF_MAX_ITER, tol=_SK_REF_TOL)
     sk.fit(X_hid, y)
     w_star = sk.coef_
     f_star = f_lasso(X_hid, y, w_star, lam)
