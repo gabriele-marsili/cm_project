@@ -34,10 +34,8 @@ LAMBDA        = 0.1
 TEST_FRACTION = 0.2
 IRLS_KMAX     = 2000   # run to convergence with tight smoothing
 DSM_IMAX      = 8000
-DSM_DELTA0    = 0.1
-DSM_RHO       = 0.7        # revised default (see Section 5.3.3)
-DSM_RHO_OLD   = 0.9        # as-submitted default, kept for before/after table
-DSM_DELTA0_OLD = 0.1       # as-submitted: delta0 = c * f_star (vs new: c * f(w_0))
+DSM_DELTA0    = 0.1        # multiplier of f(w_0); never uses f*
+DSM_RHO       = 0.7        # default settled in Section 5.3.3
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
 TAB_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "tables")

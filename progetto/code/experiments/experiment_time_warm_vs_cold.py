@@ -15,6 +15,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from src import deflected_subgradient, make_lasso_problem
+from src.lasso_utils import f_lasso
 from src.linear_solvers import solve_spd
 from _plot_style import (apply_style, style_axes,
                          COLOR_DSM, COLOR_FCUR, SIZE_DOUBLE)
@@ -43,17 +44,18 @@ def run() -> None:
 
     w_cold = np.zeros(H)
 
-    delta_0 = 0.1 * f_star # to change! delta0 should not depend on f_star
-
-    # keep track of w_ols computing time
+    
+    # keep track of w_ols computing time (f* here is used only to log the optimality gap for the convergence plot)
     t0 = time.time()
     w_ols = solve_spd(X.T @ X + 1e-12 * np.eye(H), X.T @ y, method="cholesky")
-    sol_ols = deflected_subgradient(X, y, LAMBDA, w0=w_ols, i_max=I_MAX, beta=1.0, delta0=delta_0, rho=0.9, gamma_min=0.05, f_star=f_star)
+    delta0_warm = 0.1 * f_lasso(X, y, w_ols, LAMBDA)
+    sol_ols = deflected_subgradient(X, y, LAMBDA, w0=w_ols, i_max=I_MAX, beta=1.0, delta0=delta0_warm, rho=0.9, gamma_min=0.05, f_star=f_star)
     time_ols = time.time() - t0
 
     # time for cold start time
     t0 = time.time()
-    sol_cold = deflected_subgradient(X, y, LAMBDA, w0=w_cold, i_max=I_MAX, beta=1.0, delta0=delta_0, rho=0.9, gamma_min=0.05, f_star=f_star)
+    delta0_cold = 0.1 * f_lasso(X, y, w_cold, LAMBDA)
+    sol_cold = deflected_subgradient(X, y, LAMBDA, w0=w_cold, i_max=I_MAX, beta=1.0, delta0=delta0_cold, rho=0.9, gamma_min=0.05, f_star=f_star)
     time_cold = time.time() - t0
 
     print(f"Warm start execution time: {time_ols:.4f} s")

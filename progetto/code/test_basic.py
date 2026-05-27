@@ -108,9 +108,11 @@ def run_tests():
     sk.fit(X2, y2)
     w_sk = sk.coef_
     f_star_test = f_lasso(X2, y2, w_sk, lam_test)
-
+    
+    # we use 0.1 * f(w_0) at the default cold start w_0 = 0.
+    f_w0 = f_lasso(X2, y2, np.zeros(X2.shape[1]), lam_test)
     res_d = deflected_subgradient(X2, y2, lam=0.1, i_max=3000, beta=1.0,
-                                   delta0=0.1*f_star_test, rho=0.95,
+                                   delta0=0.1*f_w0, rho=0.95,
                                    f_star=f_star_test)
     all_passed &= check("DSM record non-increasing",
                         all(res_d['f_bar'][i] >= res_d['f_bar'][i+1] - 1e-12
