@@ -60,7 +60,7 @@ Across every instance, in the regime where SGPTL is optimising,
 Family~A and the oracle Family~C agree within a factor of two
 (Table~\ref{tab:delta0-ratio}). The single exception is
 \texttt{diabetes}~$H=50$ at $c\ge 0.5$, where both scales stall at a
-common plateau $\bar f^{i}-f^{*}\approx 1.4\cdot 10^{-1}$ because the
+common relative plateau $(\bar f^{i}-f^{*})/|f^{*}|\approx 1.8\cdot 10^{-3}$ because the
 over-aggressive $\delta_{0}$ overshoots the sufficient-descent test from
 the first iteration and only the travel-distance counter drives
 progress; they coincide there because neither recovers from the initial
@@ -70,7 +70,7 @@ about the calibration.
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{images/delta0_families.pdf}
-    \caption{Sensitivity of the final record gap to $\delta_{0}$, three
+    \caption{Sensitivity of the final record relative gap $(f-f^{*})/|f^{*}|$ to $\delta_{0}$, three
     families across five instances (rows): synthetic ($5$ seeds, per-seed
     thin traces and aggregate-mean thick), \texttt{diabetes}~$H=50$
     (warm), \texttt{diabetes}~$H=200$ (warm), \texttt{california}~$H=50$
@@ -100,12 +100,13 @@ $\varepsilon_\text{thr}=10^{-8}$) is reported here for completeness.
     \caption{IRLS warm (OLS) vs cold ($\mathbf{w}_{0}=\mathbf{0}$) start
     on the synthetic instance ($H=100$, $M=300$,
     $\lambda_\text{LASSO}=0.1$, $k_{\max}=2000$,
-    $\varepsilon_\text{thr}=10^{-8}$), log--log axes. Both starts converge
-    to the $\varepsilon_\text{thr}$ floor ($\bar f - f^{*}\approx 1.8\cdot
+    $\varepsilon_\text{thr}=10^{-8}$), log--log axes, relative gap
+    $(f-f^{*})/|f^{*}|$. Both starts converge to the
+    $\varepsilon_\text{thr}$ floor ($(\bar f - f^{*})/|f^{*}|\approx 1.6\cdot
     10^{-8}$) at iteration $940$ (warm) and $922$ (cold); the warm curve
     sits below the cold one throughout the descent, consistent with the
     multiplicative role of $\norm{\mathbf{w}_{0}-\mathbf{w}^{*}}$ in the
-    bound of Theorem~\ref{thm:irls_convergence}.}
+    bound of Section~\ref{sec:irls_convergence}.}
     \label{fig:irls-synth-warm-cold}
 \end{figure}
 

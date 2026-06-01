@@ -374,8 +374,12 @@ def run() -> None:
     for ax, row in zip(axes[0], rows):
         irls_fvals = np.asarray(row["_irls_fvals"], dtype=float)
         f_baseline = row["f_star"]
+        abs_fstar = abs(f_baseline)
 
-        irls_gap = np.maximum(irls_fvals - f_baseline, floor)
+        # Relative optimality gap (f - f*)/|f*| on the y-axis: the report's
+        # cost-to-target uses a relative target, so the two datasets
+        # (diabetes f*~53, california f*~2358) sit on a common scale.
+        irls_gap = np.maximum((irls_fvals - f_baseline) / abs_fstar, floor)
         irls_iters = np.arange(1, len(irls_gap) + 1)
 
         # Prefer the long-run SGPTL trace (cache from
@@ -385,13 +389,13 @@ def run() -> None:
         if row.get("_sgptl_long") is not None:
             sl = row["_sgptl_long"]
             cold_iters = sl["i_sampled"]
-            cold_gap   = np.maximum(sl["gaps_sampled"], floor)
+            cold_gap   = np.maximum(sl["gaps_sampled"] / abs_fstar, floor)
             sgptl_label = (
                 rf"SGPTL (cold, $i_{{\max}}=10^{{{int(np.log10(sl['i_max']))}}}$)"
             )
         else:
             dsm_cold = np.asarray(row["_dsm_fbar_cold"], dtype=float)
-            cold_gap = np.maximum(dsm_cold - f_baseline, floor)
+            cold_gap = np.maximum((dsm_cold - f_baseline) / abs_fstar, floor)
             cold_iters = np.arange(1, len(cold_gap) + 1)
             sgptl_label = r"SGPTL (cold, $i_{\max}=8000$)"
 
@@ -399,7 +403,7 @@ def run() -> None:
         env_i = np.geomspace(1.0, float(cold_iters[-1]), 200)
         env_g = float(cold_gap[0]) / np.sqrt(env_i)
 
-        skl_gap = max(row["f_skl"] - f_baseline, floor)
+        skl_gap = max((row["f_skl"] - f_baseline) / abs_fstar, floor)
 
         ax.loglog(irls_iters, irls_gap,
                   color=COLOR_IRLS, marker="o", markersize=4.0,
@@ -407,13 +411,13 @@ def run() -> None:
         ax.loglog(cold_iters, cold_gap,
                   color=COLOR_DSM, linewidth=2.0, label=sgptl_label)
         ax.loglog(env_i, env_g, color="grey", linestyle="--",
-                  linewidth=1.4, label=r"$g_{0}/\sqrt{i}$ envelope")
+                  linewidth=1.4, label=r"$g_{0}^{\mathrm{rel}}/\sqrt{i}$ envelope")
         ax.axhline(skl_gap, color="#2c7a30", linestyle=":",
                    linewidth=1.4, alpha=0.85,
                    label=fr"sklearn CD ($10^{{5}}$ iter, tol $10^{{-10}}$)")
 
         ax.set_xlabel("Iteration  (log scale)")
-        ax.set_ylabel(r"$f - f^{*}$  (log scale)")
+        ax.set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$")
         ax.set_title(f"{row['name']} ($M={row['M_train']}$, $H={row['H']}$)")
         ax.legend(loc="lower left", fontsize=10)
         ax.set_ylim(bottom=floor / 5)

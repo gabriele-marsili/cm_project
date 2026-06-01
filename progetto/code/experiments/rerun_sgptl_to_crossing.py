@@ -30,14 +30,15 @@ from src.deflected_subgradient import deflected_subgradient
 from src.elm import ELM
 from src.lasso_utils import f_lasso
 
-TARGET: float = 1e-6
+TARGET: float = 1e-6  # relative target: (f - f*)/|f*| <= TARGET
 LAMBDA: float = 0.1
 H: int = 200
 SEED: int = 42
 TEST_FRACTION: float = 0.2
 
-# k_cross + ~10% safety margin from long_run_cache
-BUDGETS: dict[str, int] = {"diabetes": 360_000, "california": 1_030_000}
+# relative-1e-6 crossing from long_run_cache is ~56k (diabetes), ~298k
+# (california); budgets give a comfortable safety margin above each.
+BUDGETS: dict[str, int] = {"diabetes": 90_000, "california": 360_000}
 
 
 def split_scale(X: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -93,13 +94,16 @@ def run_until_crossing(name: str) -> dict:
     )
     gaps = np.asarray(result["gaps"], dtype=float)
     times = np.asarray(result["times"], dtype=float)
-    mask = gaps < TARGET
+    # relative crossing: (f - f*)/|f*| <= TARGET  <=>  gap <= TARGET*|f*|
+    rel_thresh = TARGET * abs(fstar)
+    mask = gaps <= rel_thresh
     if mask.any():
         k_cross = int(np.argmax(mask))
         t_cross = float(times[k_cross])
         gap_cross = float(gaps[k_cross])
         print(
-            f"  CROSSED at k={k_cross}, gap={gap_cross:.3e}, "
+            f"  CROSSED (relative) at k={k_cross}, gap={gap_cross:.3e}, "
+            f"rel={gap_cross/abs(fstar):.3e}, "
             f"t={t_cross*1000:.1f} ms ({t_cross:.2f} s)",
             flush=True,
         )
@@ -118,6 +122,7 @@ def run_until_crossing(name: str) -> dict:
         "t_cross_s": t_cross,
         "t_cross_ms": t_cross * 1000.0,
         "gap_at_cross": gap_cross,
+        "rel_gap_at_cross": gap_cross / abs(fstar),
         "fstar": fstar,
         "i_max_used": BUDGETS[name],
     }

@@ -1,0 +1,15 @@
+> • Teorema 3.1 espanso basandosi sul paper "Convergence Analysis of Deflected Conditional Approximate Subgradient Methods"
+
+Apprezzo molto il lavoro, mi piacerà parlarne all'orale. Ho però un problema:
+
+        The iterates {wi} remain in a compact sublevel set Sc0 for some c0 ≥f(w0),
+
+Questa esattamente da dove esce? Sarebbe vera per un metodo descent in cui f(w_{i+1}) <= f(w_i), ma questo non è il caso del subgradiente. Quindi non sono convinto di questo argomento di boundedness.
+
+Continuo ad avere dubbi sulla vostra parte computazionale. Intanto, nelle due metà di figura 2 usate due nomi diversi per quello che plottate, non vorrei che fossero cose diverse. Inoltre sembra che plottate gap assoluti, ma un gap di 1e-6 è molto piccolo se f^* è 1e+4 ma molto grande se f^* è 1e-3: dovreste usare gap relativi (o scriverlo chiaramente se è quello che fate). Questo vale anche dopo, tipo Table 5.1. Detto questo, la curva a sinistra a me non pare affatto una convergenza lineare, quindi dovreste chiarire perché secondo voi lo è.
+
+>     • Aggiunta analisi del comportamento e costo computazionale degli algoritmi usando warm start e cold start,
+
+OK. Come sospettavo la scelta non era ovvia.
+
+Per il resto, per quanto mi riguarda il report è approvato e possiamo passare alla consegna del codice.

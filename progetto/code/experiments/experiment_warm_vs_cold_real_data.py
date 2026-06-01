@@ -33,12 +33,15 @@ H             = 200
 LAMBDA_DIABETES = 0.1
 LAMBDA_CALIFORNIA = 0.1
 TEST_FRACTION = 0.2
-DSM_IMAX_DIABETES = 2000
-DSM_IMAX_CALIFORNIA = 5000
+# SGPTL runs 8000 iterations everywhere with the shared defaults of the
+# long-run experiment (rho=0.7, delta0 = 0.1 f(w_0)); this keeps the cold
+# real-data gaps consistent with the long-run rate-verification figure.
+DSM_IMAX_DIABETES = 8000
+DSM_IMAX_CALIFORNIA = 8000
 DSM_DELTA0_DIABETES = 0.1
-DSM_DELTA0_CALIFORNIA = 0.8
-DSM_RHO_DIABETES = 0.9
-DSM_RHO_CALIFORNIA = 0.6
+DSM_DELTA0_CALIFORNIA = 0.1
+DSM_RHO_DIABETES = 0.7
+DSM_RHO_CALIFORNIA = 0.7
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
 TAB_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "tables")
@@ -82,6 +85,12 @@ def build_hidden(X_tr_raw, X_te_raw, d_in, H=H, seed=SEED, name="california"):
     """Apply the ELM projection to both splits using the same fixed W_1."""
     elm = ELM(d=d_in, p=H, activation="sigmoid", lam=LAMBDA_CALIFORNIA if name == "california" else LAMBDA_DIABETES, random_state=seed)
     return elm.transform(X_tr_raw), elm.transform(X_te_raw)
+
+
+def _n_contractions(delta_hist):
+    """Count how many times delta was contracted (strictly decreasing step)."""
+    d = np.asarray(delta_hist, dtype=float)
+    return int(np.sum(np.diff(d) < 0))
 
 
 def ols_warm_start(X, y):
@@ -145,9 +154,15 @@ def run_one(name):
     print(f"  f* (independent reference) = {f_star:.6f}  [source: {src}]")
     print(f"  gap(OLS, f*) = {f_w_ols - f_star:.3e}")
 
-    # δ_0 = c · f(w_OLS): an a-priori computable upper bound on c·f^*; the
-    # patience mechanism contracts δ when this bound overshoots f^*.
-    delta0 = (DSM_DELTA0_CALIFORNIA if name == "california" else DSM_DELTA0_DIABETES) * f_w_ols
+    # δ_0 = c · f(w_0) with w_0 the run's OWN starting point (report §5.4): the
+    # warm run anchors on f(w_OLS), the cold run on f(0). Using the cold start's
+    # own f(0) (not f(w_OLS)) keeps the cold gaps consistent with the long-run
+    # rate-verification figure, which also uses δ_0 = c·f(0) cold.
+    c_delta = DSM_DELTA0_CALIFORNIA if name == "california" else DSM_DELTA0_DIABETES
+    w_cold = np.zeros(H)
+    f_w_cold = float(f_lasso(X_tr, y_tr, w_cold, lambda_))
+    delta0_warm = c_delta * f_w_ols
+    delta0_cold = c_delta * f_w_cold
 
 
     # ------------------------------------------------------------------
@@ -157,7 +172,7 @@ def run_one(name):
     res_warm = deflected_subgradient(
         X_tr, y_tr, lam=lambda_,
         w0=w_ols, i_max=i_max, beta=1.0,
-        delta0=delta0, rho=rho,
+        delta0=delta0_warm, rho=rho,
         f_star=f_star,
     )
     time_warm = time.time() - t0
@@ -170,17 +185,30 @@ def run_one(name):
     # COLD START (w = 0)
     # ------------------------------------------------------------------
     t0     = time.time()
-    w_cold = np.zeros(H)
     res_cold = deflected_subgradient(
         X_tr, y_tr, lam=lambda_,
         w0=w_cold, i_max=i_max, beta=1.0,
-        delta0=delta0, rho=rho,
+        delta0=delta0_cold, rho=rho,
         f_star=f_star,
     )
     time_cold = time.time() - t0
     f_c = f_lasso(X_tr, y_tr, res_cold["w"], lambda_)
     print(f"  SGPTL (Cold) : {res_cold['n_iter']} iter, "
           f"gap = {res_cold['gaps'][-1]:.3e}, f = {f_c:.6f}, time = {time_cold:.4f}s")
+
+    # Relative final gaps (f - f*)/|f*| at i_max iterations.
+    abs_f_star = abs(f_star)
+    rel_warm = float(res_warm["gaps"][-1]) / abs_f_star
+    rel_cold = float(res_cold["gaps"][-1]) / abs_f_star
+    n_contr_warm = _n_contractions(res_warm["delta_hist"])
+    n_contr_cold = _n_contractions(res_cold["delta_hist"])
+    print(f"  f* = {f_star:.6f}  (relative gap = (f - f*)/|f*|)")
+    print(f"  SGPTL warm {name}: rel final gap = {rel_warm:.4e} "
+          f"(abs {float(res_warm['gaps'][-1]):.3e}, {res_warm['n_iter']} iter, "
+          f"{n_contr_warm} delta-contractions)")
+    print(f"  SGPTL cold {name}: rel final gap = {rel_cold:.4e} "
+          f"(abs {float(res_cold['gaps'][-1]):.3e}, {res_cold['n_iter']} iter, "
+          f"{n_contr_cold} delta-contractions)")
 
     return {
         "name":      name,
@@ -230,8 +258,9 @@ def run() -> None:
         # A dynamic f_min built from whichever run converges furthest would
         # drag the baseline down and make the other curve look like it never
         # converges, even when both runs reach the same optimum.
-        gw = np.maximum(f_warm - f_star, floor)
-        gc = np.maximum(f_cold - f_star, floor)
+        abs_f_star = abs(f_star)
+        gw = np.maximum((f_warm - f_star) / abs_f_star, floor)
+        gc = np.maximum((f_cold - f_star) / abs_f_star, floor)
 
         t_warm = row["time_warm"]
         t_cold = row["time_cold"]
@@ -250,7 +279,7 @@ def run() -> None:
         ax_iter.scatter([len(gc)], [gc[-1]], s=40, color=COLOR_FCUR, zorder=5)
 
         ax_iter.set_xlabel("Iteration (linear scale)")
-        ax_iter.set_ylabel(r"$\bar{f}^{\,i} - f^{*}$ (log scale)")
+        ax_iter.set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$ (log scale)")
         ax_iter.set_title(f"{row['name'].capitalize()} — Convergence vs Iterations")
         ax_iter.legend(loc="upper right")
         style_axes(ax_iter)
@@ -269,7 +298,7 @@ def run() -> None:
         ax_time.scatter([time_arr_c[-1]], [gc[-1]], s=40, color=COLOR_FCUR, zorder=5)
 
         ax_time.set_xlabel("Time [seconds] (linear scale)")
-        ax_time.set_ylabel(r"$\bar{f}^{\,i} - f^{*}$ (log scale)")
+        ax_time.set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$ (log scale)")
         ax_time.set_title(f"{row['name'].capitalize()} — Convergence vs Time")
         ax_time.legend(loc="upper right")
         style_axes(ax_time)

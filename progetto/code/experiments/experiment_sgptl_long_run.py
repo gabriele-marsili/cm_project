@@ -241,7 +241,8 @@ def plot(rows):
             rf"{r['name']} cold (ELM, $H={H}$, $\lambda={LAMBDA}$, "
             rf"$i_{{\max}}={{{r['i_max']:,}}}$)".replace(",", r"{,}")
         )
-        plot_long_run_panel(ax, iters, gaps[idx], r["gap0"], title)
+        fs = r.get("f_star", 1.0)
+        plot_long_run_panel(ax, iters, gaps[idx] / fs, r["gap0"] / fs, title)
     fig.tight_layout()
     path = os.path.join(FIG_DIR, "sgptl_long_run.pdf")
     fig.savefig(path)

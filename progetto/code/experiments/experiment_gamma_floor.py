@@ -75,6 +75,7 @@ def run_one(H: int, M: int, seed: int, gamma_min: float) -> dict:
         "_delta_arr": d if (H == 100 and seed == 42) else None,
         "_gaps_arr":  np.asarray(res["gaps"], dtype=float)
                       if (H == 100 and seed == 42) else None,
+        "_f_star":    f_star if (H == 100 and seed == 42) else None,
     }
 
 
@@ -95,6 +96,7 @@ def run() -> None:
                         "gamma": r["_gamma_arr"],
                         "delta": r["_delta_arr"],
                         "gaps":  r["_gaps_arr"],
+                        "f_star": r["_f_star"],
                     }
                 print(f"  H={H:4d} M={M:5d} seed={seed:4d} gmin={gmin:.2f}  "
                       f"gap={r['final_gap']:.3e}  "
@@ -152,10 +154,11 @@ def run() -> None:
 
     ax = axes[2]
     for gmin, arr in arrays.items():
-        g = np.maximum(arr["gaps"], 1e-16)
+        g = np.maximum(arr["gaps"] / abs(arr["f_star"]), 1e-16)
         ax.loglog(np.arange(1, len(g) + 1), g, color=colors[gmin],
                   linewidth=1.8, label=labels[gmin])
-    ax.set_xlabel("iteration  (log)"); ax.set_ylabel(r"$\bar f^i - f^*$  (log)")
+    ax.set_xlabel("iteration  (log)")
+    ax.set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$  (log)")
     ax.set_title("Record gap")
     ax.legend(loc="upper right"); style_axes(ax)
 

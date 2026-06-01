@@ -112,14 +112,15 @@ def run() -> None:
     for ax, (label, *_) in zip(axes[0], INSTANCES):
         block = [r for r in rows if r["instance"] == label]
         cs = [r["c"] for r in block]
-        gi = [r["gap_ideal"] for r in block]
-        gp = [r["gap_proxy"] for r in block]
-        gn = [r["gap_naive"] for r in block]
+        # plotted quantity: relative gap (f - f*)/|f*|; CSV keeps absolute.
+        gi = [r["gap_ideal"] / abs(r["f_star"]) for r in block]
+        gp = [r["gap_proxy"] / abs(r["f_star"]) for r in block]
+        gn = [r["gap_naive"] / abs(r["f_star"]) for r in block]
         ax.loglog(cs, gi, "o-", color=COLOR_REF,  label=r"$\delta_0 = c\,f^{*}$ (ideal)")
         ax.loglog(cs, gp, "s-", color=COLOR_IRLS, label=r"$\delta_0 = c\,f(\mathbf{w}_{\mathrm{OLS}})$ (proxy)")
         ax.loglog(cs, gn, "^--", color=COLOR_DSM, label=r"$\delta_0 = (c/2)\,\|\mathbf{y}\|^{2}$ (naive)")
         ax.set_xlabel(r"$c$")
-        ax.set_ylabel(r"Final $\bar f^{\,i_{\max}} - f^{*}$")
+        ax.set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$")
         ax.set_title(label)
         ax.legend(fontsize=10, loc="best")
         style_axes(ax)

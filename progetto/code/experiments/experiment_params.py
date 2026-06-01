@@ -70,7 +70,7 @@ def run() -> None:
         res = irls(X, y, LAMBDA, eps_thr=eps_thr, eps_stop=1e-12,
                    k_max=100, solver="cholesky", w0=w_ols, f_star=f_star)
         sparsity = np.mean(np.abs(res["w"]) < 1e-6)
-        gaps = _safe_log(res["gaps"])
+        gaps = _safe_log(np.asarray(res["gaps"], dtype=float) / abs(f_star))
         label = (rf"$\varepsilon_{{\mathrm{{thr}}}}=10^{{{int(np.log10(eps_thr))}}}$"
                  f"  (sp. {sparsity:.0%})")
         axes[0].semilogy(gaps, color=color, linewidth=1.8, label=label)
@@ -78,7 +78,7 @@ def run() -> None:
               f"sparsity={sparsity:.0%}")
 
     axes[0].set_xlabel(r"Iteration $k$")
-    axes[0].set_ylabel(r"$f(w_k) - f^{*}$  (log scale)")
+    axes[0].set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$  (log scale)")
     axes[0].set_title(r"IRLS: effect of $\varepsilon_{\mathrm{thr}}$")
     axes[0].legend(loc="upper right", fontsize=9, framealpha=0.92,
                    borderaxespad=0.8)
@@ -98,13 +98,13 @@ def run() -> None:
         res = irls(Xl, yl, lam, eps_thr=1e-8, eps_stop=1e-12,
                    k_max=100, solver="cholesky", w0=w_ols_l, f_star=fs_l)
         sparsity = np.mean(np.abs(res["w"]) < 1e-6)
-        gaps = _safe_log(res["gaps"])
+        gaps = _safe_log(np.asarray(res["gaps"], dtype=float) / abs(fs_l))
         label = rf"$\lambda={lam:g}$  (sp. {sparsity:.0%})"
         axes[1].semilogy(gaps, color=color, linewidth=1.8, label=label)
         print(f"  lambda={lam}: gap={gaps[-1]:.2e}, sparsity={sparsity:.0%}")
 
     axes[1].set_xlabel(r"Iteration $k$")
-    axes[1].set_ylabel(r"$f(w_k) - f^{*}$  (log scale)")
+    axes[1].set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$  (log scale)")
     axes[1].set_title(r"IRLS: effect of $\lambda_{\mathrm{LASSO}}$")
     axes[1].legend(loc="upper right", fontsize=9, framealpha=0.92,
                    borderaxespad=0.8)
@@ -128,14 +128,14 @@ def run() -> None:
             X, y, LAMBDA, w0=w_ols, i_max=5000, beta=1.0,
             delta0=factor * f_w0, rho=0.7, f_star=f_star,
         )
-        gaps = _safe_log(res["gaps"])
+        gaps = _safe_log(np.asarray(res["gaps"], dtype=float) / abs(f_star))
         iters = np.arange(1, len(gaps) + 1)
         label = rf"$\delta_{{0}}={factor:g}\,f(w_{{0}})$"
         axes[0].loglog(iters, gaps, color=color, linewidth=1.8, label=label)
         print(f"  delta0={factor}*f(w0)={factor*f_w0:.4f}: gap={gaps[-1]:.2e}")
 
     axes[0].set_xlabel(r"Iteration $i$  (log scale)")
-    axes[0].set_ylabel(r"$\bar{f}^{i} - f^{*}$  (log scale)")
+    axes[0].set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$  (log scale)")
     axes[0].set_title(r"SGPTL: effect of $\delta_{0}$")
     axes[0].legend(loc="lower left", fontsize=10)
     style_axes(axes[0])
@@ -150,7 +150,7 @@ def run() -> None:
             X, y, LAMBDA, w0=w_ols, i_max=5000, beta=1.0,
             delta0=0.1 * f_w0, rho=rho, f_star=f_star,
         )
-        gaps = _safe_log(res["gaps"])
+        gaps = _safe_log(np.asarray(res["gaps"], dtype=float) / abs(f_star))
         iters = np.arange(1, len(gaps) + 1)
         n_contr = int(np.sum(np.diff(res["delta_hist"]) < 0))
         label = rf"$\rho={rho:g}$  ({n_contr} contr.)"
@@ -179,7 +179,7 @@ def run() -> None:
     print(f"Saved rho sweep CSV: {csv_path}")
 
     axes[1].set_xlabel(r"Iteration $i$  (log scale)")
-    axes[1].set_ylabel(r"$\bar{f}^{i} - f^{*}$  (log scale)")
+    axes[1].set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$  (log scale)")
     axes[1].set_title(r"SGPTL: effect of $\rho$")
     axes[1].legend(loc="lower left", fontsize=10)
     style_axes(axes[1])
@@ -213,7 +213,7 @@ def run() -> None:
         print(f"    Execution Time: {exec_time:.4f} s")
         print(f"    Iterations:     {n_iters} (Converged: {converged})")
         print(f"    Sparsity:       {sparsity:.2%}")
-        runs[sol] = {"gaps": _safe_log(res["gaps"]), "times": np.asarray(res["times"], dtype=float), "exec_time": exec_time, "sparsity": sparsity}
+        runs[sol] = {"gaps": _safe_log(np.asarray(res["gaps"], dtype=float) / abs(f_star)), "times": np.asarray(res["times"], dtype=float), "exec_time": exec_time, "sparsity": sparsity}
 
     # Left panel: gap vs iteration (semilog y).
     ax = axes[0]
@@ -223,7 +223,7 @@ def run() -> None:
         ax.semilogy(iters, gaps, linewidth=2.0, color=plot_colors[sol],
                     label=f"{sol.upper()}  (sparsity {runs[sol]['sparsity']:.0%})")
     ax.set_xlabel(r"Iteration $k$")
-    ax.set_ylabel(r"$f(w_k) - f^{*}$  (log scale)")
+    ax.set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$  (log scale)")
     ax.set_title("IRLS solver: convergence vs iterations")
     ax.legend(loc="upper right", fontsize=10)
     style_axes(ax)
@@ -245,7 +245,7 @@ def run() -> None:
     ax.scatter([t_start], [runs["cholesky"]["gaps"][0]], s=80, marker="*",
                color="black", zorder=6, label="OLS warm start (shared)")
     ax.set_xlabel(r"CPU time (s)  (log scale)")
-    ax.set_ylabel(r"$f(w_k) - f^{*}$  (log scale)")
+    ax.set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$  (log scale)")
     ax.set_title("IRLS solver: convergence vs CPU time")
     ax.legend(loc="lower left", fontsize=10)
     style_axes(ax)

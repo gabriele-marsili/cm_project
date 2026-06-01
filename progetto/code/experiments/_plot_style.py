@@ -96,12 +96,12 @@ def plot_long_run_panel(
     ax.loglog(
         ks_dense, env_dense,
         color="grey", linestyle="--", linewidth=1.4,
-        label=r"$g_{0} / \sqrt{i}$  (theoretical envelope)",
+        label=r"$g_{0}^{\mathrm{rel}} / \sqrt{i}$  (theoretical envelope)",
     )
     ax.loglog(
         ks, obs,
         color=COLOR_DSM, marker="o", markersize=7, linewidth=1.8,
-        label=r"SGPTL record  $\bar{f}^{\,i} - f^{*}$",
+        label=r"SGPTL record  $(\bar{f}^{\,i} - f^{*})/|f^{*}|$",
     )
     if floor is not None:
         floored = np.where(obs <= floor * 5)[0]
@@ -117,7 +117,7 @@ def plot_long_run_panel(
         ax.set_ylim(floor / 5, max(env_dense.max(), obs.max()) * 5)
 
     ax.set_xlabel(r"Iteration $i$  (log scale)")
-    ax.set_ylabel(r"gap $\bar{f}^{\,i} - f^{*}$  (log scale)")
+    ax.set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$  (log scale)")
     ax.set_title(title)
     ax.legend(loc="lower left", fontsize=9)
     style_axes(ax)

@@ -60,14 +60,18 @@ def load_csv() -> dict:
 
 
 def main() -> None:
+    # f* per dataset (relative gap = absolute gap / |f*|); matches the
+    # long_run_cache npz f_star values.
+    FSTAR = {"diabetes": 52.948763, "california": 2358.019449}
     rows = load_csv()
     fig, axes = plt.subplots(1, 2, figsize=SIZE_DOUBLE)
     for ax, name in zip(axes, ["diabetes", "california"]):
+        fs = FSTAR[name]
         data = rows[name]
         ks = [d["k"] for d in data]
-        obs = [d["observed"] for d in data]
+        obs = [d["observed"] / fs for d in data]
         # g_0 implicit from predicted envelope: predicted = g_0 / sqrt(k).
-        g0 = data[0]["predicted"] * (ks[0] ** 0.5)
+        g0 = data[0]["predicted"] * (ks[0] ** 0.5) / fs
         i_max_str = f"{int(max(ks)):,}".replace(",", r"{,}")
         title = (
             rf"{name} cold start  ($H=200$, $\lambda=0.1$, "

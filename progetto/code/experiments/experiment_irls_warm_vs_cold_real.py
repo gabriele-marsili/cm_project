@@ -138,6 +138,17 @@ def run_one(name):
     n_iter_c = len(res_cold.get("f_vals", []))
     print(f"  IRLS (Cold) : {n_iter_c} iter, f = {f_c:.6f}, time = {time_cold:.4f}s")
 
+    # Report f* is the IRLS-converged value (CVXPY-verified elsewhere); both
+    # starts reach it to working precision. Relative gap = (f - f*)/|f*|.
+    f_star_ref = float(min(f_w, f_c))
+    abs_gap_warm = abs(float(f_w) - f_star_ref)
+    abs_gap_cold = abs(float(f_c) - f_star_ref)
+    print(f"  f* (IRLS-converged) = {f_star_ref:.6f}")
+    print(f"  IRLS (Warm) {name}: rel final gap = {abs_gap_warm/abs(f_star_ref):.4e} "
+          f"(abs {abs_gap_warm:.3e}, {n_iter_w} iter)")
+    print(f"  IRLS (Cold) {name}: rel final gap = {abs_gap_cold/abs(f_star_ref):.4e} "
+          f"(abs {abs_gap_cold:.3e}, {n_iter_c} iter)")
+
     return {
         "name": name,
         "M_train": M, "H": H,
@@ -177,9 +188,12 @@ def run() -> None:
         f_star = row["f_star"]
 
         f_min = min(f_warm.min(), f_cold.min(), f_star)
-        floor = 1e-12
-        gw = np.maximum(f_warm - f_min, floor)
-        gc = np.maximum(f_cold - f_min, floor)
+        floor = 1e-16
+        # Relative gap (f - f*)/|f*|; f_min is the IRLS-converged f* both
+        # starts reach (matches the report reference).
+        abs_f_star = abs(f_min)
+        gw = np.maximum((f_warm - f_min) / abs_f_star, floor)
+        gc = np.maximum((f_cold - f_min) / abs_f_star, floor)
 
         iters_w = np.arange(1, len(gw) + 1)
         iters_c = np.arange(1, len(gc) + 1)
@@ -192,7 +206,7 @@ def run() -> None:
         ax.scatter([len(gc)], [gc[-1]], s=40, color=COLOR_FCUR, zorder=5)
 
         ax.set_xlabel(r"Iteration $k$  (log scale)")
-        ax.set_ylabel(r"$f(\mathbf{w}_{k}) - f_{\min}$  (log scale)")
+        ax.set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$  (log scale)")
         ax.set_title(f"{row['name'].capitalize()} ($M={row['M_train']}$, $H={row['H']}$)")
         ax.legend(loc="lower left")
         style_axes(ax)

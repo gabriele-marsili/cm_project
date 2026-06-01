@@ -60,6 +60,7 @@ def run() -> None:
         lam=LAMBDA, random_state=SEED,
     )
     print(f"Problem: H={H}, M={M}, lambda={LAMBDA}, f*={f_star:.6f}")
+    abs_f_star = abs(f_star)
 
     w_ols = solve_spd(X.T @ X + 1e-12 * np.eye(H), X.T @ y, method="cholesky")
     from src.lasso_utils import f_lasso
@@ -74,16 +75,20 @@ def run() -> None:
         beta=1.0, delta0=0.1 * f_w0, rho=0.7, f_star=f_star,
     )
 
-    # Iterations and time to reach each accuracy target.
+    # Relative optimality gaps: (f - f*)/|f*|.
+    irls_rel_gaps = [g / abs_f_star for g in res_irls["gaps"]]
+    dsm_rel_gaps  = [g / abs_f_star for g in res_dsm["gaps"]]
+
+    # Iterations and time to reach each RELATIVE accuracy target.
     eps_grid = [1e-1, 1e-2, 1e-3, 1e-4, 1e-6]
     rows = []
     print(f"\n{'eps':>6}  {'IRLS iter':>10}  {'IRLS time':>10}  "
           f"{'SGPTL iter':>11}  {'SGPTL time':>11}")
     for eps in eps_grid:
-        k_irls = first_index_under(res_irls["gaps"], eps)
-        t_irls = first_time_under(res_irls["gaps"], res_irls["times"], eps)
-        k_dsm  = first_index_under(res_dsm["gaps"], eps)
-        t_dsm  = first_time_under(res_dsm["gaps"], res_dsm["times"], eps)
+        k_irls = first_index_under(irls_rel_gaps, eps)
+        t_irls = first_time_under(irls_rel_gaps, res_irls["times"], eps)
+        k_dsm  = first_index_under(dsm_rel_gaps, eps)
+        t_dsm  = first_time_under(dsm_rel_gaps, res_dsm["times"], eps)
         rows.append([eps, k_irls, t_irls, k_dsm, t_dsm])
         ti_s = f"{t_irls:.2e}" if t_irls is not None else "  ---"
         td_s = f"{t_dsm:.2e}"  if t_dsm  is not None else "  ---"
@@ -100,8 +105,9 @@ def run() -> None:
 
     fig, axes = plt.subplots(1, 2, figsize=SIZE_DOUBLE)
 
-    irls_gaps = np.maximum(res_irls["gaps"], 1e-16)
-    dsm_gaps  = np.maximum(res_dsm["gaps"],  1e-16)
+    irls_gaps = np.maximum(np.asarray(irls_rel_gaps, dtype=float), 1e-16)
+    dsm_gaps  = np.maximum(np.asarray(dsm_rel_gaps,  dtype=float), 1e-16)
+    rel_label = r"relative gap  $(f - f^{*})/|f^{*}|$"
 
     ax = axes[0]
     irls_iters = np.arange(1, len(irls_gaps) + 1)
@@ -111,9 +117,9 @@ def run() -> None:
               linewidth=2.0, label="IRLS")
     ax.loglog(dsm_iters, dsm_gaps,
               color=COLOR_DSM, linewidth=2.0,
-              label=r"SGPTL  $\bar{f}^{i} - f^{*}$")
+              label=r"SGPTL  $(\bar{f}^{i} - f^{*})/|f^{*}|$")
     ax.set_xlabel("Iteration  (log scale)")
-    ax.set_ylabel(r"gap to $f^{*}$  (log scale)")
+    ax.set_ylabel(rel_label + r"  (log scale)")
     ax.set_title("Convergence vs. iterations")
     ax.legend(loc="lower left")
     style_axes(ax)
@@ -133,11 +139,11 @@ def run() -> None:
               linewidth=2.0, label="IRLS")
     ax.loglog(dsm_t_plot, dsm_gaps,
               color=COLOR_DSM, linewidth=2.0,
-              label=r"SGPTL  $\bar{f}^{i} - f^{*}$")
+              label=r"SGPTL  $(\bar{f}^{i} - f^{*})/|f^{*}|$")
     ax.scatter([t_start], [irls_gaps[0]], s=80, marker="*",
                color="black", zorder=6, label="OLS warm start (shared)")
     ax.set_xlabel("CPU time (s)  (log scale)")
-    ax.set_ylabel(r"gap to $f^{*}$  (log scale)")
+    ax.set_ylabel(rel_label + r"  (log scale)")
     ax.set_title("Convergence vs. CPU time")
     ax.legend(loc="lower left")
     style_axes(ax)

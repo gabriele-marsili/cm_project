@@ -71,9 +71,16 @@ def run() -> None:
     fw = np.asarray(sol_ols["f_vals"], dtype=float)
     fc = np.asarray(sol_cold["f_vals"], dtype=float)
     f_min = min(fw.min(), fc.min(), f_star)
-    floor = 1e-12
-    gw = np.maximum(fw - f_min, floor)
-    gc = np.maximum(fc - f_min, floor)
+    floor = 1e-16
+    # Relative gap (f - f*)/|f*|; f_min is the converged f* both starts reach.
+    abs_f_star = abs(f_min)
+    gw = np.maximum((fw - f_min) / abs_f_star, floor)
+    gc = np.maximum((fc - f_min) / abs_f_star, floor)
+    print(f"f* (converged) = {f_min:.6f}")
+    print(f"  IRLS warm synthetic: rel final gap = "
+          f"{abs(fw[-1] - f_min)/abs_f_star:.4e}  ({len(fw)} iter)")
+    print(f"  IRLS cold synthetic: rel final gap = "
+          f"{abs(fc[-1] - f_min)/abs_f_star:.4e}  ({len(fc)} iter)")
 
     fig, ax = plt.subplots(figsize=(7, 4.5))
     ax.loglog(np.arange(1, len(gw) + 1), gw,
@@ -85,7 +92,7 @@ def run() -> None:
     ax.scatter([len(gw)], [gw[-1]], s=40, color=COLOR_DSM, zorder=5)
     ax.scatter([len(gc)], [gc[-1]], s=40, color=COLOR_FCUR, zorder=5)
     ax.set_xlabel(r"Iteration $k$  (log scale)")
-    ax.set_ylabel(r"$f(\mathbf{w}_{k}) - f_{\min}$  (log scale)")
+    ax.set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$  (log scale)")
     ax.set_title(rf"IRLS on synthetic ($H={H}$, $M={M}$, $\lambda={LAMBDA}$)")
     ax.legend(loc="lower left")
     style_axes(ax)

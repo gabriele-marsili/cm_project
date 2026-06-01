@@ -72,12 +72,17 @@ def run() -> None:
         )
         t_dsm = time.perf_counter() - t0
 
-        gap_irls = ri["gaps"][-1] if ri["gaps"] else float("nan")
-        gap_dsm  = rd["gaps"][-1] if rd["gaps"] else float("nan")
+        abs_gap_irls = ri["gaps"][-1] if ri["gaps"] else float("nan")
+        abs_gap_dsm  = rd["gaps"][-1] if rd["gaps"] else float("nan")
+        # Relative optimality gap (f - f*)/|f*| for this instance's own f_star.
+        denom    = abs(f_star)
+        gap_irls = abs_gap_irls / denom
+        gap_dsm  = abs_gap_dsm  / denom
         k_irls   = ri["n_iter"]
         k_dsm    = rd["n_iter"]
-        print(f"IRLS {t_irls:.3f}s ({k_irls} iter, gap={gap_irls:.1e})  |  "
-              f"SGPTL {t_dsm:.3f}s ({k_dsm} iter, gap={gap_dsm:.1e})")
+        print(f"IRLS {t_irls:.3f}s ({k_irls} iter, rel.gap={gap_irls:.1e})  |  "
+              f"SGPTL {t_dsm:.3f}s ({k_dsm} iter, rel.gap={gap_dsm:.1e})  "
+              f"[f*={f_star:.6e}]")
         rows.append({
             "n": H, "m": M,
             "t_irls": t_irls, "iter_irls": k_irls, "gap_irls": gap_irls,

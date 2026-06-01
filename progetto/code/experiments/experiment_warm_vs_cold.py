@@ -78,14 +78,21 @@ def run() -> None:
             delta0=0.1 * f_w0_cold, rho=0.7, gamma_min=0.05, f_star=f_star),
     }
 
-    print(f"\n{'config':>8}  {'final gap':>11}  {'#delta-contractions':>22}  "
-          f"{'frac gamma <=0.06':>18}")
+    abs_f_star = abs(f_star)
+    print(f"\n{'config':>8}  {'final abs gap':>13}  {'final rel gap':>13}  "
+          f"{'#delta-contractions':>22}  {'frac gamma <=0.06':>18}")
     for key, res in runs.items():
         g = np.asarray(res["gamma_hist"], dtype=float)
         frac = float(np.mean(g <= 0.06)) if g.size else float("nan")
         n_contr = _n_contractions(res["delta_hist"])
-        print(f"  {key:>6}  {res['gaps'][-1]:>11.3e}  "
+        abs_gap = float(res["gaps"][-1])
+        rel_gap = abs_gap / abs_f_star
+        print(f"  {key:>6}  {abs_gap:>13.3e}  {rel_gap:>13.3e}  "
               f"{n_contr:>22d}  {frac:>17.2%}")
+    print(f"\n[synthetic SGPTL] f* = {f_star:.6f}  (relative gap = (f - f*)/|f*|)")
+    for key, res in runs.items():
+        rel_gap = float(res["gaps"][-1]) / abs_f_star
+        print(f"  SGPTL {key:>4} synthetic: relative final gap = {rel_gap:.4e}")
 
     fig, axes = plt.subplots(1, 2, figsize=SIZE_DOUBLE)
 
@@ -95,7 +102,8 @@ def run() -> None:
         ("warm", COLOR_DSM,  "warm start (OLS)"),
         ("cold", COLOR_FCUR, r"cold start ($w_0=0$)"),
     ):
-        g = np.maximum(np.asarray(runs[key]["gaps"], dtype=float), 1e-16)
+        g = np.maximum(np.asarray(runs[key]["gaps"], dtype=float) / abs_f_star,
+                       1e-16)
         ax.loglog(np.arange(1, len(g) + 1), g,
                   color=color, linewidth=2.0, label=label)
         ax.scatter([len(g)], [g[-1]], s=40, color=color, zorder=5)
@@ -103,7 +111,7 @@ def run() -> None:
                     xytext=(8, 0), textcoords="offset points",
                     fontsize=10, color=color, ha="left", va="center")
     ax.set_xlabel("Iteration  (log scale)")
-    ax.set_ylabel(r"$\bar{f}^{i} - f^{*}$  (log scale)")
+    ax.set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$  (log scale)")
     ax.set_title("Record gap")
     ax.legend(loc="lower left")
     style_axes(ax)

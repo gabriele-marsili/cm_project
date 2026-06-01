@@ -195,7 +195,8 @@ def _sweep(name, X, y, lam, seed_tag, f_star, w0, start_label, fA, fB, fC):
             gaps = np.asarray(res["gaps"], dtype=float)
             n_contr = _count_contractions(res["delta_hist"])
             final_gap = float(gaps[-1])
-            trajs[fam_id][c] = gaps
+            # plotted quantity: relative gap (f - f*)/|f*|; CSV keeps absolute.
+            trajs[fam_id][c] = gaps / abs(f_star)
             out_rows.append({
                 "dataset":          name,
                 "seed":             seed_tag,
@@ -326,7 +327,7 @@ def run() -> None:
             ax.legend(loc="lower left", fontsize=8)
             style_axes(ax)
             if col_idx == 0:
-                ax.set_ylabel(r"$\bar f^{i}-f^{*}$")
+                ax.set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$")
             if row_idx == len(instances) - 1:
                 ax.set_xlabel(r"Iteration $i$  (log)")
     fig.suptitle(rf"SGPTL: $\delta_{{0}}$ family sweep "

@@ -3,6 +3,100 @@
 All notable changes to the CM 646AA Project 25 ML (ELM + LASSO) implementation
 and report. Dates are in `YYYY-MM-DD`.
 
+## 2026-06-01 — Second-review fixes: boundedness, IRLS rate, relative gaps
+
+Addresses the professor's second review (`project_review/email_prof2.txt`),
+which approved the report pending three corrections, plus four pre-existing
+inconsistencies surfaced while making them.
+
+### Changed — theory
+
+- **§3 DSM boundedness argument (`chapter3.tex`)** — The previous text claimed
+  the iterates remain in a compact sublevel set $S_{c_0}$ with $c_0 \ge f(w_0)$.
+  That is a *descent-method* argument and is invalid for the subgradient method,
+  which is non-monotone ($f(w_{i+1}) > f(w_i)$ does occur). Replaced with the
+  correct two-fact argument, matching d'Antonio–Frangioni:
+  1. $f$ is convex and finite on all of $\mathbb{R}^H$, hence locally Lipschitz,
+     so $\partial f$ is bounded on bounded sets;
+  2. the iterates stay bounded by **Fejér contraction** of $\|w_i - w^*\|$ once
+     the target level underestimates $f^*$ (the $\delta$-contraction of
+     Lemma 3.8 reaches this regime in finitely many steps) — the mechanism by
+     which the proof of Theorem 3.5 of the paper obtains $\sup_i\|d_i\| = D < \infty$.
+  Coercivity is now stated to give only $f^* > -\infty$ attained, not iterate
+  boundedness.
+- **§2 IRLS convergence rate (`algo1.tex`)** — The professor noted the IRLS
+  curve is not visibly linear. Verified the cause: IRLS *is* locally linearly
+  convergent to the smoothed (Huber) minimiser, but the asymptotic factor is
+  $\approx 0.995$ (slow) — the loose quadratic majorisation of $|w|$ on the
+  active components, $\approx$ independent of $\varepsilon_{\mathrm{thr}}$.
+  Replaced the **mis-applied** Daubechies $\ell_q$ / null-space-property
+  citation (that result is for *underdetermined* sparse recovery; our regime is
+  overdetermined and strongly convex) with the correct strong-convexity + MM
+  argument. Corrected the "the curve should be approximately straight" claim to
+  describe the fast transient + slow linear tail + $O(\varepsilon_{\mathrm{thr}})$
+  floor.
+- Four references that attributed the linear *rate* to
+  `Theorem~\ref{thm:irls_convergence}` (which proves only fixed-point
+  consistency, no rate) were redirected to `Section~\ref{sec:irls_convergence}`
+  (`comparison.tex` ×2, `conclusions.tex` ×2, `algo1.tex` ×1).
+
+### Changed — relative optimality gaps everywhere
+
+Per the professor's request, every reported optimality gap is now the
+**relative** gap $(f - f^{*})/|f^{*}|$ (an absolute gap of $10^{-6}$ is loose at
+$f^{*} \approx 2358$ on California and tight at $f^{*} \approx 1.1$ on the
+synthetic). The convention is stated explicitly in §5.2.
+
+- **Figure 2 (`convergence_vs_iter`)** — both halves now plot and label the
+  *same* quantity (the professor flagged two different y-axis names). The IRLS
+  panel is re-run with $\varepsilon_{\mathrm{thr}}=10^{-12}$ over 1500 iterations
+  so the linear tail is visible as a straight line on the semilog axis, with a
+  dashed fit annotating the measured rate $\approx 0.995$. (Bogus "$0.848$ per
+  iter" local-window annotation removed.)
+- All gap figures regenerated with relative-gap axes: `convergence_vs_time`,
+  `dsm_nonmonotone`, `comparison_irls_dsm`, `real_data_convergence`,
+  `sgptl_long_run`, `warm_vs_cold`, `irls_*_warm_vs_cold`, `params_irls`,
+  `params_dsm`, `gamma_floor_test`, `delta0_families`, `delta0_proxy`.
+- Tables converted to relative gaps: 5.1 (warm/cold), scalability, iters-to-$\varepsilon$,
+  long-run samples, real-data cost, $\gamma_{\min}$ floor, before/after, $\delta_0$ sweeps.
+- **Target-based tables** (`iters-to-eps`, `real_data`) now use a **relative**
+  target $(f-f^{*})/|f^{*}| \le \varepsilon$ instead of an absolute one, so the
+  difficulty is comparable across instances. Crossings re-measured: on real data
+  SGPTL reaches relative $10^{-6}$ at $5.63\cdot10^{4}$ iter (diabetes) /
+  $2.97\cdot10^{5}$ iter (California); IRLS at 56 / 3 iter.
+
+### Fixed — pre-existing inconsistencies
+
+- **`delta0` bug, `experiment_warm_vs_cold_real_data.py`** — the *cold* run used
+  $\delta_0 = 0.1\,f(w_{\mathrm{OLS}})$ (the *warm* objective) instead of
+  $0.1\,f(0)$, contradicting the report's own §5.4 rule $\delta_0 = c\,f(w_0)$
+  for the run's starting point. This made Table 5.1's cold gaps diverge from the
+  long-run table for the *same* quantity (diabetes $4.2\cdot10^{-3}$ vs
+  $4.9\cdot10^{-3}$ at $k=8000$). Fixed to per-start $\delta_0$; the cold run now
+  matches the long-run trace **exactly** (diabetes abs $0.2604$, California abs
+  $41.41$ at $k=8000$). `experiment_warm_vs_cold.py` (synthetic) was already
+  correct.
+- Table 5.1 caption claimed "SGPTL runs 8000 iterations everywhere" while the
+  real-data run actually used 2000/5000 iterations with non-default
+  $\rho,\delta_0$; realigned the run to 8000 iter and the standard config, so the
+  caption is now true.
+- §5.6 prose said "SGPTL does not reach $10^{-6}$ within 10000 iterations"; the
+  experiment budget is 30000 — corrected.
+
+### Changed — config
+
+- **`.claude/CLAUDE.md`** — added a prioritised "Correttezza e coerenza teorica
+  (revisione critica)" section: verify each theoretical claim against the cited
+  theorem's *actual* hypotheses on this problem, be critical of the source paper
+  (descent-only arguments don't transfer to subgradient), flag mis-applied
+  citations, reconcile theory vs data by finding the regime/reference/artefact
+  rather than relabelling, and never assert an unverified mechanism.
+
+### Build
+
+- Report recompiled (`latexmk -pdf -bibtex`), no undefined references or
+  citations. All regenerated figures copied into `report/images/`.
+
 ## 2026-05-07 — Real-data validation experiment
 
 Added an experiment that validates IRLS and SGPTL on real regression datasets,
