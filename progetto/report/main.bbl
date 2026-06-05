@@ -517,6 +517,35 @@
       \verb 10.1016/j.neucom.2005.12.126
       \endverb
     \endentry
+    \entry{lange2016mm}{book}{}{}
+      \name{author}{1}{}{%
+        {{hash=03edc583a8b9fbc8d4348901ecc56804}{%
+           family={Lange},
+           familyi={L\bibinitperiod},
+           given={Kenneth},
+           giveni={K\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Philadelphia}%
+      }
+      \list{publisher}{1}{%
+        {SIAM}%
+      }
+      \strng{namehash}{03edc583a8b9fbc8d4348901ecc56804}
+      \strng{fullhash}{03edc583a8b9fbc8d4348901ecc56804}
+      \strng{fullhashraw}{03edc583a8b9fbc8d4348901ecc56804}
+      \strng{bibnamehash}{03edc583a8b9fbc8d4348901ecc56804}
+      \strng{authorbibnamehash}{03edc583a8b9fbc8d4348901ecc56804}
+      \strng{authornamehash}{03edc583a8b9fbc8d4348901ecc56804}
+      \strng{authorfullhash}{03edc583a8b9fbc8d4348901ecc56804}
+      \strng{authorfullhashraw}{03edc583a8b9fbc8d4348901ecc56804}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{MM Optimization Algorithms}
+      \field{year}{2016}
+    \endentry
     \entry{nguyen2016introductionmmalgorithmsmachine}{misc}{}{}
       \name{author}{1}{}{%
         {{hash=565901dee05573d111deac94a46fc7c0}{%
@@ -550,6 +579,40 @@
       \verb{url}
       \verb https://arxiv.org/abs/1611.03969
       \endverb
+    \endentry
+    \entry{ortega1970iterative}{book}{}{}
+      \name{author}{2}{}{%
+        {{hash=ccc7f1d94b8d0e1a3e75d9b37bfc14e5}{%
+           family={Ortega},
+           familyi={O\bibinitperiod},
+           given={James\bibnamedelima M.},
+           giveni={J\bibinitperiod\bibinitdelim M\bibinitperiod}}}%
+        {{hash=afbdd9e6a535fb8d6785ec24929e7f77}{%
+           family={Rheinboldt},
+           familyi={R\bibinitperiod},
+           given={Werner\bibnamedelima C.},
+           giveni={W\bibinitperiod\bibinitdelim C\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {New York}%
+      }
+      \list{publisher}{1}{%
+        {Academic Press}%
+      }
+      \strng{namehash}{0a29bf2aa24757267a310cef2f92b80a}
+      \strng{fullhash}{0a29bf2aa24757267a310cef2f92b80a}
+      \strng{fullhashraw}{0a29bf2aa24757267a310cef2f92b80a}
+      \strng{bibnamehash}{0a29bf2aa24757267a310cef2f92b80a}
+      \strng{authorbibnamehash}{0a29bf2aa24757267a310cef2f92b80a}
+      \strng{authornamehash}{0a29bf2aa24757267a310cef2f92b80a}
+      \strng{authorfullhash}{0a29bf2aa24757267a310cef2f92b80a}
+      \strng{authorfullhashraw}{0a29bf2aa24757267a310cef2f92b80a}
+      \field{sortinit}{O}
+      \field{sortinithash}{2cd7140a07aea5341f9e2771efe90aae}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Iterative Solution of Nonlinear Equations in Several Variables}
+      \field{year}{1970}
     \endentry
     \entry{pace1997sparse}{article}{}{}
       \name{author}{2}{}{%

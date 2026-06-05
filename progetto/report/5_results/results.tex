@@ -113,13 +113,22 @@ tight at small $f^{*}$.
 \paragraph{IRLS: linear rate (Section~\ref{sec:irls_convergence}).}
 Chapter~\ref{chap:irls} predicts local linear convergence of the MM
 iteration to the smoothed minimiser, with an asymptotic factor close to
-$1$. Figure~\ref{fig:convergence-iter} (left) shows both phases. A fast
-transient closes the bulk of the gap, bringing the relative gap below
-$10^{-6}$ by iteration $115$. After it the curve is a straight line on the
-semilog axis: the per-iteration factor settles to $\approx 0.995$ (the
-dashed fit over iterations $400$--$1200$), the signature of linear
-convergence, and the relative gap reaches $1.3\cdot 10^{-10}$ at $1500$
-iterations. That the factor is so close to $1$ is the loose quadratic
+$1$. Figure~\ref{fig:convergence-iter} (left) shows the two regimes that
+\emph{local} entails. Up to iteration $\approx 250$ the curve is not
+straight, for two reasons: the active set is first identified (as
+components cross $\varepsilon_\text{thr}$ the reweighting map changes from
+step to step, so no single linear map is iterated yet), and once the
+support has frozen the faster modes of the resulting fixed contraction
+decay before the slowest mode, which sets the asymptotic rate, dominates.
+Throughout this pre-asymptotic phase the gap falls \emph{faster} than the
+asymptotic rate (below $10^{-6}$ already by iteration $115$). The curve
+then straightens on the semilog axis: the per-iteration factor settles to
+$\approx 0.995$ (the dashed fit over iterations $400$--$1200$), the
+signature of linear convergence, and the relative gap reaches
+$1.3\cdot 10^{-10}$ at $1500$ iterations. IRLS is thus globally convergent
+(Section~\ref{sec:irls_convergence}) yet only \emph{locally} linear: a
+constant rate from $k=0$ is neither observed nor claimed, since the rate
+theorem governs the tail, not the pre-asymptotic transient. That the factor is so close to $1$ is the loose quadratic
 majorisation of $|w|$ on the active components
 (Section~\ref{sec:irls_convergence}); it is essentially independent of
 $\varepsilon_\text{thr}$. We set $\varepsilon_\text{thr}=10^{-12}$ on this
@@ -146,14 +155,15 @@ allows (the bound controls the record, not the raw iterate).
     \caption{Relative gap $(f-f^{*})/|f^{*}|$ versus iteration on $H=100$,
     $M=300$, $\lambda_\text{LASSO}=0.1$. Both panels plot the same
     quantity; the axis type differs because each linearises its own rate.
-    Left: IRLS on a semilog axis, where linear convergence is a straight
-    line --- a fast transient is followed by a straight linear tail
-    matching the dashed fit (per-iteration factor $\approx 0.995$), shown
-    with $\varepsilon_\text{thr}=10^{-12}$ so the smoothing floor does not
-    mask it. Right: SGPTL on log--log axes, where the sublinear
-    $O(1/\sqrt{i})$ record (red, Theorem~\ref{thm:dsm_convergence}) is a
-    straight line; the current value (orange, subsampled log-uniformly)
-    oscillates above it.}
+    Left: IRLS on a semilog axis, where local linear convergence appears
+    as a straight line; the early support-identification transient is
+    steeper, and the tail matches the dashed fit (per-iteration factor
+    $\approx 0.995$), shown with $\varepsilon_\text{thr}=10^{-12}$ so the
+    smoothing floor does not mask it. Right: SGPTL on log--log axes; the
+    record (red, Theorem~\ref{thm:dsm_convergence}) stays at or below the
+    $O(1/\sqrt{i})$ envelope (grey dashed, $g_{0}^{\mathrm{rel}}/\sqrt{i}$),
+    consistent with the sublinear bound, while the current value (orange,
+    subsampled log-uniformly) oscillates above it.}
     \label{fig:convergence-iter}
 \end{figure}
 

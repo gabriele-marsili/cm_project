@@ -159,7 +159,8 @@ def run() -> None:
         rate = (irls_rel[hi] / irls_rel[lo]) ** (1.0 / (hi - lo))
         ref_k = np.arange(lo, hi + 1)
         ref = irls_rel[lo] * rate ** (ref_k - lo)
-        ax.semilogy(ref_k, ref, color="black", linestyle="--", linewidth=1.3,
+        ax.semilogy(ref_k, ref, color="0.45", linestyle="--", linewidth=1.0,
+                    alpha=0.75,
                     label=rf"linear fit, rate $\approx {rate:.3f}$/iter")
         print(f"IRLS asymptotic linear rate over [{lo},{hi}] = {rate:.4f}")
     ax.set_xlabel(r"Iteration $k$")
@@ -187,6 +188,13 @@ def run() -> None:
     ax.loglog(dsm_iters, dsm_fbar_rel,
               color=COLOR_DSM, linewidth=2.0,
               label=r"$(\bar{f}^{i} - f^{*})/|f^{*}|$  (record)")
+    # Faint O(1/sqrt(i)) reference, pinned to the record's first value, so the
+    # record can be read against the theoretical sublinear rate (slope -1/2 on
+    # log-log). Mirrors the linear-rate dashed fit on the IRLS panel.
+    g0_rel = float(dsm_fbar_rel[0])
+    env = g0_rel / np.sqrt(dsm_iters)
+    ax.loglog(dsm_iters, env, color="0.45", linestyle="--", linewidth=1.0,
+              alpha=0.75, label=r"$g_{0}^{\mathrm{rel}}/\sqrt{i}$ envelope")
     ax.set_xlabel(r"Iteration $i$  (log scale)")
     ax.set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$  (log scale)")
     ax.set_title(r"SGPTL: sublinear $O(1/\sqrt{i})$ convergence")
