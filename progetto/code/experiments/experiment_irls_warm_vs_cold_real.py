@@ -188,6 +188,7 @@ def run() -> None:
         f_star = row["f_star"]
 
         f_min = min(f_warm.min(), f_cold.min(), f_star)
+        # f_min = f_star
         floor = 1e-16
         # Relative gap (f - f*)/|f*|; f_min is the IRLS-converged f* both
         # starts reach (matches the report reference).

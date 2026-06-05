@@ -94,6 +94,11 @@ def irls(
             Q, b, method=solver,
             tol=_CG_TOL, max_iter=_CG_MAX_ITER_FACTOR * H,
         )
+        c = 0
+        for i in range(H):
+            if D[i] == (1.0/eps_thr):
+                c += 1
+        print(f"[ITER {k}]: # of elements == thr = {c}")
 
         f_curr = f_lasso(X, y, w, lam)
         f_vals.append(f_curr)
