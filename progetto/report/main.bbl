@@ -517,35 +517,6 @@
       \verb 10.1016/j.neucom.2005.12.126
       \endverb
     \endentry
-    \entry{lange2016mm}{book}{}{}
-      \name{author}{1}{}{%
-        {{hash=03edc583a8b9fbc8d4348901ecc56804}{%
-           family={Lange},
-           familyi={L\bibinitperiod},
-           given={Kenneth},
-           giveni={K\bibinitperiod}}}%
-      }
-      \list{location}{1}{%
-        {Philadelphia}%
-      }
-      \list{publisher}{1}{%
-        {SIAM}%
-      }
-      \strng{namehash}{03edc583a8b9fbc8d4348901ecc56804}
-      \strng{fullhash}{03edc583a8b9fbc8d4348901ecc56804}
-      \strng{fullhashraw}{03edc583a8b9fbc8d4348901ecc56804}
-      \strng{bibnamehash}{03edc583a8b9fbc8d4348901ecc56804}
-      \strng{authorbibnamehash}{03edc583a8b9fbc8d4348901ecc56804}
-      \strng{authornamehash}{03edc583a8b9fbc8d4348901ecc56804}
-      \strng{authorfullhash}{03edc583a8b9fbc8d4348901ecc56804}
-      \strng{authorfullhashraw}{03edc583a8b9fbc8d4348901ecc56804}
-      \field{sortinit}{L}
-      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{title}{MM Optimization Algorithms}
-      \field{year}{2016}
-    \endentry
     \entry{nguyen2016introductionmmalgorithmsmachine}{misc}{}{}
       \name{author}{1}{}{%
         {{hash=565901dee05573d111deac94a46fc7c0}{%
