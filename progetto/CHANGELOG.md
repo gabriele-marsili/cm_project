@@ -3,6 +3,86 @@
 All notable changes to the CM 646AA Project 25 ML (ELM + LASSO) implementation
 and report. Dates are in `YYYY-MM-DD`.
 
+## 2026-06-07 — IRLS local-convergence appendix, figure & reproducibility fixes, code robustness
+
+Merged the `irls-conv-analysis` branch (condensed §2.5 + a full Ostrowski
+appendix), completed and corrected that proof, fixed three figures and several
+reported numbers, made the warm/cold and solver tables reproducible from CSV,
+and hardened two code paths.
+
+### Added — theory
+
+- **Appendix A "Full Proof of IRLS's Local Convergence"** (merged from
+  `irls-conv-analysis`, then completed): smoothed Huber objective, strong
+  convexity, fixed-point map $\mathcal{M}(w)=Q(w)^{-1}b$, Jacobian
+  $\nabla\mathcal{M}(w^*)=I-B^{-1}H$, and the spectral-radius bound
+  $\rho(\nabla\mathcal{M}(w^*))<1$ via similarity to $S=B^{-1/2}HB^{-1/2}$ and
+  the Loewner order $H\preceq B$, closed by Ostrowski's theorem.
+  - Added the **explicit computation of $dQ$** (chain rule on
+    $1/\max(|w_i|,\varepsilon)$, active/pinned cases) that yields
+    $(dQ)w^*=-(B-H)\,dw$ — the proof previously asserted this step.
+  - Added the **"why the rate is close to 1"** mechanism ($\mu_{\min}\to0$
+    because the surrogate over-curves the affine $L_1$ penalty on the active
+    set) and the one-line check that $w^*$ is a fixed point
+    ($Q(w^*)w^*=b\iff\nabla f_\varepsilon(w^*)=0$).
+  - Restated $Q(w),b$ in the appendix, unified $\lambda\equiv\lambda_{\text{LASSO}}$
+    and $\varepsilon\equiv\varepsilon_{\mathrm{thr}}$, noted $B,H$ share the
+    off-diagonal $X^{\top}X$, fixed `\ref`$\to$`\eqref`.
+
+### Changed — theory (`algo1.tex` §2.5)
+
+- Restored the definition of the fixed-point map $\mathcal{M}(w)=Q(w)^{-1}b$ in
+  Chapter 2 (the condensed merge referenced $\nabla\mathcal{M}(w^*)$ without
+  defining it), straightened the Ostrowski sentence (dangling "then",
+  "hypothesis"$\to$hypotheses), and kept a one-clause "close to 1" pointer to
+  Appendix A.
+
+### Changed — results numbers & tables (refreshed from committed CSVs)
+
+- **Figure 5.3 (`dsm_nonmonotone`)** — overshoot annotation moved below the peak
+  (was overlapping the title).
+- **Figure 5.4 (`irls_real_data_warm_vs_cold`)** — gap now measured against an
+  **independent deeper IRLS run** ($\varepsilon_{\mathrm{thr}}=10^{-14}$) rather
+  than the self-min, removing the spurious machine-zero tail; curves flatten at
+  the real $O(\varepsilon_{\mathrm{thr}}=10^{-8})$ smoothing floor.
+- **Figure 5.12 (`real_data_convergence`)** — legend moved to upper-right (was
+  covering the IRLS curve).
+- **Table 5.4 (solver)** and **5.5/5.6 (scalability, iters-to-$\varepsilon$)** —
+  wall-clock columns refreshed from the current CSVs (gaps/iteration counts
+  already matched); related prose updated.
+- **Table 5.2 (warm/cold)** — IRLS real-data gaps now reported against the
+  independent reference; **Table 5.7 ($\delta_0$-ratio)** synthetic row corrected
+  to its true range $[0.18,2.07]$ with medians (the "$[0.5,2]$ for all" claim was
+  false against `delta0_families.csv`).
+- Prose corrections: $122$ iterations to $10^{-6}$, gap $1.5\cdot10^{-10}$,
+  $\gamma$-floor unfloored gap $4.4\cdot10^{-2}$, diabetes warm contractions $12$.
+- LLM-pattern cleanup outside the *Initial design and corrections* section
+  ("essentially"$\to$"nearly", "flatters"$\to$"understates", decorative
+  em-dashes $\to$ parentheses).
+
+### Added — reproducibility (`progetto/code/results/tables/`)
+
+- `solver_comparison.csv`, `warm_cold_irls_{synthetic,real}.csv`,
+  `warm_cold_sgptl_{synthetic,real}.csv` — Tables 5.2 and 5.4 are now
+  regenerable; the corresponding scripts write these on each run. Table 5.8
+  (before/after) is annotated as describing the removed pre-correction
+  prototype, not regenerable from current code.
+
+### Fixed — code (`progetto/code/src/`)
+
+- **`irls.py`** — the OLS warm start now validates the normal-equations residual
+  and falls back to `lstsq` for **either** Cholesky or CG, so a CG breakdown on a
+  rank-deficient $X^{\top}X$ no longer seeds IRLS with a garbage warm start.
+- **`deflected_subgradient.py`** — dropped the undocumented `max(.,10^{-4})`
+  floor on $\delta_0$, so the code matches the report formula
+  $\delta_0=0.1\,f(w_0)$ (the floor never bound on any reported instance).
+
+### Verified
+
+- `python -m pytest tests/` — 53/53 pass; `test_basic.py` green.
+- `latexmk -pdf -bibtex main.tex` — clean build, no undefined references or
+  citations; regenerated figures copied into `report/images/`.
+
 ## 2026-06-01 — Second-review fixes: boundedness, IRLS rate, relative gaps
 
 Addresses the professor's second review (`project_review/email_prof2.txt`),
