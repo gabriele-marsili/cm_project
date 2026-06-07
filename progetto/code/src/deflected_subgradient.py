@@ -90,7 +90,7 @@ def deflected_subgradient(
     f_curr = f_lasso(X, y, w, lam)
 
     if delta0 is None:
-        delta0 = max(0.1 * f_curr, 1e-4)
+        delta0 = 0.1 * f_curr
     if R is None:
         R = 1.0
 

@@ -30,7 +30,9 @@ def conjugate_gradient(
 
     precond: M^{-1} = diag(precond). Default: Jacobi precond_i = 1 / Q_ii
     (requires strictly positive diag(Q)). Stops on ||r|| <= tol * ||b||
-    or on numerical breakdown (p @ Qp <= 0, signalling loss of SPD).
+    or on numerical breakdown (p @ Qp <= 0, signalling loss of SPD), in
+    which case the current iterate is returned; the caller is responsible
+    for validating the result and falling back to a direct solver if needed.
     """
     n = len(b)
     if max_iter is None:
@@ -56,7 +58,8 @@ def conjugate_gradient(
         pQp = p @ Qp
         if pQp <= _NUMERICAL_FLOOR:
             # SPD lost to round-off; return current iterate rather than
-            # propagating a NaN. Caller can fall back to Cholesky.
+            # propagating a NaN. Caller validates the residual and falls
+            # back to a direct solver if this iterate is not usable.
             return x, k
         alpha = rz / pQp
         x += alpha * p

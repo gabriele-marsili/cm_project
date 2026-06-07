@@ -56,8 +56,17 @@ def irls(
     b = X.T @ y
 
     if w0 is None:
+        # OLS warm start with the chosen solver. Cholesky raises
+        # np.linalg.LinAlgError on a non-SPD X^T X; CG instead returns its last
+        # iterate on breakdown. We validate the normal-equations residual so a
+        # bad solve from *either* back-end falls back to a minimum-norm lstsq
+        # solution rather than seeding IRLS with a garbage warm start.
+        A_reg = A + _OLS_RIDGE * np.eye(H)
         try:
-            w = solve_spd(A + _OLS_RIDGE * np.eye(H), b, method=solver)
+            w = solve_spd(A_reg, b, method=solver)
+            resid = np.linalg.norm(A_reg @ w - b)
+            if not np.all(np.isfinite(w)) or resid > 1e-6 * max(1.0, np.linalg.norm(b)):
+                raise np.linalg.LinAlgError("warm-start solve did not converge")
         except np.linalg.LinAlgError:
             w = np.linalg.lstsq(X, y, rcond=None)[0]
     else:
