@@ -3,6 +3,47 @@
 All notable changes to the CM 646AA Project 25 ML (ELM + LASSO) implementation
 and report. Dates are in `YYYY-MM-DD`.
 
+## 2026-06-07 — Code deliverable: de-LLM comment pass, numerical cleanup, dead-file pruning
+
+Critical review of the whole `code/` tree for the submission: correctness,
+adherence to the report, and whether the code reads as LLM-written. Core
+algorithms (`src/`) verified against the report's Algorithm 1/2 statements and
+re-derived by hand (IRLS normal equations, optimal deflection $\gamma^*$,
+preconditioned CG, sklearn $\alpha=\lambda/M$ mapping); all checks pass.
+
+### Changed — comment style (de-LLM)
+
+- **`src/` (irls, deflected_subgradient, linear_solvers, elm)** — rewrote
+  essayistic/reassuring comments into terse technical notes. Removed in-code
+  cross-references to the report ("Section 2 of the report", "see Appendix D of
+  the report", "cond. (3.5) of d'Antonio-Frangioni 2009") and LLM-tell phrasing
+  ("garbage warm start", "rather than propagating a NaN", "below floating-point
+  noise", "to be conservative").
+- **Live `experiments/`** — removed in-code report cross-refs, references to the
+  internal `project_review/REVIEW.md` and "the prof", and colloquialisms
+  ("crushed against the y-axis", "afford a deeper sweep cheaply").
+
+### Fixed — code
+
+- **`test_basic.py`** — filtered the spurious "… encountered in matmul"
+  `RuntimeWarning` (a NumPy/Apple-Accelerate SIMD false positive; results are
+  finite, `X.dot` is clean) so the sanity run is readable; aligned the DSM test
+  `rho` to the report default `0.7`.
+- **`rerun_irls_to_crossing.py`** — comment/code drift: the comment claimed to
+  add the OLS factorisation cost to `t_cross` but the code (and the report's
+  Table 5.8 caption) report loop-only time. Corrected the comment and the stale
+  docstring, removed the dead `t_setup` variable. No reported number changes.
+- **`deflected_subgradient.py`** — corrected an off-by-one in the docstring's
+  description of history-list lengths.
+
+### Moved — dead scripts to `experiments/old/` (not shipped)
+
+- `experiment_time_warm_vs_cold.py` (linearly-interpolated, non-measured time
+  axis; duplicate of `experiment_warm_vs_cold.py`; figure not in the report),
+  `experiment_delta0_proxy.py`, `experiment_best_configs.py`,
+  `experiment_california_diagnostic.py`, `smoke_rho.py` — verified (underscore-safe
+  against all report `.tex`) to feed neither a cited figure nor a cited CSV.
+
 ## 2026-06-07 — IRLS local-convergence appendix, figure & reproducibility fixes, code robustness
 
 Merged the `irls-conv-analysis` branch (condensed §2.5 + a full Ostrowski

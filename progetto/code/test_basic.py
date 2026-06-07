@@ -10,6 +10,17 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 import numpy as np
 import traceback
+import warnings
+
+# NumPy's matmul SIMD loop sets the FPU exception flags on some BLAS builds
+# (e.g. Apple Accelerate) even when the result is finite and correct, so `@`
+# emits spurious "... encountered in matmul" RuntimeWarnings. Filter them to
+# keep the sanity output readable; X.dot(w) returns the same finite values.
+warnings.filterwarnings(
+    "ignore",
+    message=r"(divide by zero|overflow|invalid value) encountered in matmul",
+    category=RuntimeWarning,
+)
 
 PASS = "\033[92m[PASS]\033[0m"
 FAIL = "\033[91m[FAIL]\033[0m"
@@ -112,7 +123,7 @@ def run_tests():
     # we use 0.1 * f(w_0) at the default cold start w_0 = 0.
     f_w0 = f_lasso(X2, y2, np.zeros(X2.shape[1]), lam_test)
     res_d = deflected_subgradient(X2, y2, lam=0.1, i_max=3000, beta=1.0,
-                                   delta0=0.1*f_w0, rho=0.95,
+                                   delta0=0.1*f_w0, rho=0.7,
                                    f_star=f_star_test)
     all_passed &= check("DSM record non-increasing",
                         all(res_d['f_bar'][i] >= res_d['f_bar'][i+1] - 1e-12

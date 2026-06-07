@@ -361,12 +361,11 @@ def run() -> None:
             wr.writerow({k: r[k] for k in public_keys})
     print(f"\nSaved: {tab_path}")
 
-    # gap to f* per dataset. The point of the figure is to show that IRLS
-    # reaches f* to machine precision in ~100 iterations and that SGPTL is
-    # descending at the Theorem 3.1 rate g_0/sqrt(i) — not stalling. We
-    # therefore overlay the theoretical envelope on the SGPTL cold trace
-    # rather than the warm-start curve (whose pinning at the OLS floor
-    # on California is the subject of Section 5.3 and is reported there).
+    # gap to f* per dataset. The figure shows that IRLS reaches f* to machine
+    # precision in ~100 iterations and that SGPTL descends at the g_0/sqrt(i)
+    # rate, not stalling. The theoretical envelope is overlaid on the SGPTL
+    # cold trace, not the warm-start curve (which is pinned at the OLS floor
+    # on California).
     n_panels = len(rows)
     fig, axes = plt.subplots(1, n_panels, figsize=(7.0 * n_panels, 5.5),
                              squeeze=False)

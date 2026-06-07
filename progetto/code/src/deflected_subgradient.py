@@ -20,9 +20,8 @@ import numpy as np
 
 from .lasso_utils import f_lasso, subgradient_f
 
-# Numerical floor below which a squared norm is considered zero. Used to detect
-# CG-like breakdown of the deflection (d_i collapses to 0) and the degenerate
-# argmin step (g_i identical to d_{i-1}).
+# Squared norms below this are treated as zero: d_i collapsed to 0, or the
+# degenerate argmin case g_i == d_{i-1}.
 _NORM_FLOOR: float = 1e-30
 
 
@@ -34,8 +33,7 @@ def _optimal_gamma(
     """Closed-form minimiser of ||gamma*g + (1-gamma)*d_prev||^2 on [gamma_min, 1].
 
     Falls back to gamma=1 in the two degenerate cases d_prev=0 and g=d_prev,
-    where the parabola is constant (see Appendix D of the report for the
-    derivation).
+    where the parabola has no interior vertex.
     """
     d_sq = d_prev @ d_prev
     if d_sq < _NORM_FLOOR:
@@ -76,9 +74,10 @@ def deflected_subgradient(
         f_star: if given, gaps f_bar_i - f* are stored in result['gaps'].
 
     Returns dict with keys: w (argmin iterate), f_vals, f_bar, gaps,
-    gamma_hist, skip_hist, times, n_iter, delta_hist. All history lists have
-    length n_iter + 1 (one entry per logged iterate, including the initial one);
-    skip_hist has length n_iter (one entry per iteration).
+    gamma_hist, skip_hist, times, n_iter, delta_hist. The history lists
+    (f_vals, f_bar, gaps, times, delta_hist) carry the initial point plus one
+    entry per completed iteration; skip_hist and gamma_hist carry one entry per
+    completed iteration. n_iter is the loop count reached.
     """
     _, H = X.shape
 
@@ -124,8 +123,7 @@ def deflected_subgradient(
 
         gamma_hist.append(gamma)
 
-        # beta_i = min(beta, gamma) enforces the stepsize-restricted rule
-        # beta_i <= gamma_i (cond. (3.5) of d'Antonio-Frangioni 2009).
+        # stepsize-restricted rule: beta_i = min(beta, gamma) <= gamma
         beta_i = min(beta, gamma)
         target = f_ref - delta
         num = beta_i * (f_curr - target)

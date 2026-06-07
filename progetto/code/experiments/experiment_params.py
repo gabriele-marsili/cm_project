@@ -192,8 +192,8 @@ def run() -> None:
 
     # ---- IRLS Solver Comparison (Cholesky vs CG) ----
     # Two panels: gap vs iteration (left, shows the algorithmic difference)
-    # and gap vs wall-clock time (right, log-log axes so Cholesky's ~10 ms
-    # run is not crushed against the y-axis next to CG's ~100 ms one).
+    # and gap vs wall-clock time (right, log-log axes so the ~10 ms Cholesky
+    # run stays visible next to the ~100 ms CG one).
     print("\n--- IRLS: Solver Comparison (Cholesky vs CG) ---")
     fig, axes = plt.subplots(1, 2, figsize=SIZE_DOUBLE)
 

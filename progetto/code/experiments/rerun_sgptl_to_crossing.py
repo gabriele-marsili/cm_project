@@ -1,9 +1,7 @@
 """Rerun SGPTL on real ELM-LASSO until record gap to f^* drops below 1e-6.
 
-Addresses C2 in project_review/REVIEW.md: Tab. 5.8 wall-times were scaled
-linearly from the long-run total. Here we measure t_cross directly via the
-internal `times[]` array of the same `deflected_subgradient` routine used
-elsewhere in the report.
+Measures t_cross directly from the internal times[] array of
+deflected_subgradient, instead of scaling it linearly from the long-run total.
 
 Mirrors experiment_sgptl_long_run.py setup verbatim (SEED=42, H=200, lam=0.1,
 StandardScaler split, ELM with sigmoid hidden layer, same f* proxy).

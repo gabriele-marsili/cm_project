@@ -1,10 +1,11 @@
-"""Rerun IRLS on real ELM-LASSO until f - f^* < 1e-6, with full-setup wall-time.
+"""Rerun IRLS on real ELM-LASSO until f - f^* < 1e-6, recording the crossing
+wall-time.
 
-Addresses C4 in project_review/REVIEW.md: the Tab. 5.8 IRLS times (14.5 ms /
-18.7 ms) measure only the iteration loop. Here we report a clean wall-time
-that includes the OLS warm-start factorisation and the inner Cholesky setup
-(the entire cost the user pays from `solve_problem(X, y)` to a w with
-f-f^* <= 1e-6). Mirrors experiment_sgptl_long_run.py setup.
+t_cross is the IRLS iteration-loop time to reach the relative target. The
+one-time OLS warm-start factorisation is excluded here and timed separately by
+time_ols_warm_start.py (warm_start_cost.csv); the real-data table reports the
+loop time and quotes the factorisation cost alongside it. Mirrors
+experiment_sgptl_long_run.py setup.
 
 Writes results/tables/real_data_irls_crossing.csv.
 """
@@ -92,19 +93,15 @@ def time_irls_full(X: np.ndarray, y: np.ndarray, fstar: float) -> dict:
         )
         elapsed_full = time.perf_counter() - t0
 
-        # warm-start (factorisation) cost, paid before the IRLS loop's own
-        # per-iteration timer (res["times"]) starts.
-        t_setup = res["times"][0] if len(res["times"]) else 0.0
-        # res["gaps"][k] = f(w_{k+1}) - f*; find first iter at/below rel target.
+        # res["gaps"][k] = f(w_{k+1}) - f*; first iter at/below the rel target.
         gaps_arr = np.asarray(res["gaps"], dtype=float)
         mask = gaps_arr <= rel_thresh
         if mask.any():
             k_cross = int(np.argmax(mask))
-            # res["times"][k] is cumulative wall-time inside the loop up to
-            # iter k; add the warm-start factorisation cost (t0..first iter)
-            # so t_cross reflects the full cost from solve to relative 1e-6.
-            t_loop = float(res["times"][k_cross])
-            t_cross = t_loop  # res["times"] is cumulative from t0 of the loop
+            # res["times"] is cumulative wall-time inside the IRLS loop. The
+            # one-time OLS factorisation before the loop is timed separately
+            # (warm_start_cost.csv) and excluded here, as the report states.
+            t_cross = float(res["times"][k_cross])
         else:
             k_cross = res["n_iter"]
             t_cross = elapsed_full
@@ -117,7 +114,6 @@ def time_irls_full(X: np.ndarray, y: np.ndarray, fstar: float) -> dict:
         k_cross_list.append(k_cross + 1)  # 1-based iter count
         iters.append(res["n_iter"])
         rel_final.append(rel_gap_final)
-        _ = t_setup
     return {
         "t_cross_ms": min(t_cross_list) * 1000.0,
         "t_full_ms": min(t_full_list) * 1000.0,

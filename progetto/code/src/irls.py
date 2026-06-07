@@ -9,15 +9,12 @@ import numpy as np
 from .lasso_utils import f_lasso
 from .linear_solvers import solve_spd
 
-# Ridge added to A = X^T X when computing the default OLS warm start, to keep
-# the Cholesky factorisation well-defined on rank-deficient designs. Small
-# enough to perturb the OLS solution below floating-point noise.
+# Tiny ridge on A = X^T X for the OLS warm start, so Cholesky still works when
+# X is rank-deficient. 1e-12 leaves the solution unchanged in double precision.
 _OLS_RIDGE: float = 1e-12
 
-# CG inner-solver settings (only relevant when solver='cg'). Tolerance is
-# tight enough that the WLS inner subproblem error does not pollute the outer
-# MM rate; max_iter is generous (in exact arithmetic CG converges in <= H
-# steps, the cap accounts for ill-conditioned Q_k near the eps_thr floor).
+# CG settings (solver='cg' only). tol below the outer eps_stop so the inner
+# solve does not limit the IRLS rate; iteration cap at 10*H.
 _CG_TOL: float = 1e-12
 _CG_MAX_ITER_FACTOR: int = 10
 
@@ -36,9 +33,9 @@ def irls(
 ) -> dict:
     """Iteratively Reweighted Least Squares for LASSO (Algorithm A1).
 
-    Solves min (1/2)||Xw - y||^2 + lam*||w||_1 by repeatedly minimising the
-    smooth quadratic surrogate of Section 2 of the report. Each iteration
-    solves Q_k w_{k+1} = X^T y with Q_k = X^T X + lam*diag(1/max(|w|, eps_thr)).
+    Solves min (1/2)||Xw - y||^2 + lam*||w||_1 by repeatedly minimising a
+    smooth quadratic surrogate. Each iteration solves Q_k w_{k+1} = X^T y with
+    Q_k = X^T X + lam*diag(1/max(|w|, eps_thr)).
 
     Args:
         eps_thr: safety threshold for the diagonal weights.
@@ -56,11 +53,9 @@ def irls(
     b = X.T @ y
 
     if w0 is None:
-        # OLS warm start with the chosen solver. Cholesky raises
-        # np.linalg.LinAlgError on a non-SPD X^T X; CG instead returns its last
-        # iterate on breakdown. We validate the normal-equations residual so a
-        # bad solve from *either* back-end falls back to a minimum-norm lstsq
-        # solution rather than seeding IRLS with a garbage warm start.
+        # OLS warm start. Cholesky raises LinAlgError if X^T X is not SPD; CG
+        # returns its last iterate on breakdown. Check the residual and fall
+        # back to lstsq if the solve is bad.
         A_reg = A + _OLS_RIDGE * np.eye(H)
         try:
             w = solve_spd(A_reg, b, method=solver)
@@ -79,8 +74,8 @@ def irls(
 
     f_curr = f_lasso(X, y, w, lam)
     f_vals.append(f_curr)
-    # Floor gap at 0 for log-scale plots: when f* is an inexact proxy
-    # (e.g. sklearn), f_curr can fall below it.
+    # clip gap at 0 for log plots: with an inexact f* proxy, f_curr can dip
+    # slightly below it.
     if f_star is not None:
         gaps.append(max(0.0, f_curr - f_star))
     times.append(0.0)
@@ -91,9 +86,7 @@ def irls(
     for k in range(k_max):
         w_old = w.copy()
 
-        # Weighted normal equations Q_k w = b with
-        #   Q_k = A + 2 lam_irls W_k^T W_k,  lam_irls = lam_lasso / 2
-        # so 2 lam_irls (W_k^T W_k)_{ii} = lam_lasso / max(|w_i|, eps_thr).
+        # Q_k = A + lam * diag(1/max(|w_i|, eps_thr)), b = X^T y
         D = 1.0 / np.maximum(np.abs(w), eps_thr)
 
         Q = A.copy()

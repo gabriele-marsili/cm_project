@@ -1,8 +1,7 @@
-"""Measure OLS warm-start cost vs total IRLS cost on real data.
+"""Measure the OLS warm-start cost relative to the total IRLS cost on real data.
 
-For P3 of project_review/REVIEW.md: the prof asks the warm-start cost be
-quantified relative to the total. Mirrors the setup of
-experiment_sgptl_long_run.py (SEED=42, H=200, lam=0.1, ELM with sigmoid).
+Mirrors the setup of experiment_sgptl_long_run.py (SEED=42, H=200, lam=0.1,
+ELM with sigmoid). Writes results/tables/warm_start_cost.csv.
 """
 from __future__ import annotations
 

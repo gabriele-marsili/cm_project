@@ -1,16 +1,12 @@
-"""Playground: theory-pure SGPTL with warm (OLS) vs cold (w_0=0) start.
+"""SGPTL with warm (OLS) vs cold (w_0=0) start on a synthetic instance.
 
-The theory of Lemma 3.8 in d'Antonio-Frangioni 2009 (Theorem 3.1 in the
-report) does not depend on the starting point. In practice, however, the
-combination of OLS warm start + Polyak target level produces pathological
-behavior on ELM LASSO: the warm-started w_0 is close to w^*, the Polyak
-numerator is dominated by delta_0 rather than by the true gap, and either
-(i) delta_0 large -> first step overshoots and the iterate wanders, or
-(ii) delta_0 small -> step lengths are too small for r to ever reach R, so
-delta is never contracted.
-
-This script documents the phenomenon on a synthetic instance, comparing the
-record-value trajectory for warm vs cold start with the same algorithm.
+Lemma 3.8 of d'Antonio-Frangioni 2009 does not depend on the starting point,
+but in practice OLS warm start + Polyak target level misbehaves on ELM LASSO:
+w_0 is close to w^*, so the Polyak numerator is dominated by delta_0 rather
+than by the true gap. Then either delta_0 is large and the first step
+overshoots, or delta_0 is small and the steps never let r reach R, so delta is
+never contracted. This script compares the record-value trajectory for the two
+starts under the same algorithm.
 """
 
 import os

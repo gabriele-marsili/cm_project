@@ -7,14 +7,11 @@ import numpy as np
 from .deflected_subgradient import deflected_subgradient
 from .irls import irls
 
-# Pre-activation clip used to avoid overflow in np.exp(-z) inside the sigmoid.
-# At |z| > 36 in float64 the sigmoid saturates to 0 or 1 to machine precision
-# (exp(36) ~ 4.3e15); we cap further out to be conservative across activations.
+# Clip z before exp(-z) in the sigmoid to avoid overflow. The sigmoid is
+# already saturated for |z| > 36, so 500 only guards extreme inputs.
 _SIGMOID_CLIP: float = 500.0
 
-# Default sparsity threshold for the ELM convenience properties below: a
-# coordinate is "inactive" when |w_i| < _SPARSITY_TOL. Matches the conservative
-# threshold used in the report on the sparsity columns.
+# A coordinate counts as inactive when |w_i| < _SPARSITY_TOL.
 _SPARSITY_TOL: float = 1e-8
 
 

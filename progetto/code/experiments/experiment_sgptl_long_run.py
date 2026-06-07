@@ -56,9 +56,8 @@ TEST_FRACTION = 0.2
 DSM_DELTA0_FACTOR = 0.1
 DSM_RHO = 0.7
 
-# Per-dataset iteration budgets. Diabetes is small (M=354), so we can
-# afford a deeper sweep cheaply; california is large (M=16512) and we cap
-# at 1e6 to keep the runtime around 30 minutes.
+# Per-dataset iteration budgets. Diabetes is small (M=354) and takes a deeper
+# sweep; california is large (M=16512) and is capped at 1e6 to bound runtime.
 I_MAX = {
     "diabetes": 10_000_000,
     "california": 1_000_000,

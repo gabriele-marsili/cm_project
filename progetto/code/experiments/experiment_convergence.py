@@ -78,9 +78,8 @@ def run() -> None:
           f"final gap = {res_irls['gaps'][-1]:.3e}, "
           f"converged = {res_irls['converged']}")
 
-    # SGPTL: same OLS warm start as IRLS, theory-pure config (R = 1 by default,
-    # ensuring the r > R branch triggers a sensible number of delta contractions;
-    # see Section 5.3 / 5.4 of the report).
+    # SGPTL: same OLS warm start as IRLS, R = 1 by default so the r > R branch
+    # triggers a sensible number of delta contractions.
     res_dsm = deflected_subgradient(
         X, y, LAMBDA,
         w0=w_ols, i_max=DSM_IMAX, beta=1.0,
@@ -136,9 +135,8 @@ def run() -> None:
             fh.write(header + "\n" + "\n".join(lines) + "\n")
     print(f"Saved convergence CSV: {csv_path}")
 
-    # Relative gap (f - f*)/|f*| is the quantity plotted in BOTH panels and in
-    # every gap figure/table of the report: an absolute gap of 1e-6 means very
-    # different things at f*=1e+4 vs f*=1e-3, so we normalise by |f*|.
+    # Both panels plot the relative gap (f - f*)/|f*|: an absolute gap of 1e-6
+    # means very different things at f*=1e+4 vs f*=1e-3, so normalise by |f*|.
     af = abs(f_star)
     def _rel(arr):
         return _safe_log(np.asarray(arr, dtype=float) / af)
