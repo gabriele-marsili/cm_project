@@ -1,3 +1,223 @@
+\chapter{Full Proof of IRLS's Local Convergence}
+\label{app:irls-local-conv-proof}
+This appendix provides a step by step derivation of the local linear convergence rate of the IRLS algorithm as stated in the main report.
+
+\section{The Smoothed Objective and Its Fixed-Point Map}
+\label{app:sec:smooth}
+
+\paragraph{Huber smoothing of the penalty.}
+The safety threshold $\varepsilon$ introduced in the weights formula prevents division by zero. However, it also changes \ref{eq:obj_fun} into a smoothed one:
+\begin{equation}
+    f_\varepsilon(\mathbf{w})
+    = \frac{1}{2}\|\mathbf{X}\mathbf{w}-\mathbf{y}\|_2^2
+    + \lambda\sum_{i=1}^{H}\psi_\varepsilon(w_i)
+    \label{app:eq:smooth_obj}
+\end{equation}
+where $\psi_\varepsilon(t)$ is defined as:
+\begin{equation}
+    \psi_\varepsilon(t)
+    =\begin{cases}
+        |t| & |t|>\varepsilon\\
+        \frac{t^2}{2\varepsilon}+\frac{\varepsilon}{2} & |t|\le\varepsilon
+    \end{cases}
+    \label{app:eq:huber}
+\end{equation}
+This is a Huber smoothing of the absolute value. It agrees with $|t|$ on the \emph{active set} $\mathcal{A}=\{i:|(w^*)_i|>\varepsilon\}$ and replaces it with a quadratic curve on the inactive features \emph{pinned set} $\mathcal{P}=\{i:|(w^*)_i|<\varepsilon\}$. 
+The minimiser of this smoothed objective converges to the true LASSO minimiser as $\varepsilon$ approaches zero. The final objective difference is $O(\varepsilon)$.
+
+\paragraph{Strong convexity.}
+\begin{proposition}
+\label{app:prop:strong_convex}
+If the data matrix $\mathbf{X}$ has full column rank, then the smoothed objective is strongly convex and has a unique minimum.
+\end{proposition}
+\begin{proof}
+The Hessian matrix of the smoothed objective is:
+\begin{equation}
+    \nabla^2 f_\varepsilon(\mathbf{w})
+    = \mathbf{X}^T\mathbf{X}
+    + \lambda\,\mathrm{diag}\bigl(\psi_\varepsilon''(w_i)\bigr)
+    \label{app:eq:hessian_fe}
+\end{equation}
+where the second derivative $\psi_\varepsilon''(t)$ is $0$ for $|t|>\varepsilon$ and $1/\varepsilon$ for $|t|<\varepsilon$.
+Because $\mathbf{X}$ has full column rank, the product $\mathbf{X}^T\mathbf{X}$ is positive definite. The diagonal correction term is positive semidefinite. Their sum is therefore positive definite. This guarantees that the function is strongly convex and the minimum is unique.
+\end{proof}
+
+\paragraph{Fixed-point map.}
+The update process of the IRLS algorithm defines an iteration map $\mathcal{M}(\mathbf{w})=\mathbf{Q}(\mathbf{w})^{-1}\mathbf{b}$.
+Because the optimal solution $\mathbf{w}^*$ satisfies the minimum conditions of the smoothed objective, it is a fixed point of this map, meaning $\mathcal{M}(\mathbf{w}^*)=\mathbf{w}^*$.
+
+\section{Jacobian of the Fixed-Point Map}
+\label{app:sec:jacobian}
+
+We need to compute the Jacobian of the iteration map evaluated at the optimal solution.
+
+\paragraph{Matrix differential identity.}
+For any invertible matrix $\mathbf{Q}(\mathbf{w})$, the derivative of its inverse is given by $d(\mathbf{Q}^{-1}) = -\mathbf{Q}^{-1}(d\mathbf{Q})\mathbf{Q}^{-1}$.
+Applying this rule to our map $\mathcal{M}(\mathbf{w})=\mathbf{Q}(\mathbf{w})^{-1}\mathbf{b}$ yields:
+\begin{equation}
+    d\mathcal{M}
+    = -\mathbf{Q}^{-1}(d\mathbf{Q})\mathbf{Q}^{-1}\mathbf{b}
+    = -\mathbf{Q}^{-1}(d\mathbf{Q})\mathbf{w}^*
+    \label{app:eq:dM}
+\end{equation}
+In the last step we used the fixed point property $\mathbf{Q}^{-1}\mathbf{b}=\mathbf{w}^*$.
+
+\paragraph{Evaluating the differential components.}
+Let $\mathbf{B}$ be the matrix $\mathbf{Q}$ evaluated at $\mathbf{w}^*$ and let $\mathbf{H}$ be the true Hessian $\nabla^2 f_\varepsilon(\mathbf{w}^*)$.
+Comparing their diagonal elements, we can observe a specific pattern. 
+On the active features ($|w^*_i|>\varepsilon$):
+\[
+    \mathbf{B}_{ii} = (\mathbf{X}^T\mathbf{X})_{ii} + \frac{\lambda}{|w^*_i|}
+\]
+\[
+    \mathbf{H}_{ii} = (\mathbf{X}^T\mathbf{X})_{ii} + 0
+\]
+The difference is $\mathbf{B}_{ii} - \mathbf{H}_{ii} = \frac{\lambda}{|w^*_i|}$.
+On the inactive features ($|w^*_i|<\varepsilon$):
+\[
+    \mathbf{B}_{ii} = (\mathbf{X}^T\mathbf{X})_{ii} + \frac{\lambda}{\varepsilon}
+\]
+\[
+    \mathbf{H}_{ii} = (\mathbf{X}^T\mathbf{X})_{ii} + \frac{\lambda}{\varepsilon}
+\]
+The difference is $\mathbf{B}_{ii} - \mathbf{H}_{ii} = 0$.
+If we calculate the derivative $d\mathbf{Q}$ and multiply it by $\mathbf{w}^*$, the result perfectly matches the difference between these two matrices. We can formalize this relationship as:
+\begin{equation}
+    (d\mathbf{Q})\mathbf{w}^* = -(\mathbf{B}-\mathbf{H})d\mathbf{w}
+    \label{app:eq:dQ_clean}
+\end{equation}
+
+\paragraph{Jacobian formula.}
+We substitute this result back into the differential equation of our map:
+\[
+    d\mathcal{M}
+    = -\mathbf{B}^{-1}\bigl[-(\mathbf{B}-\mathbf{H})\bigr]d\mathbf{w}
+    = (\mathbf{I}-\mathbf{B}^{-1}\mathbf{H})d\mathbf{w}
+\]
+This gives us the final formula for the Jacobian of the algorithm at the minimum:
+\begin{equation}
+    \nabla\mathcal{M}(\mathbf{w}^*) = \mathbf{I} - \mathbf{B}^{-1}\mathbf{H}
+    \label{app:eq:jacobian}
+\end{equation}
+
+\section{Spectral Radius Bound}
+\label{app:sec:spectral}
+
+We now prove that the spectral radius of this Jacobian is strictly less than 1. We already established that both $\mathbf{B}$ and $\mathbf{H}$ are symmetric positive definite matrices.
+
+\subsection{Step 1: Eigenvalues are real and positive}
+The product $\mathbf{B}^{-1}\mathbf{H}$ is not symmetric, so its eigenvalues might be complex. To solve this, we define a new matrix $\mathbf{S} = \mathbf{B}^{-1/2}\mathbf{H}\mathbf{B}^{-1/2}$.
+
+\begin{lemma}[Similarity of $\mathbf{B}^{-1}\mathbf{H}$ and $\mathbf{S}$]
+\label{app:lem:similar}
+$\mathbf{B}^{-1}\mathbf{H}$ and $\mathbf{S}$ are similar matrices, so they share the same
+eigenvalues.
+\end{lemma}
+\begin{proof}
+Two matrices $\mathbf{C}$ and $\mathbf{D}$ are similar if there exists an invertible $\mathbf{P}$
+such that $\mathbf{D}=\mathbf{P}^{-1}\mathbf{C}\mathbf{P}$.
+Take $\mathbf{P}=\mathbf{B}^{1/2}$ (invertible because $\mathbf{B}\succ\mathbf{0}$).
+Then $\mathbf{P}^{-1}=\mathbf{B}^{-1/2}$ and:
+\begin{align*}
+    \mathbf{P}^{-1}\,\mathbf{S}\,\mathbf{P}
+    &= \mathbf{B}^{-1/2}
+       \bigl(\mathbf{B}^{-1/2}\mathbf{H}\mathbf{B}^{-1/2}\bigr)
+       \mathbf{B}^{1/2} \\
+    &= \underbrace{\mathbf{B}^{-1/2}\mathbf{B}^{-1/2}}_{=\mathbf{B}^{-1}}
+       \mathbf{H}
+       \underbrace{\mathbf{B}^{-1/2}\mathbf{B}^{1/2}}_{=\mathbf{I}} \\
+    &= \mathbf{B}^{-1}\mathbf{H}.
+\end{align*}
+So, $\mathbf{B}^{-1}\mathbf{H}=\mathbf{P}^{-1}\mathbf{S}\mathbf{P}$. $\square$
+\end{proof}
+
+
+Since $\mathbf{S}$ is symmetric and positive definite, its eigenvalues must be real and strictly positive. Therefore, the eigenvalues of $\mathbf{B}^{-1}\mathbf{H}$, which we will call $\mu$, are also real and strictly positive ($\mu > 0$).
+
+\subsection{Step 2: Upper bound of the eigenvalues}
+
+\begin{lemma}[$\mathbf{S}\preceq\mathbf{I} \Leftrightarrow \mathbf{H}\preceq\mathbf{B}$]
+\label{app:lem:SpreI}
+For symmetric positive definite $\mathbf{B}$ and symmetric $\mathbf{H}$:
+\[
+    \mathbf{S} = \mathbf{B}^{-1/2}\mathbf{H}\mathbf{B}^{-1/2} \preceq \mathbf{I}
+    \iff
+    \mathbf{H} \preceq \mathbf{B}.
+\]
+\end{lemma}
+\begin{proof}
+$\mathbf{S}\preceq\mathbf{I}$ means $\mathbf{u}^T\mathbf{u}\ge\mathbf{u}^T\mathbf{S}\mathbf{u}$ for all $\mathbf{u}$.
+Substitute $\mathbf{u}=\mathbf{B}^{1/2}\mathbf{v}$ (a bijection on $\mathbb{R}^H$ since $\mathbf{B}^{1/2}$ is invertible):
+\begin{align*}
+    (\mathbf{B}^{1/2}\mathbf{v})^T(\mathbf{B}^{1/2}\mathbf{v})
+    &\ge
+    (\mathbf{B}^{1/2}\mathbf{v})^T
+    \mathbf{B}^{-1/2}\mathbf{H}\mathbf{B}^{-1/2}
+    (\mathbf{B}^{1/2}\mathbf{v}) \\[4pt]
+    \mathbf{v}^T\underbrace{\mathbf{B}^{1/2}\mathbf{B}^{1/2}}_{=\mathbf{B}}\mathbf{v}
+    &\ge
+    \mathbf{v}^T\underbrace{\mathbf{B}^{1/2}\mathbf{B}^{-1/2}}_{=\mathbf{I}}\mathbf{H}
+    \underbrace{\mathbf{B}^{-1/2}\mathbf{B}^{1/2}}_{=\mathbf{I}}\mathbf{v} \\[4pt]
+    \mathbf{v}^T\mathbf{B}\mathbf{v} &\ge \mathbf{v}^T\mathbf{H}\mathbf{v} \quad\forall\,\mathbf{v},
+\end{align*}
+which is exactly $\mathbf{H}\preceq\mathbf{B}$. $\square$
+\end{proof}
+
+It remains to verify $\mathbf{H}\preceq\mathbf{B}$, i.e.\ $\mathbf{B}-\mathbf{H}\succeq\mathbf{0}$.
+We have that:
+\[
+    \mathbf{B}-\mathbf{H}
+    = \lambda_{\mathrm{LASSO}}\,\mathrm{diag}\!\left(\frac{1}{|w^*_i|}\text{ on }\mathcal{A},\ 0\text{ on }\mathcal{P}\right).
+\]
+This is a diagonal matrix with non-negative entries, so $\mathbf{B}-\mathbf{H}\succeq\mathbf{0}$.
+By Lemma~\ref{app:lem:SpreI}, $\mathbf{S}\preceq\mathbf{I}$, so $\mu_i\le 1$ for all $i$.
+
+
+\subsection{Step 3: Conclusion on the spectral radius}
+The eigenvalues of our Jacobian matrix $\mathbf{I} - \mathbf{B}^{-1}\mathbf{H}$ are simply $1 - \mu_i$.
+Because $\mu_i$ is in $(0, 1]$, the value $1 - \mu_i$ must be in $[0, 1)$. Since all eigenvalues are strictly less than 1, the spectral radius is also strictly less than 1:
+\begin{equation}
+    \rho\bigl(\nabla\mathcal{M}(\mathbf{w}^*)\bigr) < 1
+    \label{app:eq:spectral}
+\end{equation}
+
+\section{Local Linear Convergence}
+\label{app:sec:ostrowski}
+
+\begin{theorem}[Ostrowski's theorem of attraction,~{\cite[Ch.~10]{ortega1970iterative}}]
+Let $\mathcal{M}:\mathbb{R}^H\to\mathbb{R}^H$ be of class $C^1$ in a neighbourhood of a
+fixed point $\mathbf{w}^*$, and suppose $\rho(\nabla\mathcal{M}(\mathbf{w}^*))<1$.
+Then $\mathbf{w}^*$ is a point of attraction: there exists an open ball $B(\mathbf{w}^*,r)$
+such that for every $\mathbf{w}_0\in B(\mathbf{w}^*,r)$ the sequence
+$\mathbf{w}_{k+1}=\mathcal{M}(\mathbf{w}_k)$ converges to $\mathbf{w}^*$, and the convergence
+is \emph{linear} with asymptotic rate $\rho(\nabla\mathcal{M}(\mathbf{w}^*))$:
+\[
+    \lim_{k\to\infty}\frac{\|\mathbf{w}_{k+1}-\mathbf{w}^*\|}{\|\mathbf{w}_k-\mathbf{w}^*\|}
+    = \rho\!\bigl(\nabla\mathcal{M}(\mathbf{w}^*)\bigr).
+\]
+\end{theorem}
+ 
+We have established $\rho(\nabla\mathcal{M}(\mathbf{w}^*))<1$ in~\eqref{app:eq:spectral},
+and $\mathcal{M}$ is $C^1$ at $\mathbf{w}^*$ under the generic assumption that no component
+lies on the clip boundary. The hypotheses of Ostrowski's theorem are therefore satisfied,
+and IRLS converges locally with linear rate $\rho=1-\mu_{\min}$.
+
+\section{Convergence Curve Behavior}
+\label{app:sec:nonlinear}
+
+When plotting the objective gap on a logarithmic scale, the curve might not appear perfectly linear. This is because three different phases overlap:
+
+\begin{enumerate}
+    \item \textbf{Initial transient.} The first iterations close most of the gap very quickly. The Ostrowski theorem only guarantees linear convergence locally near the solution, so this initial phase behaves differently.
+    \item \textbf{Linear tail.} Once the algorithm enters the local neighborhood, the linear rate takes over. Because the rate factor is very close to 1 (approximately 0.99), the gap decreases slowly. The curve becomes a straight line on the logarithmic plot.
+    \item \textbf{Smoothing floor.} The gap cannot fall below the approximation error introduced by the smoothing threshold. The curve flattens completely when it reaches this artificial limit.
+\end{enumerate}
+
+To isolate and confirm the linear convergence, we can track the ratio between consecutive errors relative to the smoothed optimum. For linear convergence, this ratio stabilizes to a constant value.
+
+
+
+
 \chapter{Full \texorpdfstring{$\delta_{0}$}{delta\_0} family sweep (abstract sensitivity)}
 \label{app:delta0-families}
 
