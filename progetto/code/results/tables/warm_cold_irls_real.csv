@@ -1,0 +1,3 @@
+dataset,M_train,H,eps_thr,eps_stop,n_iter_warm,n_iter_cold,rel_gap_warm,rel_gap_cold,f_ref
+diabetes,354,200,1e-08,1e-08,894,1118,1.078644e-10,6.148895e-11,52.94876338
+california,16512,200,1e-08,1e-08,102,115,6.105675e-13,6.107604e-13,2358.019449

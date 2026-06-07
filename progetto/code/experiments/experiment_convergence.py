@@ -255,7 +255,7 @@ def run() -> None:
     spike_idx = int(np.argmax(f_vals[:cutoff] - f_bar[:cutoff]))
     ax.annotate(rf"largest overshoot at $i={spike_idx}$",
                 xy=(spike_idx, fcur_gap_lin[spike_idx]),
-                xytext=(spike_idx + 200, fcur_gap_lin[spike_idx] * 1.8),
+                xytext=(spike_idx + 250, fcur_gap_lin[spike_idx] / 6.0),
                 fontsize=11,
                 arrowprops=dict(arrowstyle="->", color="#666666", lw=1.0))
     ax.set_xlabel(r"Iteration $i$")

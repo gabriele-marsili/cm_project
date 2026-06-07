@@ -33,7 +33,10 @@ H             = 200
 LAMBDA        = 0.1
 TEST_FRACTION = 0.2
 IRLS_KMAX     = 2000
-EPS_THR       = 1e-8
+EPS_THR       = 1e-8    # smoothing for the two displayed runs
+EPS_STOP      = 1e-8    # relative-step stop; lets warm/cold stop at their own k
+EPS_THR_REF   = 1e-14   # deeper IRLS run used only as the f* anchor
+REF_KMAX      = 3000
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
 TAB_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "tables")
@@ -116,7 +119,7 @@ def run_one(name):
     w_ols = ols_warm_start(X_tr, y_tr)
     # IRLS call (Note: IRLS returns dict mapping usually inside ELM, but assuming your IRLS returns the dict directly)
     res_warm = irls(
-        X_tr, y_tr, LAMBDA, eps_thr=EPS_THR, k_max=IRLS_KMAX,
+        X_tr, y_tr, LAMBDA, eps_thr=EPS_THR, eps_stop=EPS_STOP, k_max=IRLS_KMAX,
         solver='cholesky', w0=w_ols, f_star=f_star
     )
     time_warm = time.time() - t0
@@ -130,7 +133,7 @@ def run_one(name):
     w_cold = np.zeros(H)
     t0 = time.time()
     res_cold = irls(
-        X_tr, y_tr, LAMBDA, eps_thr=EPS_THR, k_max=IRLS_KMAX,
+        X_tr, y_tr, LAMBDA, eps_thr=EPS_THR, eps_stop=EPS_STOP, k_max=IRLS_KMAX,
         solver='cholesky', w0=w_cold, f_star=f_star
     )
     time_cold = time.time() - t0
@@ -138,9 +141,22 @@ def run_one(name):
     n_iter_c = len(res_cold.get("f_vals", []))
     print(f"  IRLS (Cold) : {n_iter_c} iter, f = {f_c:.6f}, time = {time_cold:.4f}s")
 
+    # Independent f* anchor: a SEPARATE, deeper IRLS run (eps_thr=1e-14) from
+    # the OLS start. It is not one of the two curves being plotted, so the
+    # displayed warm/cold curves flatten at their own O(eps_thr) smoothing
+    # floor against it instead of collapsing onto their own endpoint (which
+    # produced the spurious machine-zero tail). This matches the report's
+    # real-data f* construction (IRLS at tight smoothing, cross-validated
+    # against CVXPY-Clarabel, Section 5.7).
+    res_ref = irls(
+        X_tr, y_tr, LAMBDA, eps_thr=EPS_THR_REF, eps_stop=EPS_STOP,
+        k_max=REF_KMAX, solver='cholesky', w0=w_ols,
+    )
+    f_ref = float(f_lasso(X_tr, y_tr, res_ref.get("w", w_ols), LAMBDA))
+
     # Report f* is the IRLS-converged value (CVXPY-verified elsewhere); both
     # starts reach it to working precision. Relative gap = (f - f*)/|f*|.
-    f_star_ref = float(min(f_w, f_c))
+    f_star_ref = float(min(f_w, f_c, f_ref))
     abs_gap_warm = abs(float(f_w) - f_star_ref)
     abs_gap_cold = abs(float(f_c) - f_star_ref)
     print(f"  f* (IRLS-converged) = {f_star_ref:.6f}")
@@ -156,7 +172,12 @@ def run_one(name):
         "time_cold": time_cold,
         "fvals_warm": res_warm["f_vals"],
         "fvals_cold": res_cold["f_vals"],
-        "f_star": f_star
+        "f_star": f_star,
+        "f_ref": f_ref,
+        "n_iter_warm": n_iter_w,
+        "n_iter_cold": n_iter_c,
+        "gap_warm": abs_gap_warm / abs(f_star_ref),
+        "gap_cold": abs_gap_cold / abs(f_star_ref),
     }
 
 
@@ -185,15 +206,16 @@ def run() -> None:
 
         f_warm = np.asarray(row["fvals_warm"], dtype=float)
         f_cold = np.asarray(row["fvals_cold"], dtype=float)
-        f_star = row["f_star"]
+        f_ref = row["f_ref"]
 
-        f_min = min(f_warm.min(), f_cold.min(), f_star)
         floor = 1e-16
-        # Relative gap (f - f*)/|f*|; f_min is the IRLS-converged f* both
-        # starts reach (matches the report reference).
-        abs_f_star = abs(f_min)
-        gw = np.maximum((f_warm - f_min) / abs_f_star, floor)
-        gc = np.maximum((f_cold - f_min) / abs_f_star, floor)
+        # Relative gap (f - f*)/|f*| against the independent deep-IRLS anchor
+        # f_ref (eps_thr=1e-14), NOT the min of the two plotted curves: this
+        # avoids the self-reference machine-zero tail. The curves flatten at
+        # the O(eps_thr=1e-8) smoothing floor of the displayed runs.
+        abs_f_ref = abs(f_ref)
+        gw = np.maximum((f_warm - f_ref) / abs_f_ref, floor)
+        gc = np.maximum((f_cold - f_ref) / abs_f_ref, floor)
 
         iters_w = np.arange(1, len(gw) + 1)
         iters_c = np.arange(1, len(gc) + 1)
@@ -216,6 +238,23 @@ def run() -> None:
     fig.savefig(fig_path, bbox_inches="tight")
     print(f"\nSaved plots to: {fig_path}")
     plt.close(fig)
+
+    # --- Save IRLS real-data warm/cold rows of Table 5.2 to CSV ---
+    # Gaps are relative to the independent deep-IRLS anchor f_ref (eps_thr=1e-14),
+    # not the self-min, so they are the honest distance to the reference.
+    csv_path = os.path.join(TAB_DIR, "warm_cold_irls_real.csv")
+    import csv as _csv
+    with open(csv_path, "w", newline="") as fh:
+        w = _csv.writer(fh)
+        w.writerow(["dataset", "M_train", "H", "eps_thr", "eps_stop",
+                    "n_iter_warm", "n_iter_cold", "rel_gap_warm", "rel_gap_cold",
+                    "f_ref"])
+        for row in rows:
+            w.writerow([row["name"], row["M_train"], row["H"], EPS_THR, EPS_STOP,
+                        row["n_iter_warm"], row["n_iter_cold"],
+                        f"{row['gap_warm']:.6e}", f"{row['gap_cold']:.6e}",
+                        f"{row['f_ref']:.10g}"])
+    print(f"Saved IRLS warm/cold real-data CSV: {csv_path}")
 
 if __name__ == "__main__":
     run()

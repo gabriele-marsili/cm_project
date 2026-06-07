@@ -1,0 +1,3 @@
+start,H,M,i_max,n_contractions,rel_final_gap
+warm,100,300,8000,22,4.213256e-05
+cold,100,300,8000,26,2.132032e-05

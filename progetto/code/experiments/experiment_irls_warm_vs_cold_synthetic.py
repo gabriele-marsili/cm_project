@@ -30,7 +30,9 @@ IRLS_KMAX = 2000
 EPS_THR   = 1e-8
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
+TAB_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "tables")
 os.makedirs(FIG_DIR, exist_ok=True)
+os.makedirs(TAB_DIR, exist_ok=True)
 
 
 def run() -> None:
@@ -101,6 +103,18 @@ def run() -> None:
     fig.savefig(path)
     print(f"\nSaved: {path}")
     plt.close(fig)
+
+    # --- Save IRLS synthetic warm/cold rows of Table 5.2 to CSV ---
+    csv_path = os.path.join(TAB_DIR, "warm_cold_irls_synthetic.csv")
+    import csv as _csv
+    with open(csv_path, "w", newline="") as fh:
+        w = _csv.writer(fh)
+        w.writerow(["start", "H", "M", "eps_thr", "n_iter", "rel_final_gap"])
+        w.writerow(["warm", H, M, EPS_THR, len(fw),
+                    f"{abs(fw[-1] - f_min) / abs_f_star:.6e}"])
+        w.writerow(["cold", H, M, EPS_THR, len(fc),
+                    f"{abs(fc[-1] - f_min) / abs_f_star:.6e}"])
+    print(f"Saved IRLS synthetic warm/cold CSV: {csv_path}")
 
 
 if __name__ == "__main__":

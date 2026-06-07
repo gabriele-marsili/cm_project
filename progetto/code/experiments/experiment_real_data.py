@@ -419,7 +419,7 @@ def run() -> None:
         ax.set_xlabel("Iteration  (log scale)")
         ax.set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$")
         ax.set_title(f"{row['name']} ($M={row['M_train']}$, $H={row['H']}$)")
-        ax.legend(loc="lower left", fontsize=10)
+        ax.legend(loc="upper right", fontsize=10)
         ax.set_ylim(bottom=floor / 5)
         style_axes(ax)
     fig.tight_layout()

@@ -1,0 +1,3 @@
+solver,total_time_ms,iterations,sparsity_at_1e-6,converged
+cholesky,10.913707956206053,265,0.86,True
+cg,22.946749988477677,265,0.86,True

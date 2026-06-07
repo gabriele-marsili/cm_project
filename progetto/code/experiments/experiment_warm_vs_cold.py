@@ -41,7 +41,9 @@ H, M   = 100, 300
 I_MAX  = 8000
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
+TAB_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "tables")
 os.makedirs(FIG_DIR, exist_ok=True)
+os.makedirs(TAB_DIR, exist_ok=True)
 
 
 def _n_contractions(delta_hist):
@@ -139,6 +141,18 @@ def run() -> None:
     fig.savefig(path)
     print(f"\nSaved: {path}")
     plt.close(fig)
+
+    # --- Save SGPTL synthetic warm/cold rows of Table 5.2 to CSV ---
+    csv_path = os.path.join(TAB_DIR, "warm_cold_sgptl_synthetic.csv")
+    import csv as _csv
+    with open(csv_path, "w", newline="") as fh:
+        w = _csv.writer(fh)
+        w.writerow(["start", "H", "M", "i_max", "n_contractions", "rel_final_gap"])
+        for key in ("warm", "cold"):
+            res = runs[key]
+            w.writerow([key, H, M, I_MAX, _n_contractions(res["delta_hist"]),
+                        f"{float(res['gaps'][-1]) / abs_f_star:.6e}"])
+    print(f"Saved SGPTL synthetic warm/cold CSV: {csv_path}")
 
 
 if __name__ == "__main__":

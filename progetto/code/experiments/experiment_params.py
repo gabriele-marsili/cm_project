@@ -213,7 +213,7 @@ def run() -> None:
         print(f"    Execution Time: {exec_time:.4f} s")
         print(f"    Iterations:     {n_iters} (Converged: {converged})")
         print(f"    Sparsity:       {sparsity:.2%}")
-        runs[sol] = {"gaps": _safe_log(np.asarray(res["gaps"], dtype=float) / abs(f_star)), "times": np.asarray(res["times"], dtype=float), "exec_time": exec_time, "sparsity": sparsity}
+        runs[sol] = {"gaps": _safe_log(np.asarray(res["gaps"], dtype=float) / abs(f_star)), "times": np.asarray(res["times"], dtype=float), "exec_time": exec_time, "sparsity": sparsity, "n_iter": int(n_iters), "converged": bool(converged)}
 
     # Left panel: gap vs iteration (semilog y).
     ax = axes[0]
@@ -259,6 +259,27 @@ def run() -> None:
     fig.savefig(path)
     print(f"Saved: {path}\n")
     plt.close(fig)
+
+    # --- Save solver comparison to CSV (Table 5.4) ---
+    solver_csv = os.path.join(TAB_DIR, "solver_comparison.csv")
+    solver_rows = [{
+        "solver": s,
+        "total_time_ms": runs[s]["exec_time"] * 1000.0,
+        "iterations": runs[s]["n_iter"],
+        "sparsity_at_1e-6": runs[s]["sparsity"],
+        "converged": runs[s]["converged"],
+    } for s in solvers]
+    if _HAS_PANDAS:
+        import pandas as pd
+        pd.DataFrame(solver_rows).to_csv(solver_csv, index=False)
+    else:
+        header = "solver,total_time_ms,iterations,sparsity_at_1e-6,converged"
+        rows = [f"{r['solver']},{r['total_time_ms']:.4f},{r['iterations']},"
+                f"{r['sparsity_at_1e-6']:.6f},{r['converged']}"
+                for r in solver_rows]
+        with open(solver_csv, "w") as fh:
+            fh.write(header + "\n" + "\n".join(rows) + "\n")
+    print(f"Saved solver comparison CSV: {solver_csv}")
 
 
 if __name__ == "__main__":

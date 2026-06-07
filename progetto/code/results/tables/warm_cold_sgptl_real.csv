@@ -1,0 +1,5 @@
+dataset,M_train,H,i_max,start,n_iter,n_contractions,rel_final_gap,f_star
+diabetes,354,200,8000,warm,8000,12,1.510873e-02,52.94876341
+diabetes,354,200,8000,cold,8000,17,5.239813e-03,52.94876341
+california,16512,200,8000,warm,8000,1196,1.949607e-04,2358.019449
+california,16512,200,8000,cold,8000,16,1.756344e-02,2358.019449

@@ -217,6 +217,12 @@ def run_one(name):
         "f_star":    f_star,
         "time_warm": time_warm,
         "time_cold": time_cold,
+        "rel_warm":  rel_warm,
+        "rel_cold":  rel_cold,
+        "n_iter_warm": res_warm["n_iter"],
+        "n_iter_cold": res_cold["n_iter"],
+        "n_contr_warm": n_contr_warm,
+        "n_contr_cold": n_contr_cold,
         # Store f_bar directly so no information is lost when f_bar < f_star
         # (gaps are clamped to 0 in that region, making reconstruction lossy).
         "fbar_warm": res_warm["f_bar"],
@@ -311,6 +317,23 @@ def run() -> None:
     fig.savefig(fig_path, bbox_inches="tight")
     print(f"\nSaved: {fig_path}")
     plt.close(fig)
+
+    # --- Save SGPTL real-data warm/cold rows of Table 5.2 to CSV ---
+    csv_path = os.path.join(TAB_DIR, "warm_cold_sgptl_real.csv")
+    import csv as _csv
+    with open(csv_path, "w", newline="") as fh:
+        w = _csv.writer(fh)
+        w.writerow(["dataset", "M_train", "H", "i_max", "start",
+                    "n_iter", "n_contractions", "rel_final_gap", "f_star"])
+        for row in rows:
+            imax = DSM_IMAX_CALIFORNIA if row["name"] == "california" else DSM_IMAX_DIABETES
+            w.writerow([row["name"], row["M_train"], row["H"], imax, "warm",
+                        row["n_iter_warm"], row["n_contr_warm"],
+                        f"{row['rel_warm']:.6e}", f"{row['f_star']:.10g}"])
+            w.writerow([row["name"], row["M_train"], row["H"], imax, "cold",
+                        row["n_iter_cold"], row["n_contr_cold"],
+                        f"{row['rel_cold']:.6e}", f"{row['f_star']:.10g}"])
+    print(f"Saved SGPTL real-data warm/cold CSV: {csv_path}")
 
 
 if __name__ == "__main__":
