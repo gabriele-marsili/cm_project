@@ -6,7 +6,7 @@ This appendix provides a step by step derivation of the local linear convergence
 \label{app:sec:smooth}
 
 \paragraph{Huber smoothing of the penalty.}
-The safety threshold $\varepsilon$ introduced in the weights formula prevents division by zero. However, it also changes \ref{eq:obj_fun} into a smoothed one:
+The safety threshold $\varepsilon$ (written $\varepsilon_{\mathrm{thr}}$ in the main text) introduced in the weights formula prevents division by zero. However, it also changes the objective~\eqref{eq:obj_fun} into a smoothed one:
 \begin{equation}
     f_\varepsilon(\mathbf{w})
     = \frac{1}{2}\|\mathbf{X}\mathbf{w}-\mathbf{y}\|_2^2
@@ -43,8 +43,18 @@ Because $\mathbf{X}$ has full column rank, the product $\mathbf{X}^T\mathbf{X}$ 
 \end{proof}
 
 \paragraph{Fixed-point map.}
-The update process of the IRLS algorithm defines an iteration map $\mathcal{M}(\mathbf{w})=\mathbf{Q}(\mathbf{w})^{-1}\mathbf{b}$.
-Because the optimal solution $\mathbf{w}^*$ satisfies the minimum conditions of the smoothed objective, it is a fixed point of this map, meaning $\mathcal{M}(\mathbf{w}^*)=\mathbf{w}^*$.
+Each IRLS iteration solves the weighted normal equations
+$\mathbf{Q}(\mathbf{w}_k)\,\mathbf{w}_{k+1}=\mathbf{b}$ with
+$\mathbf{Q}(\mathbf{w})=\mathbf{X}^T\mathbf{X}+\lambda\,\mathrm{diag}\!\bigl(1/\max(|w_i|,\varepsilon)\bigr)$
+and $\mathbf{b}=\mathbf{X}^T\mathbf{y}$ (throughout this appendix $\lambda\equiv\lambda_{\text{LASSO}}$),
+so the algorithm is the fixed-point iteration $\mathbf{w}_{k+1}=\mathcal{M}(\mathbf{w}_k)$ with
+$\mathcal{M}(\mathbf{w})=\mathbf{Q}(\mathbf{w})^{-1}\mathbf{b}$.
+The smoothed minimiser $\mathbf{w}^*$ is a fixed point: stationarity
+$\nabla f_\varepsilon(\mathbf{w}^*)=\mathbf{X}^T(\mathbf{X}\mathbf{w}^*-\mathbf{y})+\lambda\,\psi_\varepsilon'(\mathbf{w}^*)=\mathbf{0}$
+coincides with $\mathbf{Q}(\mathbf{w}^*)\mathbf{w}^*=\mathbf{b}$, because the weight times the
+component, $w^*_i/\max(|w^*_i|,\varepsilon)$, equals $\psi_\varepsilon'(w^*_i)$ on both the
+active set ($\mathrm{sign}(w^*_i)$) and the pinned set ($w^*_i/\varepsilon$). Hence
+$\mathcal{M}(\mathbf{w}^*)=\mathbf{w}^*$.
 
 \section{Jacobian of the Fixed-Point Map}
 \label{app:sec:jacobian}
@@ -64,7 +74,7 @@ In the last step we used the fixed point property $\mathbf{Q}^{-1}\mathbf{b}=\ma
 
 \paragraph{Evaluating the differential components.}
 Let $\mathbf{B}$ be the matrix $\mathbf{Q}$ evaluated at $\mathbf{w}^*$ and let $\mathbf{H}$ be the true Hessian $\nabla^2 f_\varepsilon(\mathbf{w}^*)$.
-Comparing their diagonal elements, we can observe a specific pattern. 
+Comparing them, note first that $\mathbf{B}$ and $\mathbf{H}$ share the same off-diagonal part $\mathbf{X}^T\mathbf{X}$ and differ only on the diagonal, so $\mathbf{B}-\mathbf{H}$ is itself diagonal.
 On the active features ($|w^*_i|>\varepsilon$):
 \[
     \mathbf{B}_{ii} = (\mathbf{X}^T\mathbf{X})_{ii} + \frac{\lambda}{|w^*_i|}
@@ -81,7 +91,22 @@ On the inactive features ($|w^*_i|<\varepsilon$):
     \mathbf{H}_{ii} = (\mathbf{X}^T\mathbf{X})_{ii} + \frac{\lambda}{\varepsilon}
 \]
 The difference is $\mathbf{B}_{ii} - \mathbf{H}_{ii} = 0$.
-If we calculate the derivative $d\mathbf{Q}$ and multiply it by $\mathbf{w}^*$, the result perfectly matches the difference between these two matrices. We can formalize this relationship as:
+To see why this difference is what governs the Jacobian, we compute $d\mathbf{Q}$ explicitly. Only the diagonal of $\mathbf{Q}(\mathbf{w})=\mathbf{X}^T\mathbf{X}+\lambda\,\mathrm{diag}(1/\max(|w_i|,\varepsilon))$ depends on $\mathbf{w}$, so $d\mathbf{Q}$ is diagonal; differentiating the $i$-th entry,
+\[
+    \frac{d}{dw_i}\,\frac{1}{\max(|w_i|,\varepsilon)}
+    =\begin{cases}
+        -\,\mathrm{sign}(w_i)/w_i^2 & |w_i|>\varepsilon \quad(\text{active}),\\[2pt]
+        0 & |w_i|<\varepsilon \quad(\text{pinned: the entry is the constant }1/\varepsilon).
+    \end{cases}
+\]
+Multiplying $d\mathbf{Q}$ by $\mathbf{w}^*$ component-wise, on the active set
+\[
+    (d\mathbf{Q}\,\mathbf{w}^*)_i
+    = \lambda\Bigl(-\tfrac{\mathrm{sign}(w^*_i)}{(w^*_i)^2}\Bigr)w^*_i\,dw_i
+    = -\frac{\lambda}{|w^*_i|}\,dw_i
+    = -(\mathbf{B}-\mathbf{H})_{ii}\,dw_i,
+\]
+and on the pinned set $(d\mathbf{Q}\,\mathbf{w}^*)_i = 0 = -(\mathbf{B}-\mathbf{H})_{ii}\,dw_i$. In matrix form this is exactly:
 \begin{equation}
     (d\mathbf{Q})\mathbf{w}^* = -(\mathbf{B}-\mathbf{H})d\mathbf{w}
     \label{app:eq:dQ_clean}
@@ -167,14 +192,14 @@ It remains to verify $\mathbf{H}\preceq\mathbf{B}$, i.e.\ $\mathbf{B}-\mathbf{H}
 We have that:
 \[
     \mathbf{B}-\mathbf{H}
-    = \lambda_{\mathrm{LASSO}}\,\mathrm{diag}\!\left(\frac{1}{|w^*_i|}\text{ on }\mathcal{A},\ 0\text{ on }\mathcal{P}\right).
+    = \lambda\,\mathrm{diag}\!\left(\frac{1}{|w^*_i|}\text{ on }\mathcal{A},\ 0\text{ on }\mathcal{P}\right).
 \]
 This is a diagonal matrix with non-negative entries, so $\mathbf{B}-\mathbf{H}\succeq\mathbf{0}$.
 By Lemma~\ref{app:lem:SpreI}, $\mathbf{S}\preceq\mathbf{I}$, so $\mu_i\le 1$ for all $i$.
 
 
 \subsection{Step 3: Conclusion on the spectral radius}
-The eigenvalues of our Jacobian matrix $\mathbf{I} - \mathbf{B}^{-1}\mathbf{H}$ are simply $1 - \mu_i$.
+The eigenvalues of the Jacobian $\mathbf{I} - \mathbf{B}^{-1}\mathbf{H}$ are $1 - \mu_i$.
 Because $\mu_i$ is in $(0, 1]$, the value $1 - \mu_i$ must be in $[0, 1)$. Since all eigenvalues are strictly less than 1, the spectral radius is also strictly less than 1:
 \begin{equation}
     \rho\bigl(\nabla\mathcal{M}(\mathbf{w}^*)\bigr) < 1
@@ -201,6 +226,16 @@ We have established $\rho(\nabla\mathcal{M}(\mathbf{w}^*))<1$ in~\eqref{app:eq:s
 and $\mathcal{M}$ is $C^1$ at $\mathbf{w}^*$ under the generic assumption that no component
 lies on the clip boundary. The hypotheses of Ostrowski's theorem are therefore satisfied,
 and IRLS converges locally with linear rate $\rho=1-\mu_{\min}$.
+
+\paragraph{Why the rate is close to 1.}
+The factor $\rho=1-\mu_{\min}$ is close to $1$ because the smallest eigenvalue
+$\mu_{\min}$ of $\mathbf{B}^{-1}\mathbf{H}$ is small. On the active set the true penalty
+$|w_i|$ is affine (zero curvature), so $\mathbf{H}$ carries there only the data curvature,
+whereas the surrogate $\mathbf{B}=\mathbf{Q}(\mathbf{w}^*)$ adds $\lambda/|w^*_i|$. A direction
+$\mathbf{v}$ concentrated on an active component with small $|w^*_i|$ then has
+$\mathbf{v}^T\mathbf{H}\mathbf{v}/\mathbf{v}^T\mathbf{B}\mathbf{v}\to 0$, which drives
+$\mu_{\min}\to 0$ and $\rho\to 1$: IRLS is slow precisely where the LASSO penalty is affine.
+Section~\ref{sec:convergence} measures $\rho\approx 0.99$, nearly independent of $\varepsilon$.
 
 \section{Convergence Curve Behavior}
 \label{app:sec:nonlinear}
