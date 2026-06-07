@@ -121,16 +121,16 @@ step to step, so no single linear map is iterated yet), and once the
 support has frozen the faster modes of the resulting fixed contraction
 decay before the slowest mode, which sets the asymptotic rate, dominates.
 Throughout this pre-asymptotic phase the gap falls \emph{faster} than the
-asymptotic rate (below $10^{-6}$ already by iteration $115$). The curve
+asymptotic rate (below $10^{-6}$ already by iteration $122$). The curve
 then straightens on the semilog axis: the per-iteration factor settles to
 $\approx 0.995$ (the dashed fit over iterations $400$--$1200$), the
 signature of linear convergence, and the relative gap reaches
-$1.3\cdot 10^{-10}$ at $1500$ iterations. IRLS is thus globally convergent
+$1.5\cdot 10^{-10}$ at $1500$ iterations. IRLS is thus globally convergent
 (Section~\ref{sec:irls_convergence}) yet only \emph{locally} linear: a
 constant rate from $k=0$ is neither observed nor claimed, since the rate
 theorem governs the tail, not the pre-asymptotic transient. That the factor is so close to $1$ is the loose quadratic
 majorisation of $|w|$ on the active components
-(Section~\ref{sec:irls_convergence}); it is essentially independent of
+(Section~\ref{sec:irls_convergence}); it is nearly independent of
 $\varepsilon_\text{thr}$. We set $\varepsilon_\text{thr}=10^{-12}$ on this
 figure so the floor does not mask the linear tail; at the default
 $\varepsilon_\text{thr}=10^{-8}$ (Section~\ref{sec:params}) the gap
@@ -228,30 +228,28 @@ final gaps; the rest of the section interprets them.
         \toprule
         algorithm & start & synthetic & \texttt{diabetes} & \texttt{california} \\
         \midrule
-        IRLS  & warm & $1.6\cdot 10^{-8}$  ($940$)  & ${<}10^{-12}$ ($894$)   & ${<}10^{-12}$ ($102$) \\
-        IRLS  & cold & $1.6\cdot 10^{-8}$  ($922$)  & ${<}10^{-12}$ ($1\,118$) & ${<}10^{-12}$ ($115$) \\
+        IRLS  & warm & $1.6\cdot 10^{-8}$  ($941$)  & $1.1\cdot 10^{-10}$ ($894$)   & $6.1\cdot 10^{-13}$ ($102$) \\
+        IRLS  & cold & $1.6\cdot 10^{-8}$  ($923$)  & $6.1\cdot 10^{-11}$ ($1\,118$) & $6.1\cdot 10^{-13}$ ($115$) \\
         SGPTL & warm & $4.2\cdot 10^{-5}$           & $1.5\cdot 10^{-2}$      & $2.0\cdot 10^{-4}$ \\
         SGPTL & cold & $2.1\cdot 10^{-5}$           & $4.9\cdot 10^{-3}$      & $1.8\cdot 10^{-2}$ \\
         \bottomrule
     \end{tabular}
     \caption{Final relative gap $|f(\mathbf{w}_\text{final})-f^{*}|/|f^{*}|$
     on each instance; the parenthesised number after each IRLS entry is the
-    iteration count at which $\varepsilon_\text{stop}=10^{-12}$ triggers.
-    IRLS reaches $f^{*}$ to working precision on all three instances from
-    both starts (limited by the $\varepsilon_\text{thr}=10^{-8}$ smoothing
-    floor on the synthetic, by $\varepsilon_\text{stop}$ on the real
-    data); the warm vs cold contrast is therefore in iteration count, not
-    final accuracy. SGPTL runs $8\,000$ iterations everywhere with the
-    defaults of Section~\ref{sec:params}; here the comparison is in the
-    final gap. The $f^{*}$ reference is the sklearn-converged value
-    on the synthetic and the IRLS-converged value on the real data,
-    cross-validated against CVXPY-Clarabel to ten significant digits
-    (Section~\ref{sec:real_data}); the IRLS gaps on real data are
-    therefore measured against IRLS itself and bound only the residual
-    movement past the stopping criterion, not the distance to
-    the Clarabel-verified $f^{*}$ (which is at most $3\cdot 10^{-11}$ on
-    \texttt{california}, $8\cdot 10^{-11}$ on \texttt{diabetes} in relative
-    terms).}
+    iteration count at which $\varepsilon_\text{stop}=10^{-8}$ triggers. On
+    the real data both starts reach the $O(\varepsilon_\text{thr}=10^{-8})$
+    smoothing floor, so the warm vs cold contrast is in iteration count, not
+    final accuracy; on the synthetic the floor is the
+    $\varepsilon_\text{thr}=10^{-8}$ value against the sklearn $f^{*}$. SGPTL
+    runs $8\,000$ iterations everywhere with the defaults of
+    Section~\ref{sec:params}; here the comparison is in the final gap. The
+    $f^{*}$ reference on the real data is an independent deeper IRLS run
+    ($\varepsilon_\text{thr}=10^{-14}$) cross-validated against CVXPY-Clarabel
+    to ten significant digits (Section~\ref{sec:real_data}). Reproduced by
+    \texttt{warm\_cold\_irls\_\{synthetic,real\}.csv} (IRLS) and
+    \texttt{warm\_cold\_sgptl\_\{synthetic,real\}.csv} (SGPTL warm, and SGPTL
+    cold on the synthetic); the SGPTL real-data cold entries are the $k=8000$
+    samples of the long-run trace (Table~\ref{tab:sgptl-long-run-samples}).}
     \label{tab:warm-cold-summary}
 \end{table}
 
@@ -291,11 +289,15 @@ $\norm{\mathbf{w}_{0}-\mathbf{w}^{*}}$ enters multiplicatively.
     \caption{IRLS warm (OLS) vs cold ($\mathbf{w}_{0}=\mathbf{0}$) start
     on the two ELM-transformed real datasets ($H=200$,
     $\lambda_\text{LASSO}=0.1$, $k_{\max}=2000$,
-    $\varepsilon_\text{stop}=10^{-12}$), log--log axes, relative gap
-    $(f-f^{*})/|f^{*}|$. Both starts converge to $f^{*}$ on each instance,
-    as the linear rate (Section~\ref{sec:irls_convergence}) allows; the warm curve sits below
-    the cold one throughout because $\norm{\mathbf{w}_{0}-\mathbf{w}^{*}}$
-    enters the bound multiplicatively. The synthetic analogue is in
+    $\varepsilon_\text{thr}=10^{-8}$, $\varepsilon_\text{stop}=10^{-8}$),
+    log--log axes, relative gap $(f-f^{*})/|f^{*}|$ measured against an
+    independent reference $f^{*}$ (a separate deeper IRLS run at
+    $\varepsilon_\text{thr}=10^{-14}$, cross-validated against CVXPY-Clarabel,
+    Section~\ref{sec:real_data}). Both starts descend to the
+    $O(\varepsilon_\text{thr})$ smoothing floor of the displayed runs; the
+    warm curve sits below the cold one throughout because
+    $\norm{\mathbf{w}_{0}-\mathbf{w}^{*}}$ enters the linear-rate bound
+    multiplicatively. The synthetic analogue is in
     Appendix~\ref{app:irls-synth-warm-cold}.}
     \label{fig:irls-warm-cold}
 \end{figure}
@@ -310,7 +312,7 @@ of two (Figure~\ref{fig:warm-vs-cold}: cold $2.1\cdot 10^{-5}$ with $26$
 $\delta$-contractions, warm $4.2\cdot 10^{-5}$ with $22$). On
 \texttt{diabetes}-ELM the cold trajectory dips below the warm one past
 $\sim\!10^{2}$ iterations and stays there ($4.9\cdot 10^{-3}$ vs
-$1.5\cdot 10^{-2}$; contraction counts $17$ vs $13$, so the difference is
+$1.5\cdot 10^{-2}$; contraction counts $17$ vs $12$, so the difference is
 not driven by the patience schedule).
 
 \texttt{California}-ELM is the qualitative outlier and the source of
@@ -448,8 +450,8 @@ $\mathbf{Q}_{k}\mathbf{w}_{k+1}=\mathbf{b}$ open between Cholesky
 ($O(H^{3}/3)$) and CG ($O(pH^{2})$ per step).
 Table~\ref{tab:solver_comparison} compares them on $H=100$, $M=400$:
 both reach the stopping criterion at iteration $265$ with identical
-trajectories, but exact Cholesky takes $11.7$~ms against
-$24.4$~ms for Jacobi-preconditioned CG. As IRLS drives inactive weights
+trajectories, but exact Cholesky takes $10.9$~ms against
+$22.9$~ms for Jacobi-preconditioned CG. As IRLS drives inactive weights
 to the cap $1/\varepsilon_\text{thr}=10^{8}$, $\kappa(\mathbf{Q}_{k})$
 blows up; the Jacobi preconditioner on $\operatorname{diag}(\mathbf{Q}_{k})$ is what
 keeps CG matching Cholesky iteration-by-iteration, but the iterative
@@ -467,8 +469,8 @@ $O(H^{3})$ term dominates.
         \toprule
         Solver & Total time (ms) & Iterations & Sparsity at $10^{-6}$ & Converged \\
         \midrule
-        Cholesky & $11.7$ & $265$ & $86\%$ & Yes \\
-        CG       & $24.4$ & $265$ & $86\%$ & Yes \\
+        Cholesky & $10.9$ & $265$ & $86\%$ & Yes \\
+        CG       & $22.9$ & $265$ & $86\%$ & Yes \\
         \bottomrule
     \end{tabular}
     \caption{IRLS solver comparison on $H=100$, $M=400$,
@@ -506,7 +508,7 @@ block):
         \toprule
         $\gamma_{\min}$ & final rel.\,gap & $\Pr\!\{\gamma_{i}\le 0.01\}$ & $\Pr\!\{\text{skip fires}\}$ & $\delta$-contr. \\
         \midrule
-        $0.00$ & $3.9\cdot 10^{-2}$ & $99\%$ & $98\%$ & ${\sim}\,2$ \\
+        $0.00$ & $4.4\cdot 10^{-2}$ & $99\%$ & $98\%$ & ${\sim}\,2$ \\
         $0.05$ & $1.1\cdot 10^{-4}$ & $0\%$  & $0\%$  & ${\sim}\,19$ \\
         \bottomrule
     \end{tabular}
@@ -524,7 +526,7 @@ step~\eqref{eq:sr_step} becomes positive but minuscule, and once $f_{i}$
 no longer beats the target the numerator-skip safeguard fires on $98\%$
 of iterations: the
 iterate freezes and $\delta$ contracts only $\sim\!2$ times instead of
-$\sim\!19$, leaving the relative gap stuck at $\sim\!3.9\cdot 10^{-2}$
+$\sim\!19$, leaving the relative gap stuck at $\sim\!4.4\cdot 10^{-2}$
 (centre and right panels). With $\gamma_{\min}=0.05$ the floor binds whenever the
 greedy would hit zero, $\beta_{i}$ stays $\ge 0.05$, the Polyak step
 remains effective, and the staircase descent of $\delta$ that the theory
@@ -601,8 +603,11 @@ $f^{*}$-based scale enters only as a reference point in this and the
 next subsection and is never used to choose the default.
 
 We run both scales on five instances over $c\in\{0.01,\dots,1\}$. The
-admissible scale stays within a factor of two of the oracle in every
-regime where SGPTL is in fact optimising (Table~\ref{tab:delta0-ratio}).
+admissible scale matches the oracle in the median on every instance
+(ratio $\approx 1$), and the per-run ratio stays within a factor of two
+except on the synthetic, where the five-seed aggregate of two
+individually-noisy $\sim\!10^{-5}$ final gaps widens the spread
+(Table~\ref{tab:delta0-ratio}).
 The one exception is \texttt{diabetes}~$H=50$ at $c\ge 0.5$, where an
 over-aggressive $\delta_{0}$ overshoots the sufficient-descent test
 from the first iteration and both scales stall at a common plateau (a
@@ -615,19 +620,21 @@ per-instance grid is in Appendix~\ref{app:delta0-families}.
     \setlength{\tabcolsep}{8pt}
     \begin{tabular}{lc}
         \toprule
-        instance & admissible / oracle gap ratio \\
+        instance & admissible / oracle gap ratio (median) \\
         \midrule
-        synthetic ($5$ seeds)               & $[0.50,\,1.07]$ \\
-        \texttt{diabetes}~$H=50$ ($c\le 0.1$) & $[0.73,\,1.96]$ \\
-        \texttt{diabetes}~$H=200$              & $[0.87,\,1.04]$ \\
-        \texttt{california}~$H=50$ (cold)      & $[0.72,\,1.41]$ \\
-        \texttt{california}~$H=200$ (cold)     & $[0.96,\,1.07]$ \\
+        synthetic ($5$ seeds, $c\le 0.1$)   & $[0.18,\,2.07]$ ($0.90$) \\
+        \texttt{diabetes}~$H=50$ ($c\le 0.1$) & $[0.73,\,1.96]$ ($1.16$) \\
+        \texttt{diabetes}~$H=200$              & $[0.87,\,1.04]$ ($1.00$) \\
+        \texttt{california}~$H=50$ (cold)      & $[0.72,\,1.41]$ ($0.99$) \\
+        \texttt{california}~$H=200$ (cold)     & $[0.96,\,1.07]$ ($1.00$) \\
         \bottomrule
     \end{tabular}
     \caption{Ratio of the admissible scale $\delta_{0}=c\,f(\mathbf{w}_{0})$
-    to the inadmissible oracle $\delta_{0}=c\,f^{*}$ on the final gap,
-    over $c\in\{0.01,\dots,1\}$ in the working regime. All ratios lie in
-    $[0.5,2]$. Full grid:
+    to the inadmissible oracle $\delta_{0}=c\,f^{*}$ on the final gap, in the
+    working regime (range over runs, median in parentheses). The median ratio
+    is $\approx 1$ on every instance; the per-run spread stays within a factor
+    of two except on the synthetic, where aggregating five seeds and ratioing
+    two individually-noisy $\sim\!10^{-5}$ gaps widens it. Full grid:
     Appendix~\ref{app:delta0-families}.}
     \label{tab:delta0-ratio}
 \end{table}
@@ -698,14 +705,14 @@ Figure~\ref{fig:scalability} (left) at $M=5H$.
 Both algorithms scale up with $H$
 (Table~\ref{tab:scalability}), but IRLS stays faster than SGPTL
 throughout the tested range and reaches a final gap roughly two
-orders of magnitude smaller. At $H=2000$: IRLS takes $2.4$\,s to reach
-relative gap $3.7\cdot 10^{-7}$; SGPTL takes $30$\,s to reach
+orders of magnitude smaller. At $H=2000$: IRLS takes $1.8$\,s to reach
+relative gap $3.7\cdot 10^{-7}$; SGPTL takes $23$\,s to reach
 $1.9\cdot 10^{-5}$. The
 right panel of Figure~\ref{fig:scalability} confirms the per-iteration
 ordering (SGPTL is cheaper there), but the cumulative time inverts
 because SGPTL needs many more iterations.
 
-\paragraph{Why the fixed-budget table flatters SGPTL.}
+\paragraph{Why the fixed-budget table understates SGPTL's cost to a target.}
 This comparison fixes iterations, not accuracy. To reach a target
 $\varepsilon$ Theorem~\ref{thm:dsm_convergence} forces
 $\Omega(L^{2}/(\gamma_{\min}^{2}\varepsilon^{2}))$ SGPTL iterations with
@@ -720,11 +727,11 @@ Section~\ref{sec:iters-to-eps}.
         $H$ & $M$ & $t_\text{IRLS}$ (s) & rel.\,gap$_\text{IRLS}$ &
         $t_\text{SGPTL}$ (s) & rel.\,gap$_\text{SGPTL}$ \\
         \midrule
-        $   50$ & $   250$ & $\phantom{00}0.003$ & $9.8\cdot 10^{-7}$ & $\phantom{00}0.060$ & $1.8\cdot 10^{-4}$ \\
-        $  100$ & $   500$ & $\phantom{00}0.004$ & $1.4\cdot 10^{-7}$ & $\phantom{00}0.079$ & $7.6\cdot 10^{-5}$ \\
-        $  500$ & $  2500$ & $\phantom{00}0.126$ & $2.6\cdot 10^{-7}$ & $\phantom{00}0.514$ & $4.6\cdot 10^{-5}$ \\
-        $ 1000$ & $  5000$ & $\phantom{00}0.624$ & $5.4\cdot 10^{-7}$ & $10.54\phantom{0}$ & $3.4\cdot 10^{-5}$ \\
-        $ 2000$ & $ 10000$ & $\phantom{00}2.44\phantom{0}$ & $3.7\cdot 10^{-7}$ & $29.62\phantom{0}$ & $1.9\cdot 10^{-5}$ \\
+        $   50$ & $   250$ & $\phantom{0}0.003$ & $9.8\cdot 10^{-7}$ & $\phantom{0}0.050$ & $1.8\cdot 10^{-4}$ \\
+        $  100$ & $   500$ & $\phantom{0}0.004$ & $1.4\cdot 10^{-7}$ & $\phantom{0}0.062$ & $7.6\cdot 10^{-5}$ \\
+        $  500$ & $  2500$ & $\phantom{0}0.051$ & $2.6\cdot 10^{-7}$ & $\phantom{0}0.293$ & $4.6\cdot 10^{-5}$ \\
+        $ 1000$ & $  5000$ & $\phantom{0}0.319$ & $5.4\cdot 10^{-7}$ & $\phantom{0}6.07\phantom{0}$ & $3.4\cdot 10^{-5}$ \\
+        $ 2000$ & $ 10000$ & $\phantom{0}1.756$ & $3.7\cdot 10^{-7}$ & $23.27\phantom{0}$ & $1.9\cdot 10^{-5}$ \\
         \bottomrule
     \end{tabular}
     \caption{Total wall-clock time and final relative gap
@@ -750,7 +757,7 @@ cost to reach relative gap $(f-f^{*})/|f^{*}|\le\varepsilon$ on the
 moderate problem ($H=50$, $M=200$). At the loosest accuracy the two are
 competitive ($5$ vs $1$ at $10^{-1}$); past that the gap widens fast:
 SGPTL needs $203,1008,4193$ iterations for $10^{-2},10^{-3},10^{-4}$
-against IRLS's $4,10,25$ ($87$\,ms vs $0.8$\,ms at $10^{-4}$). The
+against IRLS's $4,10,25$ ($68$\,ms vs $0.7$\,ms at $10^{-4}$). The
 per-decade ratio predicted by Chapter~\ref{chap:comparison} (constant
 increment for IRLS, $\sim\!100\times$ multiplier for SGPTL) is reproduced
 here; SGPTL does not reach $10^{-6}$ within $30\,000$ iterations, IRLS
@@ -763,11 +770,11 @@ reaches it in $125$.
         $\varepsilon$ & $k_\text{IRLS}$ & $t_\text{IRLS}$ (s) &
         $i_\text{SGPTL}$ & $t_\text{SGPTL}$ (s) \\
         \midrule
-        $10^{-1}$ & $  1$ & $7.3\cdot 10^{-5}$ & $    5$ & $1.6\cdot 10^{-4}$ \\
-        $10^{-2}$ & $  4$ & $2.0\cdot 10^{-4}$ & $  203$ & $4.2\cdot 10^{-3}$ \\
-        $10^{-3}$ & $ 10$ & $3.7\cdot 10^{-4}$ & $ 1008$ & $2.2\cdot 10^{-2}$ \\
-        $10^{-4}$ & $ 25$ & $8.3\cdot 10^{-4}$ & $ 4193$ & $8.7\cdot 10^{-2}$ \\
-        $10^{-6}$ & $125$ & $3.8\cdot 10^{-3}$ & --- & --- \\
+        $10^{-1}$ & $  1$ & $5.4\cdot 10^{-5}$ & $    5$ & $1.2\cdot 10^{-4}$ \\
+        $10^{-2}$ & $  4$ & $1.6\cdot 10^{-4}$ & $  203$ & $3.5\cdot 10^{-3}$ \\
+        $10^{-3}$ & $ 10$ & $3.1\cdot 10^{-4}$ & $ 1008$ & $1.7\cdot 10^{-2}$ \\
+        $10^{-4}$ & $ 25$ & $6.9\cdot 10^{-4}$ & $ 4193$ & $6.8\cdot 10^{-2}$ \\
+        $10^{-6}$ & $125$ & $3.1\cdot 10^{-3}$ & --- & --- \\
         \bottomrule
     \end{tabular}
     \caption{Iterations and time to reach relative gap
@@ -783,7 +790,7 @@ reaches it in $125$.
     log--log, relative gap $(f-f^{*})/|f^{*}|$. Left: vs iteration. Right:
     vs CPU time. SGPTL falls below $10^{-2}$ in $203$ iterations and
     $10^{-3}$ in $1008$ then enters the sublinear regime; IRLS reaches
-    $10^{-6}$ in $125$ iterations ($\sim\!4$~ms).}
+    $10^{-6}$ in $125$ iterations ($\sim\!3$~ms).}
     \label{fig:comparison}
 \end{figure}
 
@@ -982,6 +989,8 @@ unaffected.
     $i_{\max}=8000$). The pre-correction record gap is lower in absolute
     terms but is produced by a $\delta$ schedule that does not track
     descent, so its meaning as a measure of optimisation progress is
-    not what the theorem bounds.}
+    not what the theorem bounds. The \emph{before} column documents the
+    removed pre-correction prototype and is not regenerable from the current
+    code; the \emph{after} column matches \texttt{convergence\_instance.csv}.}
     \label{tab:before-after-numbers}
 \end{table}

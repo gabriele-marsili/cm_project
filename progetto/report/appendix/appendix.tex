@@ -14,10 +14,10 @@ $c\in\{0.01,0.05,0.1,0.5,1\}$ on five instances. On four of the five
 $f^{*}$ is CVXPY-verified (\texttt{CLARABEL}, cross-validated against the
 IRLS-converged value to relative agreement below $10^{-9}$); on
 \texttt{california}~$H=200$ the size puts CVXPY beyond a reasonable
-budget and we substitute the IRLS-converged proxy --- an internal
-double-circularity (the proxy comes from the algorithm being compared,
-and is then fed back as $f^{*}$ to define the oracle scale) that we
-flag here so the row is read as illustrative, not as a validation of the
+budget and we substitute the IRLS-converged proxy (an internal
+double-circularity: the proxy comes from the algorithm being compared,
+and is then fed back as $f^{*}$ to define the oracle scale), flagged
+here so the row is read as illustrative, not as a validation of the
 calibration. The instance configurations are summarised in
 Table~\ref{tab:delta0-families-summary}.
 
