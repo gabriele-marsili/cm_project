@@ -3,6 +3,98 @@
 All notable changes to the CM 646AA Project 25 ML (ELM + LASSO) implementation
 and report. Dates are in `YYYY-MM-DD`.
 
+## 2026-06-09 — Theorem 3.1 + appendix proof, de-LLM pass, final review, code zip
+
+Work after the 2026-06-07 entry, across several commits and two authors
+(`b34883c`, `58c30e4`, `3819d3a`, `d9c4868`, `6d42c6b`, `5810b60`, `545328e`).
+
+### Report — theory & results (`b34883c`, `58c30e4`)
+
+- **Ch. 3 (Deflected Subgradient), proof of Theorem 3.1 — boundedness argument
+  rewritten** (`3_algo_2_DSM/chapter3.tex`, paragraph "Subgradients uniformly
+  bounded"). Restructured into the per-step estimate
+  $\eta_i=-(2\gamma_i-\beta_i)(f(\mathbf{w}_i)-f^*)-\beta_i t_i$ and the cases
+  "Sign of $\eta_i$", "Tail $i\ge\bar\imath$", "Transient $i<\bar\imath$" — the
+  Fej\'er distance-to-$\mathbf{w}^*$ contraction that bounds the non-monotone
+  iterates (the response to the prof's boundedness objection, replacing the old
+  one-paragraph argument).
+- **Appendix (new): "Derivation of the per-step estimate with target level"**
+  (`appendix/appendix.tex`, `app:def-step-target`) — the target-level form of
+  eq. (3.17), referenced by the Ch. 3 boundedness argument above.
+- **Appendix A (IRLS local convergence) — step 2 completed** [Matthew]
+  (`appendix/appendix.tex`). Added the converse direction of the lemma
+  $\mathbf{S}\preceq\mathbf{I}\Leftrightarrow\mathbf{H}\preceq\mathbf{B}$
+  (assume $\mathbf{H}\preceq\mathbf{B}\Rightarrow\mathbf{S}\preceq\mathbf{I}$),
+  closing the spectral-radius bound $\rho(\nabla\mathcal{M}(\mathbf{w}^*))<1$.
+- **§5.5.2 Scalability — expanded to two regimes** (`5_results/results.tex`):
+  synthetic ($M=5H$) and real (`california`, fixed $M$), with the FLOP-count vs
+  wall-clock split. Added figure `scalability_real` and timing table
+  `tab:scalability-time`; relative-gap framing propagated into §5.5.3
+  (iterations-to-$\varepsilon$) and §5.6 (real-data $10^{-6}$ target). Figures
+  regenerated: `comparison_irls_dsm`, `real_data_convergence`, `scalability`,
+  `scalability_real`.
+- Supporting hand-derivations added as working notes under `utils/`
+  (`teorema_3_1_SGPTL_spiegazione.{tex,pdf}`,
+  `irls_convergence_rate_spiegazione.{tex,pdf}`, `d_i_bounded.txt`) — scratch
+  material, not part of the submitted report.
+
+### Code — de-LLM pass (`3819d3a` [Matthew], `d9c4868`)
+
+- `src/{irls,deflected_subgradient,elm,lasso_utils,linear_solvers,data_generation}.py`
+  and two experiment scripts: comments/docstrings tightened, dead imports
+  removed. **Algorithmic logic unchanged**; 53/53 tests pass.
+
+### Merge & build (`6d42c6b`, `5810b60`)
+
+- Merged Matthew's branch (appendix proof + de-LLM). 8 `.py` conflicts resolved
+  file-by-file — divergence was comments/docstrings/formatting only, identical
+  algorithms. Took Matthew's docstrings for `src/`, local PEP8-wrapped version
+  for the two experiment scripts. Recompiled `main.pdf` to 69 pp.
+
+### Report — final review pass (`545328e`, this session)
+
+Detailed deep-dive in `project_review/CHANGES_2026-06-09.md`.
+
+- **Numerical fixes.** Root cause: five result CSVs (`convergence_instance`,
+  `rho_sweep`, `gamma_floor_test`, `delta0_families`, `sgptl_long_run`) store
+  *absolute* gaps $f-f^*$, but the report presents everything as *relative*
+  $(f-f^*)/|f^*|$ (per the prof's correction). Numbers taken straight from those
+  CSVs were absolute mislabeled as relative; all re-derived from seed 42.
+  - §5.2: $f(\mathbf{0})\;76\to 4.6$ (stale value, never in any CSV);
+    $10^{-6}$ crossing $122\to 115$; gap at 1500 iters
+    $1.5\cdot 10^{-10}\to 1.3\cdot 10^{-10}$.
+  - §5.4.4 (SGPTL: $\delta_0$ and $\rho$): $\rho$-sweep range $\to 1.7\cdot
+    10^{-5}\dots 7.0\cdot 10^{-4}$; per-instance best $\rho$
+    $0.3,0.3,0.7\to 0.8,0.3,0.7$; $\delta_0$ $c$-sweep
+    $\to[4.8\cdot 10^{-5},1.4\cdot 10^{-4}]$.
+  - §5.4.3 (SGPTL: deflection floor $\gamma_{\min}$): floor table
+    $4.4\cdot 10^{-2}/1.1\cdot 10^{-4}\to 3.7\cdot 10^{-2}/1.0\cdot 10^{-4}$.
+  - Removed the false claim "$\rho\in[0.3,0.7]$ within $2\times$ of the best
+    everywhere" (false on the synthetic).
+  - Appendix B: IRLS synthetic warm/cold $940/922\to 941/923$.
+  - Verified correct, unchanged: gap0 $0.37$, SGPTL diabetes MSE $0.898$
+    (reproduced 0.8983), contraction range $7\to 91$, all main tables.
+- **Removed all `.csv` filename citations from the report** (7 occurrences):
+  captions of Tab. 5.1 (warm/cold) and Tab. 5.6 (before/after), §5.3 "Defaults",
+  §5.6 "Validation on real datasets".
+- **De-LLM repetitions:** deleted 6 cross-section repeats, by section —
+  multiplicative $\|\mathbf{w}_0-\mathbf{w}^*\|$ (§5.3, `results.tex:284`),
+  california-OLS-near-$f^*$ (Appendix $\delta_0$-families table caption),
+  $O(\varepsilon)$ floor (§2.5, `algo1.tex:224`), rate$\approx 1$ cause (§5.2,
+  `results.tex:131` $\to$ cross-ref to Appendix A), record-vs-iterate (§5.2,
+  `results.tex:150`), per-decade $100\times$ (§5.5.3, `results.tex:831`).
+  Also removed "the signature of"; clarified the test claim in §5.1
+  (surrogate-descent = IRLS, record-monotonicity = SGPTL).
+- **Deliverable:** added `progetto/code/requirements.txt`; added
+  `.pytest_cache/` to `.gitignore`; built `progetto/CM_project25_group63_code.zip`
+  (89 files, 1.19 MB) excluding venv/caches/`results_old_submission`/
+  `experiments/old`/`utils`.
+
+### Open items (non-blocking)
+
+- `delta0_families` appendix figure (15 panels) borderline vs §4.6 ("many small
+  plots").
+
 ## 2026-06-07 — Code deliverable: de-LLM comment pass, numerical cleanup, dead-file pruning
 
 Critical review of the whole `code/` tree for the submission: correctness,
