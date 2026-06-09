@@ -1,7 +1,5 @@
-"""
-test_basic.py
--------------
-Quick sanity checks for all modules.
+"""Quick sanity checks for all modules.
+
 Run from the code/ directory:  python test_basic.py
 """
 
@@ -12,10 +10,10 @@ import numpy as np
 import traceback
 import warnings
 
-# NumPy's matmul SIMD loop sets the FPU exception flags on some BLAS builds
-# (e.g. Apple Accelerate) even when the result is finite and correct, so `@`
-# emits spurious "... encountered in matmul" RuntimeWarnings. Filter them to
-# keep the sanity output readable; X.dot(w) returns the same finite values.
+# on some BLAS builds (e.g. Apple Accelerate) the matmul SIMD loop sets the FPU
+# exception flags even when the result is finite, so `@` emits spurious
+# "... encountered in matmul" RuntimeWarnings. filtered out here, the values are
+# finite and correct.
 warnings.filterwarnings(
     "ignore",
     message=r"(divide by zero|overflow|invalid value) encountered in matmul",
@@ -51,13 +49,14 @@ def run_tests():
     g = grad_smooth(X, y, w)
     all_passed &= check("grad_smooth shape", g.shape == (n,))
 
-    # Numerical gradient check.  At a point where w_i != 0 for all i,
-    # the LASSO objective is differentiable and  nabla f(w) = X^T(Xw-y) + lam*sign(w).
-    # Central finite difference of f_lasso should equal grad_smooth + lam*sign(w).
+    # numerical gradient check: where all w_i != 0 the LASSO objective is
+    # differentiable, nabla f(w) = X^T(Xw-y) + lam*sign(w), so the central FD
+    # of f_lasso must equal grad_smooth + lam*sign(w)
     eps_fd = 1e-5
     g_num = np.zeros(n)
     for i in range(n):
-        e = np.zeros(n); e[i] = eps_fd
+        e = np.zeros(n)
+        e[i] = eps_fd
         g_num[i] = (f_lasso(X, y, w+e, lam) - f_lasso(X, y, w-e, lam)) / (2*eps_fd)
     g_full = g + lam * np.sign(w)
     all_passed &= check("grad_smooth numerical check",
@@ -89,7 +88,8 @@ def run_tests():
     np.random.seed(42)
     m2, n2 = 50, 10
     X2 = np.random.randn(m2, n2)
-    w_true = np.zeros(n2); w_true[:3] = [1.5, -0.8, 0.4]
+    w_true = np.zeros(n2)
+    w_true[:3] = [1.5, -0.8, 0.4]
     y2 = X2 @ w_true + 0.05 * np.random.randn(m2)
 
     res = irls(X2, y2, lam=0.1, eps_thr=1e-8, eps_stop=1e-8, k_max=300)
@@ -106,8 +106,8 @@ def run_tests():
     print("\n=== Deflected Subgradient ===")
     from src.deflected_subgradient import deflected_subgradient
 
-    # sklearn alpha to match our f = (1/2)||Xw-y||^2 + lam||w||_1 :
-    # sklearn minimises (1/(2m))||Xw-y||^2 + alpha||w||_1, so  alpha = lam / m.
+    # match sklearn alpha to our f = (1/2)||Xw-y||^2 + lam||w||_1
+    # sklearn minimises (1/(2m))||Xw-y||^2 + alpha||w||_1 -> alpha = lam / m
     from sklearn.linear_model import Lasso as SkLasso
     lam_test = 0.1
     sk = SkLasso(alpha=lam_test / m2, fit_intercept=False,
@@ -116,7 +116,7 @@ def run_tests():
     w_sk = sk.coef_
     f_star_test = f_lasso(X2, y2, w_sk, lam_test)
 
-    # we use 0.1 * f(w_0) at the default cold start w_0 = 0.
+    # delta0 = 0.1 * f(w_0) at the default cold start w_0 = 0
     f_w0 = f_lasso(X2, y2, np.zeros(X2.shape[1]), lam_test)
     res_d = deflected_subgradient(X2, y2, lam=0.1, i_max=3000, beta=1.0,
                                    delta0=0.1*f_w0, rho=0.7,

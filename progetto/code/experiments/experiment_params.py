@@ -10,11 +10,8 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 import numpy as np
 np.seterr(all="ignore")
 
-try:
-    import pandas as pd
-    _HAS_PANDAS = True
-except ImportError:
-    _HAS_PANDAS = False
+import importlib.util
+_HAS_PANDAS = importlib.util.find_spec("pandas") is not None
 
 import matplotlib
 matplotlib.use("Agg")
@@ -24,12 +21,12 @@ from src import irls, deflected_subgradient, make_lasso_problem
 from src.linear_solvers import solve_spd
 from _plot_style import (apply_style, style_axes,
                          RAMP_BLUES, RAMP_REDS, RAMP_ORANGES, RAMP_PURPLES,
-                         SIZE_DOUBLE, SIZE_SINGLE, COLOR_IRLS, COLOR_FCUR)
+                         SIZE_DOUBLE, COLOR_IRLS, COLOR_FCUR)
 apply_style()
 
 
-SEED  = 42
-H, M  = 100, 400
+SEED = 42
+H, M = 100, 400
 NOISE = 0.05
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
@@ -156,7 +153,7 @@ def run() -> None:
         label = rf"$\rho={rho:g}$  ({n_contr} contr.)"
         axes[1].loglog(iters, gaps, color=color, linewidth=1.8, label=label)
         print(f"  rho={rho}: gap={gaps[-1]:.2e}, contractions={n_contr}")
-        # record raw (unclipped) final gap for CSV
+        # raw (unclipped) final gap for the CSV
         raw_gaps = np.asarray(res["gaps"], dtype=float)
         rho_records.append({
             "rho": rho,
@@ -190,10 +187,10 @@ def run() -> None:
     print(f"Saved: {path}\n")
     plt.close(fig)
 
-    # ---- IRLS Solver Comparison (Cholesky vs CG) ----
-    # Two panels: gap vs iteration (left, shows the algorithmic difference)
-    # and gap vs wall-clock time (right, log-log axes so the ~10 ms Cholesky
-    # run stays visible next to the ~100 ms CG one).
+    # ---- IRLS solver comparison (Cholesky vs CG) ----
+    # two panels: gap vs iteration (left, the algorithmic difference) and gap
+    # vs wall-clock (right, log-log so the ~10 ms Cholesky run stays visible
+    # next to the ~100 ms CG one)
     print("\n--- IRLS: Solver Comparison (Cholesky vs CG) ---")
     fig, axes = plt.subplots(1, 2, figsize=SIZE_DOUBLE)
 
@@ -201,7 +198,7 @@ def run() -> None:
     plot_colors = {"cholesky": COLOR_IRLS, "cg": COLOR_FCUR}
     runs = {}
 
-    k_irls_solvers = 300 # both methods converge at 265 iterations
+    k_irls_solvers = 300  # both methods converge at 265 iterations
     for sol in solvers:
         res = irls(X, y, LAMBDA, eps_thr=1e-8, eps_stop=1e-12,
                    k_max=k_irls_solvers, solver=sol, w0=w_ols, f_star=f_star)
@@ -213,9 +210,16 @@ def run() -> None:
         print(f"    Execution Time: {exec_time:.4f} s")
         print(f"    Iterations:     {n_iters} (Converged: {converged})")
         print(f"    Sparsity:       {sparsity:.2%}")
-        runs[sol] = {"gaps": _safe_log(np.asarray(res["gaps"], dtype=float) / abs(f_star)), "times": np.asarray(res["times"], dtype=float), "exec_time": exec_time, "sparsity": sparsity, "n_iter": int(n_iters), "converged": bool(converged)}
+        runs[sol] = {
+            "gaps": _safe_log(np.asarray(res["gaps"], dtype=float) / abs(f_star)),
+            "times": np.asarray(res["times"], dtype=float),
+            "exec_time": exec_time,
+            "sparsity": sparsity,
+            "n_iter": int(n_iters),
+            "converged": bool(converged),
+        }
 
-    # Left panel: gap vs iteration (semilog y).
+    # left panel: gap vs iteration (semilog y)
     ax = axes[0]
     for sol in solvers:
         gaps = runs[sol]["gaps"]
@@ -228,17 +232,18 @@ def run() -> None:
     ax.legend(loc="upper right", fontsize=10)
     style_axes(ax)
 
-    # Right panel: gap vs CPU time, log-log with shared warm-start marker so
-    # Cholesky's 10 ms run is visible alongside CG's 100 ms run. We replace
-    # the t=0 warm-start point with a small offset (half the smallest non-
+    # right panel: gap vs CPU time, log-log with a shared warm-start marker so
+    # Cholesky's 10 ms run is visible alongside CG's 100 ms run. the t=0
+    # warm-start point is replaced by a small offset (half the smallest non-
     # zero measurement across both solvers) so the shared starting gap shows
-    # on the log axis.
+    # on the log axis
     ax = axes[1]
     min_pos = min(runs[s]["times"][1] for s in solvers
                   if len(runs[s]["times"]) > 1)
     t_start = min_pos / 2.0
     for sol in solvers:
-        t = runs[sol]["times"].copy(); t[0] = t_start
+        t = runs[sol]["times"].copy()
+        t[0] = t_start
         ax.loglog(t, runs[sol]["gaps"], linewidth=2.0,
                   color=plot_colors[sol],
                   label=f"{sol.upper()}  (total {runs[sol]['exec_time']*1000:.1f} ms)")

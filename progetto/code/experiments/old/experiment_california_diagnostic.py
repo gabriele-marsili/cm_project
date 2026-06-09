@@ -1,18 +1,17 @@
 """Diagnostic: when does SGPTL actually move on california ELM?
 
-The main delta_0 sweep shows california stalls at the OLS warm start
-on every (family, c) pair. Two candidate explanations:
+The main delta_0 sweep shows california stalls at the OLS warm start on every
+(family, c) pair. Two candidate explanations:
 
-(A) Structural: on column-normalised sigmoid(X * W1) at the budgets we
-    use, SGPTL fundamentally cannot escape the warm start.
-(B) Parametric: the default lambda=0.1 and OLS warm start put us in a
-    regime where the LASSO optimum is essentially OLS, leaving SGPTL
-    no room to improve. Different lambda or cold start would change
-    the picture.
+(A) structural -> on column-normalised sigmoid(X * W1) at the budgets we use,
+    SGPTL cannot escape the warm start
+(B) parametric -> the default lambda=0.1 and OLS warm start put us in a regime
+    where the LASSO optimum is close to OLS, leaving SGPTL no room to improve.
+    Different lambda or cold start would change this.
 
-This script tests (B) by sweeping lambda and starting point on
-california ELM (H=50 and H=200), measuring how far SGPTL moves from
-its starting f-value and how it compares to IRLS converged.
+This script tests (B) by sweeping lambda and starting point on california ELM
+(H=50 and H=200), measuring how far SGPTL moves from its starting f-value and
+how it compares to IRLS converged.
 """
 
 import os
@@ -123,7 +122,7 @@ def sweep_for_H(H_hidden):
 
     records = []
     for lam in lams:
-        # CVXPY f^* for benchmarking
+        # CVXPY f^* for benchmarking, IRLS-converged as fallback
         irls_res = irls(X, y, lam, eps_thr=1e-8, eps_stop=1e-14,
                         k_max=300, solver="cholesky", w0=w_ols)
         f_irls = float(np.min(irls_res["f_vals"]))

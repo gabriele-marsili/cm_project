@@ -4,10 +4,10 @@ Family A: delta_0 = c * f_LASSO(w_0)        (default, admissible)
 Family B: delta_0 = c * (1/2)||X w_0 - y||^2 (smooth-only, admissible)
 Family C: delta_0 = c * f^*                  (diagnostic oracle, not admissible)
 
-We instantiate each family at the actual starting point w_0 used by
-SGPTL on each instance, not at w_OLS unconditionally: this keeps the
-admissible-vs-oracle comparison meaningful even when the warm start
-already coincides with f^* (see california below).
+Each family is instantiated at the actual starting point w_0 used by
+SGPTL on each instance, not at w_OLS unconditionally -> the
+admissible-vs-oracle comparison stays meaningful even when the warm
+start already coincides with f^* (see california below).
 
 Instances and starting points (lambda=0.1 fixed on all):
   - synthetic (H=100, M=300), 5 seeds, OLS warm start. CVXPY-verified f^*.
@@ -98,7 +98,7 @@ def _count_contractions(delta_hist) -> int:
 
 
 def _f_star_cvxpy(X, y, lam):
-    """Solve LASSO via CVXPY interior-point (CLARABEL) to high precision."""
+    """LASSO via CVXPY interior-point (CLARABEL), high precision"""
     if not _HAS_CVXPY:
         return None
     M, H = X.shape
@@ -144,7 +144,7 @@ def _load_real_elm(name, H_hidden, seed=SEED_REAL):
 
 
 def _instance_f_star(name, X, y, lam):
-    """Compute f^* as IRLS-converged value, cross-validated with CVXPY."""
+    """f^* from IRLS-converged value, cross-validated with CVXPY"""
     M, H = X.shape
     w_ols = solve_spd(X.T @ X + 1e-12 * np.eye(H), X.T @ y, method="cholesky")
     irls_res = irls(X, y, lam, eps_thr=1e-8, eps_stop=1e-14,
@@ -171,7 +171,7 @@ def _instance_f_star(name, X, y, lam):
 
 
 def _scales_at_w0(X, y, w0, lam, f_star):
-    """Family scales evaluated at the actual starting point w_0."""
+    """Family scales evaluated at the actual starting point w_0"""
     fA = float(f_lasso(X, y, w0, lam))
     resid = X @ w0 - y
     fB = float(0.5 * resid @ resid)
@@ -195,7 +195,7 @@ def _sweep(name, X, y, lam, seed_tag, f_star, w0, start_label, fA, fB, fC):
             gaps = np.asarray(res["gaps"], dtype=float)
             n_contr = _count_contractions(res["delta_hist"])
             final_gap = float(gaps[-1])
-            # plotted quantity: relative gap (f - f*)/|f*|; CSV keeps absolute.
+            # plotted: relative gap (f - f*)/|f*|, CSV keeps absolute
             trajs[fam_id][c] = gaps / abs(f_star)
             out_rows.append({
                 "dataset":          name,
@@ -234,7 +234,7 @@ def run() -> None:
         )
         f_star, source, w_ols = _instance_f_star(
             f"synthetic-seed{seed}", X, y, LAMBDA)
-        w0 = w_ols   # warm
+        w0 = w_ols  # warm
         fA, fB, fC = _scales_at_w0(X, y, w0, LAMBDA, f_star)
         rows, trajs = _sweep("synthetic", X, y, LAMBDA, seed,
                              f_star, w0, "warm", fA, fB, fC)
@@ -245,9 +245,9 @@ def run() -> None:
     plot_payload["synthetic"] = synth_trajs_perseed
 
     # --- Real ELM instances ---------------------------------------------------
-    # diabetes: warm start (OLS gap is meaningful at this size).
-    # california: cold start (OLS coincides with f^* on this dataset at
-    #             lambda=0.1, so warm-starting leaves nothing for SGPTL to do).
+    # diabetes: warm start (OLS gap is meaningful at this size)
+    # california: cold start, OLS coincides with f^* here at lambda=0.1 so
+    #             warm-starting leaves nothing for SGPTL to do
     real_configs = [
         ("diabetes",   H_DIAB_SMALL, "warm"),
         ("diabetes",   H_DIAB_LARGE, "warm"),

@@ -1,6 +1,4 @@
-"""
-Tests for src/elm.py - the ELM model wrapping IRLS / DSM.
-"""
+"""Tests for src/elm.py, the ELM model wrapping IRLS and DSM."""
 import numpy as np
 import pytest
 
@@ -46,12 +44,12 @@ def test_elm_predict_before_fit_raises():
 def test_elm_fit_irls_then_predict(elm_problem):
     e = elm_problem
     elm = ELM(d=10, p=80, activation="sigmoid", lam=e["lam"], random_state=2)
-    # Force the same hidden weights as the fixture used
+    # same hidden weights as the fixture
     elm.W1 = e["W1"]
     elm.fit(e["X_raw"], e["y"], solver="irls", eps_stop=1e-8, k_max=200)
     y_hat = elm.predict(e["X_raw"])
     assert y_hat.shape == e["y"].shape
-    # solution should be within IRLS-typical tolerance of the reference
+    # within IRLS-typical tolerance of the reference
     from src.lasso_utils import f_lasso
     f_irls = f_lasso(e["X_hid"], e["y"], elm.w, e["lam"])
     assert f_irls - e["f_star"] < 1e-2

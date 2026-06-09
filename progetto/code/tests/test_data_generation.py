@@ -1,11 +1,9 @@
-"""
-Tests for src/data_generation.py - synthetic problem builders.
+"""Tests for src/data_generation.py, the synthetic problem builders.
 
-Critical invariant: f_star must be the actual minimum of f over R^n, i.e.
-no random perturbation of w_star produces a lower value.
+The invariant under test: f_star is the actual minimum of f over R^n, so no
+random perturbation of w_star produces a lower value.
 """
 import numpy as np
-import pytest
 
 from src.data_generation import make_lasso_problem, make_elm_problem
 from src.lasso_utils import f_lasso, check_optimality
@@ -21,7 +19,7 @@ def test_make_lasso_problem_shapes():
 
 
 def test_make_lasso_problem_fstar_is_local_minimum():
-    """f_star must be the minimum: any perturbation of w_star should not lower f."""
+    """no perturbation of w_star should lower f below f_star"""
     X, y, _, f_star, w_star = make_lasso_problem(n=20, m=80, lam=0.1, random_state=0)
     rng = np.random.default_rng(0)
     for _ in range(30):
@@ -44,7 +42,7 @@ def test_make_elm_problem_consistency():
     X_raw, X_hid, y, W1, w_true, f_star, w_star = make_elm_problem(
         d=8, p=40, m=150, sparsity=0.2, lam=0.05, random_state=3
     )
-    # f_star must equal f at w_star (sanity)
+    # f_star must equal f at w_star
     f_eval = f_lasso(X_hid, y, w_star, 0.05)
     assert abs(f_eval - f_star) < 1e-10
     # X_hid must equal sigma(X_raw @ W1.T)

@@ -1,15 +1,12 @@
 """SGPTL: hyperparameter calibration for warm-start and cold-start separately.
 
-Goal: for each starting point (warm = OLS, cold = zero), sweep
-(delta_0, rho, R) on a moderate grid, record the final record gap, and
-report the best configuration.
+For each starting point (warm = OLS, cold = zero), sweep (delta_0, rho, R) on a
+moderate grid, record the final record gap, report the best configuration. If
+warm or cold start has any intrinsic advantage on ELM LASSO, it shows up when
+each is run at its own best configuration.
 
-The point is to give a fair side-by-side: if warm or cold start has any
-intrinsic advantage on ELM LASSO, it should show up when each is run at
-its own best configuration.
-
-All runs use the theory-pure SGPTL (Algorithm 1 in the report, no
-iter-fallback, no overshoot rescue), gamma_min = 0.05, beta = 1.
+All runs use the theory-pure SGPTL (Algorithm 1 in the report, no iter-fallback,
+no overshoot rescue), gamma_min = 0.05, beta = 1.
 """
 
 import csv
@@ -35,8 +32,8 @@ NOISE  = 0.05
 H, M   = 100, 300
 I_MAX  = 8000
 
-# Hyperparameter grid (theory-pure: delta_0 > 0, rho in (0,1), R > 0).
-DELTA0_FACTORS = [0.01, 0.05, 0.1, 0.5, 1.0]   # multiplied by f(w_0)
+# hyperparameter grid (theory-pure: delta_0 > 0, rho in (0,1), R > 0)
+DELTA0_FACTORS = [0.01, 0.05, 0.1, 0.5, 1.0]  # multiplied by f(w_0)
 RHO_VALS       = [0.3, 0.5, 0.7, 0.8, 0.9]
 R_VALS         = [0.1, 0.5, 1.0, 5.0, 10.0]
 
@@ -118,7 +115,7 @@ def run() -> None:
         wr.writerows(rows)
     print(f"\nSaved: {out_path}")
 
-    # Headline summary: best of each, side by side.
+    # best of each, side by side
     print("\n" + "=" * 70)
     print("Best config for each starting point")
     print("=" * 70)

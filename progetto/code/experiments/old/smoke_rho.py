@@ -1,7 +1,7 @@
 """Smoke test: sensitivity of SGPTL to rho on small synthetic and real ELM instances.
 
 Used to motivate the rho default in the revised submission. Output goes to stdout
-and to results/tables/smoke_rho.csv.
+and to results/tables/smoke_rho.csv
 """
 
 import csv
@@ -85,7 +85,7 @@ def _bench_real(name, H=200, lam=0.1, i_max=8000):
     w0 = _ols(X_tr, y_tr)
     fw0 = float(f_lasso(X_tr, y_tr, w0, lam))
 
-    # sklearn reference (best effort)
+    # sklearn reference where it is cheap enough to run
     if name == "diabetes":
         sk = SkLasso(alpha=lam / X_tr.shape[0], fit_intercept=False,
                      max_iter=2000, tol=1e-5)

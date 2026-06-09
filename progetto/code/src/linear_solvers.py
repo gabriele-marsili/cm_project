@@ -1,4 +1,4 @@
-"""SPD solvers used by IRLS: dense Cholesky and Jacobi-preconditioned CG."""
+"""SPD solvers behind the IRLS inner step: dense Cholesky and Jacobi-PCG."""
 
 from typing import Optional, Tuple, Union
 
@@ -7,13 +7,13 @@ import scipy.linalg as la
 
 
 def cholesky_solve(Q: np.ndarray, b: np.ndarray) -> np.ndarray:
-    """Solve Q x = b for SPD Q via Cholesky factorization (Q = L L^T)."""
+    # Q = L L^T then two triangular solves, check_finite off since Q is built clean
     c, low = la.cho_factor(Q, lower=True, check_finite=False)
     return la.cho_solve((c, low), b, check_finite=False)
 
 
-# Inner products (used as squared norms) below this are treated as zero:
-# either CG breakdown on a non-SPD matrix or a reached fixed point.
+# squared quantities below this count as zero: CG breakdown on a (numerically)
+# non-SPD matrix, or an exact fixed point
 _NUMERICAL_FLOOR = 1e-30
 
 
@@ -25,12 +25,15 @@ def conjugate_gradient(
     max_iter: Optional[int] = None,
     precond: Optional[np.ndarray] = None,
 ) -> Tuple[np.ndarray, int]:
-    """Preconditioned CG for SPD Q x = b. Returns (x, iters_done).
+    """Preconditioned CG for SPD Qx = b -> (x, iters)
 
-    precond: M^{-1} = diag(precond). Default: Jacobi precond_i = 1 / Q_ii
-    (requires strictly positive diag(Q)). Stops on ||r|| <= tol * ||b|| or on
-    breakdown (p @ Qp <= 0, i.e. loss of SPD), returning the current iterate;
-    the caller should check the residual before using it.
+    precond holds the diagonal of M^{-1}, default is Jacobi (1/Q_ii), which
+    needs a strictly positive diagonal. 
+    Two exits:
+        ||r|| <= tol ||b|| -> converged
+        p^T Q p <= 0 -> SPD lost to round-off, bail with current x
+    On the second exit the iterate is not trustworthy, so the caller checks the
+    residual before using it.
     """
     n = len(b)
     if max_iter is None:
@@ -54,8 +57,7 @@ def conjugate_gradient(
             return x, k
         Qp = Q @ p
         pQp = p @ Qp
-        if pQp <= _NUMERICAL_FLOOR:
-            # SPD lost to round-off: stop and return the current iterate.
+        if pQp <= _NUMERICAL_FLOOR:  # not SPD anymore -> stop here
             return x, k
         alpha = rz / pQp
         x += alpha * p
@@ -64,7 +66,7 @@ def conjugate_gradient(
         rz_new = r @ z
         if abs(rz) <= _NUMERICAL_FLOOR:
             return x, k
-        p = z + (rz_new / rz) * p
+        p = z + (rz_new / rz) * p  # Fletcher-Reeves beta
         rz = rz_new
 
     return x, max_iter
@@ -77,10 +79,9 @@ def solve_spd(
     return_info: bool = False,
     **kwargs,
 ) -> Union[np.ndarray, Tuple[np.ndarray, Optional[int]]]:
-    """Solve SPD system Q x = b. method in {'cholesky', 'cg'}.
+    """Dispatch to a single SPD solve. method in {'cholesky', 'cg'}
 
-    return_info=True returns (x, info) where info is None for Cholesky and
-    the CG iteration count for CG.
+    With return_info, also hand back the CG iteration count (None for Cholesky)
     """
     if method == "cholesky":
         x = cholesky_solve(Q, b)

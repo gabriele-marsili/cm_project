@@ -1,4 +1,9 @@
-"""Algorithm A1: IRLS for the LASSO."""
+"""Algorithm A1 -- IRLS for the LASSO.
+
+The |w_i| in the L1 term is replaced by w_i^2 / |w_i|, which turns the
+non-smooth penalty into a reweighted quadratic. 
+Each outer step then solves one SPD system and re-reads the weights from the new iterate.
+"""
 
 from typing import Optional
 
@@ -9,12 +14,12 @@ import numpy as np
 from .lasso_utils import f_lasso
 from .linear_solvers import solve_spd
 
-# Tiny ridge on A = X^T X for the OLS warm start, so Cholesky still works when
-# X is rank-deficient. 1e-12 leaves the solution unchanged in double precision.
+# tiny ridge on X^T X for the OLS warm start: keeps Cholesky alive when X is
+# rank-deficient, and at 1e-12 it does not move the solution in double precision
 _OLS_RIDGE: float = 1e-12
 
-# CG settings (solver='cg' only). tol below the outer eps_stop so the inner
-# solve does not limit the IRLS rate; iteration cap at 10*H.
+# CG knobs (solver='cg'). tol kept well under eps_stop so the inner solve is
+# never the bottleneck on the outer rate, iteration cap = 10*H
 _CG_TOL: float = 1e-12
 _CG_MAX_ITER_FACTOR: int = 10
 
@@ -31,21 +36,20 @@ def irls(
     f_star: Optional[float] = None,
     verbose: bool = False,
 ) -> dict:
-    """Iteratively Reweighted Least Squares for LASSO (Algorithm A1).
+    """IRLS for min 1/2||Xw - y||^2 + lam||w||_1
 
-    Solves min (1/2)||Xw - y||^2 + lam*||w||_1 by repeatedly minimising a
-    smooth quadratic surrogate. Each iteration solves Q_k w_{k+1} = X^T y with
-    Q_k = X^T X + lam*diag(1/max(|w|, eps_thr)).
+    Outer step k solves Q_k w = X^T y with
+        Q_k = X^T X + lam diag( 1 / max(|w_i|, eps_thr) )
 
     Args:
-        eps_thr: safety threshold for the diagonal weights.
-        eps_stop: tolerance on the scale-invariant change ||dw||/max(1, ||w_k||).
-        k_max: max outer iterations.
-        solver: 'cholesky' or 'cg' (forwarded to solve_spd).
-        w0: optional warm-start; defaults to a ridge-regularised OLS.
-        f_star: if given, gaps f(w_k) - f* are stored in result['gaps'].
+        eps_thr: floor on |w_i| inside the diagonal -> caps the weights and
+            stops Q_k blowing up as coordinates go to zero
+        eps_stop: stop when ||dw|| / max(1, ||w||) drops below this
+        solver: 'cholesky' or 'cg' (see solve_spd)
+        w0: warm start, default is ridge-OLS
+        f_star: if set, the gap f(w_k) - f* is logged in result['gaps']
 
-    Returns dict with keys: w, f_vals, gaps, times, n_iter, converged.
+    Returns dict: w, f_vals, gaps, times, n_iter, converged
     """
     _, H = X.shape
 
@@ -53,9 +57,8 @@ def irls(
     b = X.T @ y
 
     if w0 is None:
-        # OLS warm start. Cholesky raises LinAlgError if X^T X is not SPD; CG
-        # returns its last iterate on breakdown. Check the residual and fall
-        # back to lstsq if the solve is bad.
+        # OLS warm start. Cholesky throws if X^T X is not SPD, CG just returns its last iterate
+        # Either way, check the residual and drop to lstsq if the solve came back garbage
         A_reg = A + _OLS_RIDGE * np.eye(H)
         try:
             w = solve_spd(A_reg, b, method=solver)
@@ -74,8 +77,8 @@ def irls(
 
     f_curr = f_lasso(X, y, w, lam)
     f_vals.append(f_curr)
-    # clip gap at 0 for log plots: with an inexact f* proxy, f_curr can dip
-    # slightly below it.
+    # clamp at 0: with an inexact f* proxy, f_curr can sit a hair below it and
+    # the log-scale plots would choke on a negative gap
     if f_star is not None:
         gaps.append(max(0.0, f_curr - f_star))
     times.append(0.0)
@@ -86,9 +89,8 @@ def irls(
     for k in range(k_max):
         w_old = w.copy()
 
-        # Q_k = A + lam * diag(1/max(|w_i|, eps_thr)), b = X^T y
+        # rebuild the diagonal from the current w, add it onto A in place
         D = 1.0 / np.maximum(np.abs(w), eps_thr)
-
         Q = A.copy()
         Q[np.arange(H), np.arange(H)] += lam * D
 

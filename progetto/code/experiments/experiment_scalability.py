@@ -1,23 +1,20 @@
 """Scalability of IRLS and SGPTL: analytic FLOP count vs measured wall-clock.
 
-Two regimes are measured:
+Two regimes:
+  - synthetic, M = 5H -> H and M grow together
+  - real (california), fixed M -> only H (the ELM hidden size) grows
 
-  * Synthetic, M = 5H: H and M grow together.
-  * Real (california), fixed M: only H (the ELM hidden size) grows.
+Per algorithm, two quantities on the same H axis:
+  - analytic FLOP count of the operations the implementation actually runs
+    (counted from source, leading-order NLA constants after Golub & Van Loan
+    2013: GEMV 2mn, X^T X ~ m n^2, Cholesky n^3/3)
+  - median wall-clock over repeated runs
 
-For each algorithm we report two quantities on the same H axis:
-
-  * the analytic FLOP count of the operations the implementation actually runs
-    (counted, not assumed, from the source; leading-order NLA constants after
-    Golub & Van Loan 2013: GEMV 2mn, X^T X ~ m n^2, Cholesky n^3/3);
-  * the median wall-clock over repeated runs.
-
-The FLOP curve is the concrete instantiation of the per-iteration complexity
-derived in the comparison chapter; overlaying it on wall-clock separates the
-"theory -> FLOP" exponent from the "FLOP -> time" implementation gap. The
-effective throughput (FLOP / wall-clock) makes that gap a measured quantity:
-IRLS rises toward BLAS peak as H grows, SGPTL falls at the memory-bandwidth
-cliff of its long Python iteration loop.
+The FLOP curve instantiates the per-iteration complexity from the comparison
+chapter, overlaying it on wall-clock separates the theory->FLOP exponent from
+the FLOP->time implementation gap. The effective throughput (FLOP / wall-clock)
+turns that gap into a measured quantity: IRLS climbs toward BLAS peak as H
+grows, while SGPTL stays at the memory-bandwidth limit of its long Python loop.
 """
 
 import csv
@@ -45,15 +42,15 @@ from _plot_style import (apply_style, style_axes,
 apply_style()
 
 
-SEED         = 42
-LAMBDA       = 0.10
-NOISE        = 0.05
-M_RATIO      = 5
-IRLS_KMAX    = 100
+SEED = 42
+LAMBDA = 0.10
+NOISE = 0.05
+M_RATIO = 5
+IRLS_KMAX = 100
 IRLS_EPSSTOP = 1e-8
-DSM_IMAX     = 3000
-N_REPEAT     = 5          # median over repeated timings smooths OS/cache jitter
-COOLDOWN_S   = 3.0        # idle gap between timed problems to limit thermal drift
+DSM_IMAX = 3000
+N_REPEAT = 5  # median over repeated timings smooths OS/cache jitter
+COOLDOWN_S = 3.0  # idle gap between timed problems to limit thermal drift
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
 TAB_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "tables")
@@ -69,9 +66,10 @@ os.makedirs(TAB_DIR, exist_ok=True)
 def flops_irls(M: int, H: int, k: int) -> float:
     """Total FLOPs for k IRLS iterations.
 
-    One-time: A = X^T X (~M H^2) and b = X^T y (2 M H).
-    Per iteration: Cholesky (H^3/3) + two triangular solves (2 H^2) +
-    one f_lasso residual (X w: 2 M H)."""
+    one-time: A = X^T X (~M H^2), b = X^T y (2 M H)
+    per iter: Cholesky (H^3/3) + two triangular solves (2 H^2)
+              + one f_lasso residual (X w: 2 M H)
+    """
     one_time = M * H**2 + 2 * M * H
     per_iter = H**3 / 3.0 + 2 * H**2 + 2 * M * H
     return one_time + k * per_iter
@@ -80,8 +78,9 @@ def flops_irls(M: int, H: int, k: int) -> float:
 def flops_sgptl(M: int, H: int, i: int) -> float:
     """Total FLOPs for i SGPTL iterations.
 
-    Per iteration: subgradient X^T(Xw - y) (two GEMV, 4 M H) +
-    one f_lasso residual (2 M H) + O(H) vector work."""
+    per iter: subgradient X^T(Xw - y) (two GEMV, 4 M H)
+              + one f_lasso residual (2 M H) + O(H) vector work
+    """
     per_iter = 6 * M * H
     return i * per_iter
 
@@ -98,8 +97,9 @@ def _blas_threads() -> str:
 def _median_time(fn, repeat=N_REPEAT):
     """Median wall-clock of `fn` over `repeat` runs (one warm-up discarded).
 
-    Returns (median, rel_spread) where rel_spread = (max-min)/median quantifies
-    run-to-run timing noise (thermal drift, OS scheduling)."""
+    Returns (median, rel_spread), rel_spread = (max-min)/median quantifies
+    run-to-run timing noise (thermal drift, OS scheduling).
+    """
     time.sleep(COOLDOWN_S)  # let the CPU settle before a timed batch
     fn()  # warm-up: page in arrays, prime the BLAS thread pool
     samples = []
@@ -113,7 +113,7 @@ def _median_time(fn, repeat=N_REPEAT):
 
 
 def _slope(H, y, frac=0.6) -> float:
-    """Log-log slope fitted on the upper part of the range (overhead-free tail)."""
+    """Log-log slope fitted on the upper part of the range (overhead-free tail)"""
     H = np.asarray(H, float)
     y = np.asarray(y, float)
     k = max(2, int(np.ceil(frac * len(H))))
@@ -125,25 +125,27 @@ _w0_cache = {}
 
 
 def _time_problem(X, y, f_star, f_w0):
-    irls_fn = lambda: irls(
-        X, y, LAMBDA, eps_thr=1e-8, eps_stop=IRLS_EPSSTOP,
-        k_max=IRLS_KMAX, solver="cholesky", w0=_w0_cache["w0"], f_star=f_star)
-    dsm_fn = lambda: deflected_subgradient(
-        X, y, LAMBDA, w0=_w0_cache["w0"], i_max=DSM_IMAX,
-        beta=1.0, delta0=0.1 * f_w0, rho=0.7, f_star=f_star)
-    # Capture the actual iteration counts (early stopping makes them < the caps)
-    # so the FLOP count reflects the work that was actually timed.
+    def irls_fn():
+        return irls(
+            X, y, LAMBDA, eps_thr=1e-8, eps_stop=IRLS_EPSSTOP,
+            k_max=IRLS_KMAX, solver="cholesky", w0=_w0_cache["w0"], f_star=f_star)
+
+    def dsm_fn():
+        return deflected_subgradient(
+            X, y, LAMBDA, w0=_w0_cache["w0"], i_max=DSM_IMAX,
+            beta=1.0, delta0=0.1 * f_w0, rho=0.7, f_star=f_star)
+    # capture the actual iteration counts (early stopping makes them < the caps)
+    # so the FLOP count reflects the work that was timed
     k_irls = irls_fn()["n_iter"]
-    k_dsm  = dsm_fn()["n_iter"]
+    k_dsm = dsm_fn()["n_iter"]
     t_irls, sp_irls = _median_time(irls_fn)
     t_dsm, sp_dsm = _median_time(dsm_fn)
     return t_irls, t_dsm, k_irls, k_dsm, max(sp_irls, sp_dsm)
 
 
 def _figure(rows, regime_label, xlabel, fname):
-    """Two panels: (left) FLOP count vs wall-clock, (right) throughput."""
+    """Two panels: (left) FLOP count vs wall-clock, (right) throughput"""
     Hs   = np.array([r["n"] for r in rows], float)
-    M_of = np.array([r["m"] for r in rows], float)
     t_i  = np.array([r["t_irls"] for r in rows])
     t_d  = np.array([r["t_dsm"]  for r in rows])
     F_i  = np.array([r["flops_irls"] for r in rows])
@@ -151,9 +153,9 @@ def _figure(rows, regime_label, xlabel, fname):
 
     fig, axes = plt.subplots(1, 2, figsize=SIZE_DOUBLE)
 
-    # Left: measured wall-clock (solid) vs analytic FLOP count, the FLOP curve
-    # anchored on the largest-H wall-clock point (the clean, overhead-free end)
-    # so the asymptotic-slope comparison is read without small-H timing noise.
+    # left: measured wall-clock (solid) vs analytic FLOP count. the FLOP curve
+    # is anchored on the largest-H wall-clock point (the clean, overhead-free
+    # end) so the asymptotic-slope comparison avoids small-H timing noise
     ax = axes[0]
     ax.loglog(Hs, t_i, color=COLOR_IRLS, marker="o", markersize=7,
               linewidth=2.0, label="IRLS wall-clock")
@@ -177,7 +179,7 @@ def _figure(rows, regime_label, xlabel, fname):
     ax.legend(loc="upper left", fontsize=8)
     style_axes(ax)
 
-    # Right: effective throughput = analytic FLOPs / measured time.
+    # right: effective throughput = analytic FLOPs / measured time
     ax = axes[1]
     ax.loglog(Hs, F_i / t_i / 1e9, color=COLOR_IRLS, marker="o", markersize=7,
               linewidth=2.0, label="IRLS")

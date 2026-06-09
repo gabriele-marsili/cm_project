@@ -1,5 +1,8 @@
-"""IRLS vs SGPTL on a moderate problem (H=50, M=200, lam=0.1):
-iterations and CPU time to reach a grid of accuracy targets, plus support-recovery."""
+"""IRLS vs SGPTL on a moderate problem (H=50, M=200, lam=0.1).
+
+Iterations and CPU time to reach a grid of accuracy targets, plus
+support recovery.
+"""
 
 import csv
 import os
@@ -19,7 +22,7 @@ import matplotlib.pyplot as plt
 from src import irls, deflected_subgradient, make_lasso_problem, support_metrics
 from src.linear_solvers import solve_spd
 from _plot_style import (apply_style, style_axes,
-                         COLOR_IRLS, COLOR_DSM, COLOR_FCUR, SIZE_DOUBLE)
+                         COLOR_IRLS, COLOR_DSM, SIZE_DOUBLE)
 apply_style()
 
 
@@ -34,7 +37,7 @@ os.makedirs(TAB_DIR, exist_ok=True)
 
 
 def first_index_under(gaps, threshold):
-    """Index of the first gap value that fell to or below ``threshold``."""
+    """Index of the first gap at or below threshold"""
     for i, g in enumerate(gaps):
         if g <= threshold:
             return i
@@ -42,7 +45,7 @@ def first_index_under(gaps, threshold):
 
 
 def first_time_under(gaps, times, threshold):
-    """Wall-clock time at which the gap first fell to or below ``threshold``."""
+    """Wall-clock time when the gap first drops to or below threshold"""
     for g, t in zip(gaps, times):
         if g <= threshold:
             return t
@@ -69,17 +72,17 @@ def run() -> None:
     res_irls = irls(X, y, LAMBDA, eps_thr=1e-8, eps_stop=1e-12,
                     k_max=300, solver="cholesky",
                     w0=w_ols, f_star=f_star)
-    # SGPTL: same OLS warm start as IRLS, theory-pure config (R = 1 default).
+    # SGPTL: same OLS warm start as IRLS, theory-pure config (R = 1 default)
     res_dsm = deflected_subgradient(
         X, y, LAMBDA, w0=w_ols, i_max=30000,
         beta=1.0, delta0=0.1 * f_w0, rho=0.7, f_star=f_star,
     )
 
-    # Relative optimality gaps: (f - f*)/|f*|.
+    # relative optimality gaps (f - f*)/|f*|
     irls_rel_gaps = [g / abs_f_star for g in res_irls["gaps"]]
     dsm_rel_gaps  = [g / abs_f_star for g in res_dsm["gaps"]]
 
-    # Iterations and time to reach each RELATIVE accuracy target.
+    # iterations and time to reach each relative accuracy target
     eps_grid = [1e-1, 1e-2, 1e-3, 1e-4, 1e-6]
     rows = []
     print(f"\n{'eps':>6}  {'IRLS iter':>10}  {'IRLS time':>10}  "
@@ -109,11 +112,11 @@ def run() -> None:
     dsm_gaps  = np.maximum(np.asarray(dsm_rel_gaps,  dtype=float), 1e-16)
     rel_label = r"relative gap  $(f - f^{*})/|f^{*}|$"
 
-    # IRLS hits the numerical floor of the relative gap (~3e-8) around iter 220,
-    # then runs to k_max at a constant gap. Those post-convergence iterations
-    # add no information and inflate the wall-clock panel with timing jitter, so
-    # we truncate the IRLS curve at the floor. Every reported target is >= 1e-6,
-    # reached by iter 125, so this cut leaves all tabulated numbers unchanged.
+    # IRLS hits the relative-gap floor (~3e-8) around iter 220, then runs to
+    # k_max at a constant gap. Those post-convergence iterations carry no
+    # information and add timing jitter to the wall-clock panel, so cut the
+    # IRLS curve at the floor. Every reported target is >= 1e-6, reached by
+    # iter 125, so the cut leaves all tabulated numbers unchanged.
     irls_floor = 1e-7
     irls_cut = (int(np.argmax(irls_gaps <= irls_floor)) + 1
                 if np.any(irls_gaps <= irls_floor) else len(irls_gaps))
@@ -137,14 +140,16 @@ def run() -> None:
     style_axes(ax)
 
     ax = axes[1]
-    # OLS warm-start time is 0; offset to plot in log scale.
+    # OLS warm-start time is 0 -> offset so it shows on a log axis
     irls_t = np.asarray(res_irls["times"], dtype=float)[:irls_cut]
     dsm_t  = np.asarray(res_dsm["times"],  dtype=float)
     smallest = min(irls_t[1] if len(irls_t) > 1 else 1e-5,
                    dsm_t[1]  if len(dsm_t)  > 1 else 1e-5)
     t_start = smallest / 2.0
-    irls_t_plot = irls_t.copy(); irls_t_plot[0] = t_start
-    dsm_t_plot  = dsm_t.copy();  dsm_t_plot[0]  = t_start
+    irls_t_plot = irls_t.copy()
+    irls_t_plot[0] = t_start
+    dsm_t_plot = dsm_t.copy()
+    dsm_t_plot[0] = t_start
 
     ax.loglog(irls_t_plot, irls_gaps,
               color=COLOR_IRLS, marker="o", markersize=4.5,
@@ -169,7 +174,7 @@ def run() -> None:
     print(f"Saved: {path}")
     plt.close(fig)
 
-    # support recovery: same threshold applied to IRLS and SGPTL for a fair comparison.
+    # support recovery: same threshold on IRLS and SGPTL for a fair comparison
     w_irls, w_dsm = res_irls["w"], res_dsm["w"]
     print("\nSolution quality:")
     print(f"  ||w_irls - w*||_2 = {np.linalg.norm(w_irls - w_star):.3e}")

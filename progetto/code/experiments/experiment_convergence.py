@@ -1,4 +1,4 @@
-"""IRLS vs SGPTL convergence on a fixed instance (H=100, M=300, lam=0.1)."""
+"""IRLS vs SGPTL convergence on a fixed instance (H=100, M=300, lam=0.1)"""
 
 import os
 import sys
@@ -24,7 +24,7 @@ from src import irls, deflected_subgradient, make_lasso_problem
 from src.linear_solvers import solve_spd
 from _plot_style import (apply_style, style_axes,
                          COLOR_IRLS, COLOR_DSM,
-                         COLOR_FBAR, COLOR_FCUR, COLOR_REF, COLOR_AUX,
+                         COLOR_FBAR, COLOR_FCUR,
                          SIZE_SINGLE, SIZE_DOUBLE)
 apply_style()
 
@@ -37,7 +37,7 @@ LAMBDA    = 0.10
 NOISE     = 0.05
 
 IRLS_KMAX     = 1500
-IRLS_EPS_THR  = 1e-12   # tight on this figure to expose the linear tail
+IRLS_EPS_THR  = 1e-12  # tight on this figure to expose the linear tail
                         # (default 1e-8 used elsewhere reaches its O(eps_thr)
                         #  smoothing floor before the linear regime is visible)
 DSM_IMAX  = 8000
@@ -79,7 +79,7 @@ def run() -> None:
           f"converged = {res_irls['converged']}")
 
     # SGPTL: same OLS warm start as IRLS, R = 1 by default so the r > R branch
-    # triggers a sensible number of delta contractions.
+    # fires a sensible number of delta contractions
     res_dsm = deflected_subgradient(
         X, y, LAMBDA,
         w0=w_ols, i_max=DSM_IMAX, beta=1.0,
@@ -91,7 +91,7 @@ def run() -> None:
           f"final record gap = {res_dsm['gaps'][-1]:.3e}, "
           f"final current gap = {f_curr_gap[-1]:.3e}")
 
-    # ---- Save full convergence trajectories to CSV ----
+    # ---- save full convergence trajectories to CSV ----
     irls_gaps_raw = np.asarray(res_irls["gaps"], dtype=float)
     irls_times_raw = np.asarray(res_irls["times"], dtype=float)
     dsm_gaps_raw = np.asarray(res_dsm["gaps"], dtype=float)
@@ -135,8 +135,8 @@ def run() -> None:
             fh.write(header + "\n" + "\n".join(lines) + "\n")
     print(f"Saved convergence CSV: {csv_path}")
 
-    # Both panels plot the relative gap (f - f*)/|f*|: an absolute gap of 1e-6
-    # means very different things at f*=1e+4 vs f*=1e-3, so normalise by |f*|.
+    # both panels plot the relative gap (f - f*)/|f*|: an absolute gap of 1e-6
+    # means very different things at f*=1e+4 vs f*=1e-3, so normalise by |f*|
     af = abs(f_star)
     def _rel(arr):
         return _safe_log(np.asarray(arr, dtype=float) / af)
@@ -149,9 +149,9 @@ def run() -> None:
     irls_iters = np.arange(len(irls_rel))
     ax.semilogy(irls_iters, irls_rel, color=COLOR_IRLS, linewidth=1.8,
                 label=r"$(f(w_k) - f^{*})/|f^{*}|$")
-    # Asymptotic linear rate, fitted on the linear tail: after the fast
-    # transient, before the O(eps_thr) smoothing floor. On semilog a constant
-    # per-iteration ratio < 1 is a straight line -- this is what "linear" means.
+    # asymptotic linear rate, fitted on the linear tail: after the fast
+    # transient, before the O(eps_thr) smoothing floor. on semilog a constant
+    # per-iteration ratio < 1 is a straight line (this is what "linear" means)
     lo, hi = 400, min(1200, len(irls_rel) - 1)
     if hi > lo and irls_rel[lo] > 1e-14 and irls_rel[hi] > 1e-14:
         rate = (irls_rel[hi] / irls_rel[lo]) ** (1.0 / (hi - lo))
@@ -186,9 +186,9 @@ def run() -> None:
     ax.loglog(dsm_iters, dsm_fbar_rel,
               color=COLOR_DSM, linewidth=2.0,
               label=r"$(\bar{f}^{i} - f^{*})/|f^{*}|$  (record)")
-    # Faint O(1/sqrt(i)) reference, pinned to the record's first value, so the
-    # record can be read against the theoretical sublinear rate (slope -1/2 on
-    # log-log). Mirrors the linear-rate dashed fit on the IRLS panel.
+    # faint O(1/sqrt(i)) reference, pinned to the record's first value, so the
+    # record reads against the theoretical sublinear rate (slope -1/2 on
+    # log-log). mirrors the linear-rate dashed fit on the IRLS panel
     g0_rel = float(dsm_fbar_rel[0])
     env = g0_rel / np.sqrt(dsm_iters)
     ax.loglog(dsm_iters, env, color="0.45", linestyle="--", linewidth=1.0,
@@ -206,14 +206,16 @@ def run() -> None:
     plt.close(fig)
 
     # ---- Figure 2: gap vs CPU time (in ms), log-log axes ----
-    # OLS warm-start time is 0; substitute a small offset to plot in log scale.
+    # OLS warm-start time is 0 -> substitute a small offset to plot on log scale
     irls_t = np.asarray(res_irls["times"], dtype=float) * 1000.0
     dsm_t  = np.asarray(res_dsm["times"],  dtype=float) * 1000.0
     smallest = min(irls_t[1] if len(irls_t) > 1 else 1e-2,
                    dsm_t[1]  if len(dsm_t)  > 1 else 1e-2)
     t_start = smallest / 2.0
-    irls_t_plot = irls_t.copy(); irls_t_plot[0] = t_start
-    dsm_t_plot  = dsm_t.copy();  dsm_t_plot[0]  = t_start
+    irls_t_plot = irls_t.copy()
+    irls_t_plot[0] = t_start
+    dsm_t_plot = dsm_t.copy()
+    dsm_t_plot[0] = t_start
 
     fig, ax = plt.subplots(figsize=SIZE_SINGLE)
     ax.loglog(irls_t_plot, irls_rel,

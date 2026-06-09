@@ -50,7 +50,7 @@ def build_elm(X_raw: np.ndarray) -> np.ndarray:
 
 
 def time_ols(X: np.ndarray, y: np.ndarray) -> tuple[float, np.ndarray]:
-    """One Cholesky-based OLS solve. Returns (best_time_s, w_ols)."""
+    """One Cholesky-based OLS solve, returns (best_time_s, w_ols)"""
     A = X.T @ X + 1e-12 * np.eye(X.shape[1])
     b = X.T @ y
     times: list[float] = []
@@ -63,7 +63,7 @@ def time_ols(X: np.ndarray, y: np.ndarray) -> tuple[float, np.ndarray]:
 
 
 def time_full_setup(X: np.ndarray, y: np.ndarray) -> float:
-    """The whole 'form A=X^T X, b=X^T y, factorise' that the warm start pays."""
+    """The whole 'form A=X^T X, b=X^T y, factorise' that the warm start pays"""
     times: list[float] = []
     for _ in range(N_REPS):
         t0 = time.perf_counter()
@@ -75,7 +75,7 @@ def time_full_setup(X: np.ndarray, y: np.ndarray) -> float:
 
 
 def time_irls(X: np.ndarray, y: np.ndarray, w0: np.ndarray) -> tuple[float, int]:
-    """IRLS to convergence with the same defaults the report uses."""
+    """IRLS to convergence with the same defaults the report uses"""
     times: list[float] = []
     n_iter = 0
     for _ in range(N_REPS):
@@ -105,9 +105,9 @@ def main() -> None:
         t_irls_warm, niter_warm = time_irls(X, y_tr, w_ols)
         t_irls_cold, niter_cold = time_irls(X, y_tr, np.zeros(H_))
 
-        # share of warm-start setup vs (setup + IRLS iterations excluding setup)
-        # IRLS reports total time including the inner factorisations of the
-        # WLS subproblems; t_setup is the one-shot OLS work that precedes them.
+        # share of warm-start setup vs (setup + IRLS loop)
+        # IRLS time already includes the inner WLS factorisations
+        # t_setup is the one-shot OLS work that precedes the loop
         total_warm = t_setup + t_irls_warm
         share_warm = 100.0 * t_setup / total_warm
 

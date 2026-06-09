@@ -1,4 +1,8 @@
-"""ELM with L1-regularised output layer."""
+"""ELM with an L1-regularised output layer.
+
+Hidden layer W1 is random and frozen.
+Only the output weights w are trained, by solving a LASSO on the hidden features (IRLS or DSM).
+"""
 
 from typing import Optional
 
@@ -7,11 +11,11 @@ import numpy as np
 from .deflected_subgradient import deflected_subgradient
 from .irls import irls
 
-# Clip z before exp(-z) in the sigmoid to avoid overflow. The sigmoid is
-# already saturated for |z| > 36, so 500 only guards extreme inputs.
+# sigmoid saturates past |z| ~ 36, so clipping at 500 before exp() only kills
+# the overflow on pathological inputs and never touches the useful range
 _SIGMOID_CLIP: float = 500.0
 
-# A coordinate counts as inactive when |w_i| < _SPARSITY_TOL.
+# below this a weight is "off" (used for the sparsity readout)
 _SPARSITY_TOL: float = 1e-8
 
 
@@ -48,6 +52,7 @@ class ELM:
         self.lam = lam
         self.sigma = _ACTIVATIONS[activation]
 
+        # W1 drawn once and never updated -> this is what makes it an ELM
         rng = np.random.RandomState(random_state)
         self.W1 = rng.randn(p, d)
 
@@ -55,14 +60,12 @@ class ELM:
         self._fit_result: Optional[dict] = None
 
     def transform(self, X_raw: np.ndarray) -> np.ndarray:
-        """Hidden-layer features: sigma(X_raw @ W1.T), shape (M, p)."""
+        # raw inputs -> hidden features sigma(X_raw W1^T), shape (M, p)
         return self.sigma(X_raw @ self.W1.T)
 
     def fit(self, X_raw: np.ndarray, y: np.ndarray, solver: str = "irls", **kwargs) -> "ELM":
-        """Fit output weights w by solving the LASSO on transformed inputs.
-
-        solver: 'irls' (A1) or 'dsm' (A2). Extra kwargs are forwarded.
-        """
+        """Train w on the hidden features. solver 'irls' (A1) or 'dsm' (A2),
+        leftover kwargs go straight to the chosen solver"""
         Xh = self.transform(X_raw)
         if solver == "irls":
             res = irls(Xh, y, self.lam, **kwargs)
@@ -75,13 +78,13 @@ class ELM:
         return self
 
     def predict(self, X_raw: np.ndarray) -> np.ndarray:
-        """Return yhat = transform(X_raw) @ w. Requires a prior fit()."""
         if self.w is None:
             raise RuntimeError("Call fit() first.")
         return self.transform(X_raw) @ self.w
 
     @property
     def sparsity(self) -> Optional[float]:
+        # fraction of off weights
         if self.w is None:
             return None
         return float(np.mean(np.abs(self.w) < _SPARSITY_TOL))

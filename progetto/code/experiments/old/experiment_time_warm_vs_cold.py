@@ -44,15 +44,14 @@ def run() -> None:
 
     w_cold = np.zeros(H)
 
-    
-    # keep track of w_ols computing time (f* here is used only to log the optimality gap for the convergence plot)
+    # time the w_ols solve too (f* only logs the optimality gap for the plot)
     t0 = time.time()
     w_ols = solve_spd(X.T @ X + 1e-12 * np.eye(H), X.T @ y, method="cholesky")
     delta0_warm = 0.1 * f_lasso(X, y, w_ols, LAMBDA)
     sol_ols = deflected_subgradient(X, y, LAMBDA, w0=w_ols, i_max=I_MAX, beta=1.0, delta0=delta0_warm, rho=0.9, gamma_min=0.05, f_star=f_star)
     time_ols = time.time() - t0
 
-    # time for cold start time
+    # cold start
     t0 = time.time()
     delta0_cold = 0.1 * f_lasso(X, y, w_cold, LAMBDA)
     sol_cold = deflected_subgradient(X, y, LAMBDA, w0=w_cold, i_max=I_MAX, beta=1.0, delta0=delta0_cold, rho=0.9, gamma_min=0.05, f_star=f_star)
@@ -66,7 +65,7 @@ def run() -> None:
     gw = np.maximum(np.asarray(sol_ols["gaps"], dtype=float), 1e-16)
     gc = np.maximum(np.asarray(sol_cold["gaps"], dtype=float), 1e-16)
 
-    # Panel 1: Error vs Number of Iterations (Linear X-Axis)
+    # panel 1: error vs iterations, linear x-axis
     ax1 = axes[0]
     ax1.semilogy(np.arange(1, len(gw) + 1), gw,
                  color=COLOR_DSM, linewidth=2.0, label=f"warm start (OLS) [{time_ols:.2f}s]")
@@ -82,10 +81,10 @@ def run() -> None:
     ax1.legend(loc="upper right")
     style_axes(ax1)
 
-    # Panel 2: Error vs Execution Time (Linear X-Axis)
+    # panel 2: error vs execution time, linear x-axis
     ax2 = axes[1]
-    
-    # Approximate time per iteration linearly across the execution time
+
+    # spread the iterations linearly over the measured execution time
     time_array_w = np.linspace(0, time_ols, len(gw))
     time_array_c = np.linspace(0, time_cold, len(gc))
 
@@ -100,7 +99,6 @@ def run() -> None:
     ax2.legend(loc="upper right")
     style_axes(ax2)
 
-    # Finalize Figure
     fig.suptitle(rf"SGPTL on $H={H}$, $M={M}$, "
                  rf"$\lambda_{{\mathrm{{LASSO}}}}={LAMBDA}$, "
                  rf"$i_{{\max}}={I_MAX}$",

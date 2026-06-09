@@ -1,6 +1,4 @@
-"""
-Tests for src/linear_solvers.py - Cholesky and Conjugate Gradient on SPD systems.
-"""
+"""Tests for src/linear_solvers.py, Cholesky and CG on SPD systems."""
 import numpy as np
 import pytest
 
@@ -31,12 +29,12 @@ def test_cg_matches_cholesky(n, seed):
 
 
 def test_cg_finite_termination_in_n_steps_exact():
-    """In exact arithmetic CG converges in <= n iterations on SPD systems."""
+    """in exact arithmetic CG converges in <= n iterations on SPD systems"""
     n = 30
     Q = _random_spd(n, 42)
     b = np.random.default_rng(42).standard_normal(n)
     x, k = conjugate_gradient(Q, b, tol=0.0, max_iter=n)
-    # at most n iterations (theory); practically often a bit less
+    # at most n iterations by theory, in practice often fewer
     assert k <= n
     assert np.linalg.norm(Q @ x - b) < 1e-6
 

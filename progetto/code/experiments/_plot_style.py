@@ -1,6 +1,5 @@
-"""Shared matplotlib style and palette for all experiment figures."""
+"""Shared matplotlib style and palette for all experiment figures"""
 import matplotlib as _mpl
-import matplotlib.pyplot as _plt
 
 
 COLOR_IRLS = "#1f4e79"
@@ -59,9 +58,9 @@ def style_axes(ax) -> None:
         ax.spines[spine].set_color("#333333")
 
 
-# Shared plot panel for the SGPTL long-run figure.
-# Used by experiment_sgptl_long_run.py (full run) and
-# _replot_sgptl_long_run.py (CSV-only re-plot).
+# shared SGPTL long-run panel
+# used by experiment_sgptl_long_run.py (full run) and
+# _replot_sgptl_long_run.py (CSV-only re-plot)
 def plot_long_run_panel(
     ax,
     ks,
@@ -73,13 +72,13 @@ def plot_long_run_panel(
     """Draw one panel of the SGPTL long-run figure on `ax`.
 
     Args:
-        ks: iteration indices (1-D array).
-        obs_gaps: observed record gap at each k.
-        gap0: initial gap, used to draw the g_0 / sqrt(i) envelope.
-        title: panel title.
-        floor: if given, clip obs_gaps from below and add an annotation at
-            the first floored point (used by the CSV replot to handle the
-            1e-300 underflow on diabetes).
+        ks: iteration indices (1-D array)
+        obs_gaps: observed record gap at each k
+        gap0: initial gap, draws the g_0 / sqrt(i) envelope
+        title: panel title
+        floor: if given, clip obs_gaps from below and annotate the first
+            floored point -> handles the 1e-300 underflow on diabetes in
+            the CSV replot
     """
     import numpy as np
 

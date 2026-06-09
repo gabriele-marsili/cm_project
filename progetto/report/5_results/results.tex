@@ -875,7 +875,7 @@ $\texttt{tol}=10^{-10}$, it returns at the iteration cap with a final
 duality gap two to six orders of magnitude above tolerance, and a
 residual relative gap to $f^{*}$ of $+2.6\cdot 10^{-5}$ on
 \texttt{diabetes} and $+1.2\cdot 10^{-3}$ on \texttt{california}.
-sklearn CD is therefore not a usable oracle on these problems, and we
+At this budget sklearn CD is not a practical $f^{*}$ oracle, and we
 build $f^{*}$ instead by running IRLS to convergence
 ($k_{\max}=3000,\varepsilon_\text{thr}=10^{-14}$) and cross-validating it
 against CVXPY's interior-point solver Clarabel. The two are structurally
@@ -980,12 +980,13 @@ $g_{0}^{\mathrm{rel}}/\sqrt{i}$ rate of Theorem~\ref{thm:dsm_convergence}.
     sublinear $g_{0}^{\mathrm{rel}}/\sqrt{i}$ rate of
     Theorem~\ref{thm:dsm_convergence} to relative gap
     $\le 10^{-12}$ on \texttt{diabetes} and $\approx 4\cdot 10^{-10}$ on
-    \texttt{california}. sklearn coordinate descent (green dotted) is the
-    third-party convergence trace: the LASSO objective after a capped
-    number of coordinate sweeps, run cold to $\texttt{max\_iter}=10^{5}$ at
-    $\texttt{tol}=10^{-16}$ so it never stops early. It returns at the
-    iteration cap still above $f^{*}$, without reaching the $10^{-6}$
-    target on either dataset.}
+    \texttt{california}. sklearn coordinate descent (green dotted) runs
+    cold over the same iteration budget (the LASSO objective after each
+    coordinate-sweep count, $\texttt{tol}=10^{-16}$ so it never stops
+    early): it reaches $f^{*}$ to machine precision on \texttt{diabetes}
+    by $\sim\!10^{6}$ sweeps, but on \texttt{california} it is still at
+    relative gap $\sim\!2.5\cdot 10^{-5}$ at $10^{6}$, short of the
+    $10^{-6}$ target.}
     \label{fig:real-data}
 \end{figure}
 

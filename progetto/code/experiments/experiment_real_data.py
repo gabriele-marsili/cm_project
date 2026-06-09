@@ -9,6 +9,16 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir))
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
+# Pin BLAS to a single thread before numpy/sklearn load. sklearn's
+# coordinate-descent core is single-threaded, but its level-1 BLAS calls
+# (one dot/axpy per coordinate update) trigger thread spawning under the
+# macOS Accelerate backend, on the long sklearn_trace runs this
+# oversubscription makes wall time 3-4x worse. One thread is also faster
+# for the small-matrix IRLS/Clarabel/ELM steps here.
+for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
+           "VECLIB_MAXIMUM_THREADS", "NUMEXPR_NUM_THREADS"):
+    os.environ.setdefault(_v, "1")
+
 import numpy as np
 np.seterr(all="ignore")
 
@@ -24,18 +34,18 @@ from src import irls, deflected_subgradient
 from src.elm import ELM
 from src.lasso_utils import f_lasso
 from src.linear_solvers import solve_spd
-from _plot_style import apply_style, style_axes, COLOR_IRLS, COLOR_DSM, SIZE_DOUBLE
+from _plot_style import apply_style, style_axes, COLOR_IRLS, COLOR_DSM
 apply_style()
 
 
-SEED          = 42
-H             = 200
-LAMBDA        = 0.1
+SEED = 42
+H = 200
+LAMBDA = 0.1
 TEST_FRACTION = 0.2
-IRLS_KMAX     = 2000   # run to convergence with tight smoothing
-DSM_IMAX      = 8000
-DSM_DELTA0    = 0.1        # multiplier of f(w_0); never uses f*
-DSM_RHO       = 0.7        # default settled in Section 5.3.3
+IRLS_KMAX = 2000  # run to convergence with tight smoothing
+DSM_IMAX = 8000
+DSM_DELTA0 = 0.1  # multiplier of f(w_0), never uses f*
+DSM_RHO = 0.7  # default settled in Section 5.3.3
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
 TAB_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "tables")
@@ -44,7 +54,7 @@ os.makedirs(TAB_DIR, exist_ok=True)
 
 
 def _split_scale(X, y, test_frac=TEST_FRACTION, seed=SEED):
-    """Train/test split + standardisation fit on the train split only (no leakage)."""
+    """Train/test split, standardisation fit on the train split only (no leakage)"""
     rng = np.random.RandomState(seed)
     perm = rng.permutation(len(y))
     n_test = int(test_frac * len(y))
@@ -57,7 +67,7 @@ def _split_scale(X, y, test_frac=TEST_FRACTION, seed=SEED):
     X_te = scaler_x.transform(X_te)
 
     y_mean = float(y_tr.mean())
-    y_std  = float(y_tr.std()) or 1.0
+    y_std = float(y_tr.std()) or 1.0
     y_tr = (y_tr - y_mean) / y_std
     y_te = (y_te - y_mean) / y_std
     return X_tr, X_te, y_tr, y_te
@@ -76,24 +86,25 @@ def load_dataset(name):
 
 
 def build_hidden(X_tr_raw, X_te_raw, d_in, H=H, seed=SEED):
-    """Apply the ELM projection to both splits using the same fixed W_1."""
+    """ELM projection of both splits with the same fixed W_1"""
     elm = ELM(d=d_in, p=H, activation="sigmoid", lam=LAMBDA, random_state=seed)
     return elm.transform(X_tr_raw), elm.transform(X_te_raw)
 
 
 def ols_warm_start(X, y):
-    """Cholesky-based (X^T X + eps I)^{-1} X^T y."""
+    """Cholesky solve of (X^T X + eps I) w = X^T y"""
     return solve_spd(X.T @ X + 1e-10 * np.eye(X.shape[1]),
                      X.T @ y, method="cholesky")
 
 
 def sklearn_best_effort(X, y, lam, max_iter=100_000, tol=1e-10):
     """sklearn coordinate descent at a large budget with a tight tolerance.
-    On these ELM-transformed problems sklearn CD does not satisfy its
-    `tol` stop within `max_iter` (it returns `n_iter_ == max_iter`); we
-    report this as a third-party reference, not as the f^* oracle. The
-    f^* oracle is computed independently by `reference_fstar` (IRLS to
-    convergence, cross-validated by CVXPY-Clarabel)."""
+
+    On these ELM-transformed problems sklearn CD does not meet its `tol`
+    stop within `max_iter` (it returns n_iter_ == max_iter), so it is a
+    third-party reference, not the f^* oracle. The f^* oracle comes from
+    `reference_fstar` (IRLS to convergence, cross-validated by CVXPY-Clarabel).
+    """
     M = X.shape[0]
     sk = SkLasso(alpha=lam / M, fit_intercept=False,
                  max_iter=max_iter, tol=tol)
@@ -105,14 +116,14 @@ def sklearn_trace(X, y, lam, max_iter, n_samples=28, tol=1e-16):
     """Convergence trace of sklearn coordinate descent over its own budget.
 
     Sampled at geometrically spaced sweep counts up to `max_iter` (set to the
-    SGPTL long-run budget so both span the same iteration axis). A single CD
-    run is advanced incrementally with `warm_start`: each fit resumes from the
+    SGPTL long-run budget so both span the same iteration axis). One CD run is
+    advanced incrementally with `warm_start`: each fit resumes from the
     previous coefficient and runs the next block of sweeps. CD uses cyclic
     coordinate selection and never meets `tol` on these problems
     (cf. `sklearn_best_effort`), so each block runs in full and the snapshots
     trace one continuous trajectory at total cost ~one run to `max_iter`.
-    Returns (iters, fvals) with `fvals[k]` the LASSO objective after
-    `iters[k]` sweeps."""
+    Returns (iters, fvals) with fvals[k] the LASSO objective after iters[k] sweeps.
+    """
     M = X.shape[0]
     iters = np.unique(np.geomspace(1.0, max_iter, n_samples).astype(int))
     fvals = np.empty(len(iters), dtype=float)
@@ -130,23 +141,23 @@ def sklearn_trace(X, y, lam, max_iter, n_samples=28, tol=1e-16):
 
 
 def reference_fstar(X, y, lam, w0=None):
-    """Compute an independent reference f^*.
+    """Independent reference f^*.
 
-    Pattern: IRLS run to convergence (high budget, tight stop), optionally
+    IRLS run to convergence (high budget, tight stop), optionally
     cross-validated against CVXPY's Clarabel interior-point solver. Returns
-    (f_star, source) where source ∈ {'cvxpy-clarabel', 'irls-converged'}.
+    (f_star, source) with source in {'cvxpy-clarabel', 'irls-converged'}.
 
     IRLS and Clarabel are structurally different optimisers (MM + linear solve
-    vs primal-dual interior point); empirical agreement to 6+ significant digits
-    on the ELM-transformed real data (diabetes-ELM, California-ELM) makes this a
-    trustworthy proxy for the true optimum.
+    vs primal-dual interior point). They agree to 6+ significant digits on the
+    ELM-transformed real data (diabetes-ELM, California-ELM), which makes this
+    a trustworthy proxy for the true optimum.
     """
     M, p = X.shape
     if w0 is None:
         w0 = ols_warm_start(X, y)
-    # Tight smoothing for the reference: eps_thr=1e-14 pushes the
-    # smoothed surrogate to within machine precision of the true LASSO
-    # objective, so f_irls here is a faithful upper bound on f^*.
+    # tight smoothing for the reference: eps_thr=1e-14 pushes the smoothed
+    # surrogate to within machine precision of the true LASSO objective, so
+    # f_irls here is a faithful upper bound on f^*
     res = irls(X, y, lam,
                eps_thr=1e-14, eps_stop=1e-16,
                k_max=3000, solver="cholesky", w0=w0)
@@ -196,22 +207,21 @@ def run_one(name):
     print(f"  hidden activations: shape={X_tr.shape}, "
           f"cond(X^T X) ≈ {np.linalg.cond(X_tr.T @ X_tr):.2e}")
 
-    # Independent reference f^* (IRLS-converged, validated by CVXPY-Clarabel
-    # when tractable). sklearn CD on the ELM-transformed problems is reported
-    # separately below as a third-party comparison, not as the reference, since
-    # at the budget the report quotes (max_iter=300, tol=1e-3) it sits well
-    # above the true optimum (~+5 on diabetes-ELM, ~+130 on California-ELM).
+    # independent reference f^*, IRLS-converged, validated by CVXPY-Clarabel
+    # when tractable. sklearn CD on the ELM-transformed problems is reported
+    # separately below as a third-party comparison, not as the reference: at
+    # the budget the report quotes (max_iter=300, tol=1e-3) it sits well above
+    # the true optimum (~+5 on diabetes-ELM, ~+130 on California-ELM)
     w_ols = ols_warm_start(X_tr, y_tr)
-    f_w0  = float(f_lasso(X_tr, y_tr, w_ols, LAMBDA))
+    f_w0 = float(f_lasso(X_tr, y_tr, w_ols, LAMBDA))
     f_star, src, w_cvxpy = reference_fstar(X_tr, y_tr, LAMBDA, w0=w_ols)
     print(f"  OLS warm start (shared): f(w_0) = {f_w0:.6f}")
     print(f"  f* (independent reference) = {f_star:.6f}  [source: {src}]")
 
-    # Third-party sklearn baseline at a generous budget (max_iter=100k,
+    # third-party sklearn baseline at a generous budget (max_iter=100k,
     # tol=1e-10). sklearn CD never satisfies tol on these ELM-transformed
-    # problems and returns at max_iter; the residual gap to f* on
-    # California is then on the order of a few units, which is what
-    # disqualifies sklearn as the f^* reference.
+    # problems and returns at max_iter -> residual gap to f* on California is
+    # then a few units, which is what disqualifies sklearn as the f^* reference
     w_star, f_skl, n_iter_skl = sklearn_best_effort(X_tr, y_tr, LAMBDA)
     skl_spar_str = ", ".join(f"sp@{tol:.0e}={_sparsity(w_star, tol):.0%}"
                              for tol in SPARSITY_TOLS)
@@ -232,16 +242,12 @@ def run_one(name):
           f"{spar_i_str}, "
           f"test MSE = {_mse(y_te, X_te @ w_i):.4f}")
 
-    # SGPTL: pick the start that empirically achieves the smaller final gap on
-    # each dataset (Section "Parameter calibration" of chapter 3). diabetes-ELM:
-    # cold (gap 1.74 < 2.62); California-ELM: warm (gap 0.46 < 64). Both choices
-    # are within the admissibility of Theorem 3.x, which does not constrain w_0.
-    # Run both starts: the convergence figure shows the descending cold
-    # trajectory (the default configuration, in which SGPTL actually
-    # optimises) alongside the warm one, which on California is pinned at the
-    # OLS floor. The table reports the per-dataset start with the smaller
-    # final gap (cold on diabetes, warm on California; both admissible since
-    # Theorem 3.x does not constrain w_0).
+    # SGPTL: run both starts. The convergence figure overlays the descending
+    # cold trajectory (the default configuration, in which SGPTL actually
+    # optimises) with the warm one, which on California is pinned at the OLS
+    # floor. The table reports the per-dataset start with the smaller final
+    # gap, cold on diabetes (1.74 < 2.62), warm on California (0.46 < 64).
+    # Both are admissible since Theorem 3.x does not constrain w_0.
     def _run_sgptl(w0):
         return deflected_subgradient(
             X_tr, y_tr, LAMBDA,
@@ -250,19 +256,16 @@ def run_one(name):
             rho=DSM_RHO, f_star=f_star,
         )
 
-    # SGPTL at the submitted i_max=8000 budget (kept for diagnostics and
-    # for the in-memory warm-start trace used by Section 5.3). For the
-    # algorithmic comparison of Section 5.6 we prefer the long-run cold
-    # result from experiment_sgptl_long_run.py, which terminates near
-    # machine precision and makes the iteration cost explicit; we load
-    # that cache below when it exists.
+    # SGPTL at the submitted i_max=8000 budget, kept for diagnostics and for
+    # the in-memory warm-start trace used by Section 5.3. The algorithmic
+    # comparison of Section 5.6 instead uses the long-run cold result from
+    # experiment_sgptl_long_run.py, which terminates near machine precision
+    # and makes the iteration cost explicit (cache loaded below when present).
     res_d_cold = _run_sgptl(np.zeros(X_tr.shape[1]))
     res_d_warm = _run_sgptl(w_ols)
-    # SGPTL is reported from the cold start on both datasets: this is the
-    # configuration in which the method actually optimises. On California
-    # the OLS warm start already coincides with f^* (Section 5.3), so the
-    # warm-start run gives back the OLS floor rather than an SGPTL result;
-    # it is reported separately in Section 5.3.
+    # report the cold start on both datasets, the configuration in which the
+    # method actually optimises. The warm-start run on California gives back
+    # the OLS floor rather than an SGPTL result, reported separately in §5.3.
     res_d = res_d_cold
     start_tag = "cold"
     w_d = res_d["w"]
@@ -280,8 +283,8 @@ def run_one(name):
     w_ridge = solve_spd(A_ridge, X_tr.T @ y_tr, method="cholesky")
     print(f"  Ridge: closed form, test MSE = {_mse(y_te, X_te @ w_ridge):.4f}")
 
-    # Independent CVXPY-Clarabel solution (kept for the table). When
-    # Clarabel was not run (large M*p), we fall back to NaNs.
+    # independent CVXPY-Clarabel solution, kept for the table. NaNs when
+    # Clarabel was not run (large M*p)
     if w_cvxpy is not None:
         f_cvx = float(f_lasso(X_tr, y_tr, w_cvxpy, LAMBDA))
         mse_cvx = _mse(y_te, X_te @ w_cvxpy)
@@ -290,12 +293,13 @@ def run_one(name):
         print(f"  CVXPY-Clarabel: f = {f_cvx:.6f}, gap = {f_cvx - f_star:+.2e}, "
               f"sp@1e-3 = {sp_cvx_1e3:.0%}, test MSE = {mse_cvx:.4f}")
     else:
-        f_cvx = float("nan"); mse_cvx = float("nan")
-        sp_cvx_1e3 = float("nan"); sp_cvx_1e6 = float("nan")
+        f_cvx = float("nan")
+        mse_cvx = float("nan")
+        sp_cvx_1e3 = float("nan")
+        sp_cvx_1e6 = float("nan")
 
-    # Load long-run SGPTL cache (cold start, large i_max) if present;
-    # this is what feeds the algorithmic-comparison row of Table 5.8 and
-    # the SGPTL trace in Figure 5.12.
+    # long-run SGPTL cache (cold start, large i_max) if present -> feeds the
+    # algorithmic-comparison row of Table 5.8 and the SGPTL trace in Fig 5.12
     cache_path = os.path.join(
         os.path.dirname(__file__), os.pardir, "results", "tables",
         "long_run_cache", f"{name}.npz",
@@ -324,7 +328,7 @@ def run_one(name):
               f"figure/table will fall back to i_max={DSM_IMAX} run]")
 
     # sklearn CD convergence trace over the same iteration budget as SGPTL
-    # (the long-run i_max), so Figure 5.12 compares both on a common x-axis.
+    # (the long-run i_max) -> Figure 5.12 compares both on a common x-axis
     skl_budget = sgptl_long["i_max"] if sgptl_long is not None else 100_000
     skl_iters, skl_fvals = sklearn_trace(X_tr, y_tr, LAMBDA, max_iter=skl_budget)
     skl_trace_gap = (skl_fvals[-1] - f_star) / abs(f_star)
@@ -385,10 +389,10 @@ def run() -> None:
             print(f"  [skip {name}: {exc}]")
 
     if not rows:
-        print("\nNo datasets ran successfully; nothing to save.")
+        print("\nNo datasets ran successfully. Nothing to save.")
         return
 
-    # CSV table - strip the per-iteration trace columns (prefix "_").
+    # CSV table, strip the per-iteration trace columns (prefix "_")
     tab_path = os.path.join(TAB_DIR, "real_data.csv")
     public_keys = [k for k in rows[0].keys() if not k.startswith("_")]
     with open(tab_path, "w", newline="") as fh:
@@ -399,9 +403,9 @@ def run() -> None:
     print(f"\nSaved: {tab_path}")
 
     # gap to f* per dataset. IRLS reaches f* to machine precision in ~100
-    # iterations; SGPTL cold descends at the sublinear rate to the f* floor;
-    # sklearn CD is overlaid as a third-party convergence trace (gap per
-    # coordinate sweep) that stalls above f* and returns at max_iter.
+    # iterations, SGPTL cold descends at the sublinear rate to the f* floor.
+    # sklearn CD is overlaid as a third-party trace (gap per coordinate sweep)
+    # that stalls above f* and returns at max_iter.
     n_panels = len(rows)
     fig, axes = plt.subplots(1, n_panels, figsize=(7.0 * n_panels, 5.5),
                              squeeze=False)
@@ -411,16 +415,16 @@ def run() -> None:
         f_baseline = row["f_star"]
         abs_fstar = abs(f_baseline)
 
-        # Relative optimality gap (f - f*)/|f*| on the y-axis: the report's
+        # relative optimality gap (f - f*)/|f*| on the y-axis: the report's
         # cost-to-target uses a relative target, so the two datasets
-        # (diabetes f*~53, california f*~2358) sit on a common scale.
+        # (diabetes f*~53, california f*~2358) sit on a common scale
         irls_gap = np.maximum((irls_fvals - f_baseline) / abs_fstar, floor)
         irls_iters = np.arange(1, len(irls_gap) + 1)
 
-        # Prefer the long-run SGPTL trace (cache from
-        # experiment_sgptl_long_run.py) when present: that is the
-        # configuration in which SGPTL actually reaches the f^* floor.
-        # Fall back to the in-memory i_max=DSM_IMAX cold trace otherwise.
+        # prefer the long-run SGPTL trace (cache from
+        # experiment_sgptl_long_run.py) when present: the configuration in
+        # which SGPTL reaches the f^* floor. Fall back to the in-memory
+        # i_max=DSM_IMAX cold trace otherwise.
         if row.get("_sgptl_long") is not None:
             sl = row["_sgptl_long"]
             cold_iters = sl["i_sampled"]

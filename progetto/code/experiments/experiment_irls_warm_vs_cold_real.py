@@ -1,4 +1,4 @@
-"""IRLS on diabetes and california_housing: Warm Start vs Cold Start."""
+"""IRLS on diabetes and california_housing: Warm Start vs Cold Start"""
 
 import os
 import sys
@@ -33,9 +33,9 @@ H             = 200
 LAMBDA        = 0.1
 TEST_FRACTION = 0.2
 IRLS_KMAX     = 2000
-EPS_THR       = 1e-8    # smoothing for the two displayed runs
-EPS_STOP      = 1e-8    # relative-step stop; lets warm/cold stop at their own k
-EPS_THR_REF   = 1e-14   # deeper IRLS run used only as the f* anchor
+EPS_THR       = 1e-8  # smoothing for the two displayed runs
+EPS_STOP      = 1e-8  # relative-step stop, lets warm/cold stop at their own k
+EPS_THR_REF   = 1e-14  # deeper IRLS run used only as the f* anchor
 REF_KMAX      = 3000
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
@@ -106,13 +106,13 @@ def run_one(name):
           f"cond(X^T X) ≈ {np.linalg.cond(X_tr.T @ X_tr):.2e}")
 
     if name == "california":
-        print("  sklearn skipped on this dataset; using OLS f as placeholder for f_star.")
+        print("  sklearn skipped on this dataset, using OLS f as placeholder for f_star.")
         f_star = float(f_lasso(X_tr, y_tr, ols_warm_start(X_tr, y_tr), LAMBDA))
     else:
         _, f_star = reference_solution(X_tr, y_tr, LAMBDA)
         print(f"  f* (sklearn baseline) = {f_star:.6f}")
 
-    # WARM START (OLS)
+    # warm start (OLS)
     t0 = time.time()
     w_ols = ols_warm_start(X_tr, y_tr)
     res_warm = irls(
@@ -124,7 +124,7 @@ def run_one(name):
     n_iter_w = len(res_warm.get("f_vals", []))
     print(f"  IRLS (Warm) : {n_iter_w} iter, f = {f_w:.6f}, time = {time_warm:.4f}s")
 
-    # COLD START (w = 0)
+    # cold start (w = 0)
     w_cold = np.zeros(H)
     t0 = time.time()
     res_cold = irls(
@@ -136,21 +136,20 @@ def run_one(name):
     n_iter_c = len(res_cold.get("f_vals", []))
     print(f"  IRLS (Cold) : {n_iter_c} iter, f = {f_c:.6f}, time = {time_cold:.4f}s")
 
-    # Independent f* anchor: a SEPARATE, deeper IRLS run (eps_thr=1e-14) from
-    # the OLS start. It is not one of the two curves being plotted, so the
-    # displayed warm/cold curves flatten at their own O(eps_thr) smoothing
-    # floor against it instead of collapsing onto their own endpoint (which
-    # produced the spurious machine-zero tail). This matches the report's
-    # real-data f* construction (IRLS at tight smoothing, cross-validated
-    # against CVXPY-Clarabel, Section 5.7).
+    # independent f* anchor: a separate, deeper IRLS run (eps_thr=1e-14) from
+    # the OLS start. it is not one of the two plotted curves, so the displayed
+    # warm/cold curves flatten at their own O(eps_thr) smoothing floor against
+    # it instead of collapsing onto their own endpoint (which gave the spurious
+    # machine-zero tail). matches the report's real-data f* construction (IRLS
+    # at tight smoothing, cross-validated against CVXPY-Clarabel, Section 5.7)
     res_ref = irls(
         X_tr, y_tr, LAMBDA, eps_thr=EPS_THR_REF, eps_stop=EPS_STOP,
         k_max=REF_KMAX, solver='cholesky', w0=w_ols,
     )
     f_ref = float(f_lasso(X_tr, y_tr, res_ref.get("w", w_ols), LAMBDA))
 
-    # Report f* is the IRLS-converged value (CVXPY-verified elsewhere); both
-    # starts reach it to working precision. Relative gap = (f - f*)/|f*|.
+    # report f* is the IRLS-converged value (CVXPY-verified elsewhere), both
+    # starts reach it to working precision. relative gap = (f - f*)/|f*|
     f_star_ref = float(min(f_w, f_c, f_ref))
     abs_gap_warm = abs(float(f_w) - f_star_ref)
     abs_gap_cold = abs(float(f_c) - f_star_ref)
@@ -189,7 +188,7 @@ def run() -> None:
             print(f"  [skip {name}: {exc}]")
 
     if not rows:
-        print("\nNo datasets ran successfully; nothing to plot.")
+        print("\nNo datasets ran successfully. Nothing to plot.")
         return
 
     n_datasets = len(rows)
@@ -204,10 +203,10 @@ def run() -> None:
         f_ref = row["f_ref"]
 
         floor = 1e-16
-        # Relative gap (f - f*)/|f*| against the independent deep-IRLS anchor
-        # f_ref (eps_thr=1e-14), NOT the min of the two plotted curves: this
-        # avoids the self-reference machine-zero tail. The curves flatten at
-        # the O(eps_thr=1e-8) smoothing floor of the displayed runs.
+        # relative gap (f - f*)/|f*| against the independent deep-IRLS anchor
+        # f_ref (eps_thr=1e-14), not the min of the two plotted curves -> avoids
+        # the self-reference machine-zero tail. the curves flatten at the
+        # O(eps_thr=1e-8) smoothing floor of the displayed runs
         abs_f_ref = abs(f_ref)
         gw = np.maximum((f_warm - f_ref) / abs_f_ref, floor)
         gc = np.maximum((f_cold - f_ref) / abs_f_ref, floor)
@@ -234,9 +233,9 @@ def run() -> None:
     print(f"\nSaved plots to: {fig_path}")
     plt.close(fig)
 
-    # --- Save IRLS real-data warm/cold rows of Table 5.2 to CSV ---
-    # Gaps are relative to the independent deep-IRLS anchor f_ref (eps_thr=1e-14),
-    # not the self-min, so they are the honest distance to the reference.
+    # --- save IRLS real-data warm/cold rows of Table 5.2 to CSV ---
+    # gaps are relative to the independent deep-IRLS anchor f_ref (eps_thr=1e-14),
+    # not the self-min, so they are the honest distance to the reference
     csv_path = os.path.join(TAB_DIR, "warm_cold_irls_real.csv")
     import csv as _csv
     with open(csv_path, "w", newline="") as fh:

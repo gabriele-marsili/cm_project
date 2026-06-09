@@ -1,4 +1,4 @@
-"""Synthetic and real data generators for the experiments."""
+"""Problem generators: synthetic LASSO, synthetic ELM-LASSO, real datasets."""
 
 from typing import Tuple
 
@@ -10,12 +10,12 @@ from sklearn.preprocessing import StandardScaler
 from .elm import _ACTIVATIONS
 from .lasso_utils import f_lasso
 
-# sklearn minimises (1/(2M))*||Xw - y||^2 + alpha*||w||_1; our f_lasso uses
-# (1/2)*||Xw - y||^2 + lam*||w||_1. Same argmin iff alpha = lam / M.
-
-_COL_NORM_FLOOR = 1e-12      # guard against zero-norm columns when normalising
-_SK_REF_MAX_ITER = 100_000   # sklearn Lasso budget for the reference w*
-_SK_REF_TOL = 1e-12          # sklearn Lasso tol for the reference w*
+# our objective is 1/2||Xw-y||^2 + lam||w||_1
+# sklearn's: 1/(2M)||Xw-y||^2 + alpha||w||_1 -> same argmin when alpha = lam/M
+# we use sklearn (heavily over-iterated) only as an independent f* reference
+_COL_NORM_FLOOR = 1e-12  # avoid 1/0 when a design column is all zeros
+_SK_REF_MAX_ITER = 100_000  # sklearn budget for the reference w*
+_SK_REF_TOL = 1e-12  # sklearn tol for the reference w*
 
 
 def make_lasso_problem(
@@ -26,12 +26,11 @@ def make_lasso_problem(
     lam: float = 0.1,
     random_state: int = 42,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, float, np.ndarray]:
-    """Synthetic linear LASSO problem with a planted sparse w_true.
+    """Plain linear LASSO with a planted sparse w_true.
 
-    Steps: (1) draw N(0,1) design and normalise columns to unit l2 norm;
-    (2) draw sparse w_true with floor(n*sparsity) N(0,1) entries; (3) add
-    Gaussian noise; (4) compute the reference (f*, w*) with sklearn Lasso.
-    Returns (X, y, w_true, f_star, w_star).
+    Gaussian design with unit-norm columns, floor(n*sparsity) nonzeros in
+    w_true, Gaussian noise on y. 
+    Returns (X, y, w_true, f_star, w_star), where (f_star, w_star) is the sklearn reference
     """
     rng = np.random.RandomState(random_state)
 
@@ -64,12 +63,11 @@ def make_elm_problem(
     lam: float = 0.1,
     random_state: int = 42,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, np.ndarray]:
-    """Synthetic ELM-transformed LASSO problem.
+    """Same as make_lasso_problem but on ELM hidden features.
 
-    Like make_lasso_problem but the design is X_hid = sigma(X_raw @ W1^T)
-    with a random ELM hidden layer (W1 ~ N(0,1), shape (p, d)). Columns of
-    X_hid are NOT renormalised: bounded activations already keep them in a
-    fixed range. Returns (X_raw, X_hid, y, W1, w_true, f_star, w_star).
+    Design is X_hid = sigma(X_raw W1^T) with a random frozen W1 (shape (p, d)).
+    Hidden columns are left un-normalised -> bounded activations already keep them in range. 
+    Returns (X_raw, X_hid, y, W1, w_true, f_star, w_star).
     """
     sigma = _ACTIVATIONS[activation]
     rng = np.random.RandomState(random_state)
@@ -99,21 +97,20 @@ def load_real_dataset(
     test_size: float = 0.2,
     random_state: int = 42,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Load a real regression dataset and split, scaling features on the train
-    split only (no test-set leakage).
+    """Load + split a real regression dataset.
 
-    Returns (X_train, X_test, y_train, y_test). Target y is not rescaled;
-    callers that need y standardisation handle it downstream against the
-    training-set mean/std (as the experiment scripts do).
+    The scaler is fit on the train split only (no leakage). 
+    y is left on its own scale.
+    The experiment scripts standardise it downstream against the train mean/std when they need to. 
+    Returns (X_train, X_test, y_train, y_test)
     """
     if name == 'diabetes':
-        data = load_diabetes()
+        X, y = load_diabetes(return_X_y=True)
     elif name == 'california':
-        data = fetch_california_housing()
+        X, y = fetch_california_housing(return_X_y=True)
     else:
         raise ValueError(f"Unknown dataset {name!r}")
-
-    X, y = data.data, data.target
+    X = np.asarray(X)
 
     rng = np.random.RandomState(random_state)
     perm = rng.permutation(len(y))

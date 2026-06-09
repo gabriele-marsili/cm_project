@@ -1,4 +1,4 @@
-"""IRLS on a synthetic instance: warm start (OLS) vs cold start (w = 0)."""
+"""IRLS on a synthetic instance: warm start (OLS) vs cold start (w = 0)"""
 import os
 import sys
 import warnings
@@ -18,7 +18,7 @@ from src.irls import irls
 from src.data_generation import make_lasso_problem
 from src.linear_solvers import solve_spd
 from _plot_style import (apply_style, style_axes,
-                         COLOR_DSM, COLOR_FCUR, SIZE_DOUBLE)
+                         COLOR_DSM, COLOR_FCUR)
 apply_style()
 
 
@@ -45,7 +45,7 @@ def run() -> None:
     )
     print(f"Problem: H={H}, M={M}, lambda={LAMBDA}, f*={f_star:.6f}")
 
-    # WARM START (OLS)
+    # warm start (OLS)
     t0 = time.time()
     w_ols = solve_spd(X.T @ X + 1e-12 * np.eye(H), X.T @ y, method="cholesky")
     sol_ols = irls(
@@ -54,7 +54,7 @@ def run() -> None:
     )
     time_ols = time.time() - t0
 
-    # COLD START (w = 0)
+    # cold start (w = 0)
     t0 = time.time()
     w_cold = np.zeros(H)
     sol_cold = irls(
@@ -70,7 +70,7 @@ def run() -> None:
     fc = np.asarray(sol_cold["f_vals"], dtype=float)
     f_min = min(fw.min(), fc.min(), f_star)
     floor = 1e-16
-    # Relative gap (f - f*)/|f*|; f_min is the converged f* both starts reach.
+    # relative gap (f - f*)/|f*|, f_min is the converged f* both starts reach
     abs_f_star = abs(f_min)
     gw = np.maximum((fw - f_min) / abs_f_star, floor)
     gc = np.maximum((fc - f_min) / abs_f_star, floor)
@@ -100,7 +100,7 @@ def run() -> None:
     print(f"\nSaved: {path}")
     plt.close(fig)
 
-    # --- Save IRLS synthetic warm/cold rows of Table 5.2 to CSV ---
+    # IRLS synthetic warm/cold rows of Table 5.2 -> CSV
     csv_path = os.path.join(TAB_DIR, "warm_cold_irls_synthetic.csv")
     import csv as _csv
     with open(csv_path, "w", newline="") as fh:

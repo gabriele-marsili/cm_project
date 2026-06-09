@@ -1,12 +1,12 @@
 """Empirical test of the gamma_min floor on ELM LASSO.
 
-Hypothesis: with gamma_min = 0 the greedy gamma collapses to 0 frequently on
-ELM LASSO, beta_i = min(1, gamma_i) = 0 forces num = 0 and the algorithm
+Hypothesis: with gamma_min = 0 the greedy gamma collapses to 0 often on
+ELM LASSO -> beta_i = min(1, gamma_i) = 0 forces num = 0 -> the algorithm
 enters the skip branch, delta underflows and the record gap stalls.
 gamma_min = 0.05 prevents the collapse.
 
 For each (H, M) pair and each seed: run SGPTL with gamma_min in {0, 0.05},
-record gamma_hist, skip_hist, delta_hist and gaps, then summarise across
+record gamma_hist / skip_hist / delta_hist / gaps, then summarise across
 seeds.
 """
 
@@ -58,7 +58,6 @@ def run_one(H: int, M: int, seed: int, gamma_min: float) -> dict:
     g = np.asarray(res["gamma_hist"], dtype=float)
     s = np.asarray(res["skip_hist"],  dtype=float)
     d = np.asarray(res["delta_hist"], dtype=float)
-    n = max(1, len(g))
     return {
         "H": H, "M": M, "seed": seed, "gamma_min": gamma_min,
         "final_gap": float(res["gaps"][-1]) if len(res["gaps"]) else float("nan"),
@@ -70,7 +69,7 @@ def run_one(H: int, M: int, seed: int, gamma_min: float) -> dict:
         "frac_gamma_near_zero": float(np.mean(g <= 0.01)),
         "n_contractions": int(np.sum(np.diff(d) < 0)) if len(d) > 1 else 0,
         "final_delta": float(d[-1]),
-        # keep arrays for plotting (only on the medium size, seed 42)
+        # arrays kept for plotting, only on the medium size, seed 42
         "_gamma_arr": g if (H == 100 and seed == 42) else None,
         "_delta_arr": d if (H == 100 and seed == 42) else None,
         "_gaps_arr":  np.asarray(res["gaps"], dtype=float)
@@ -132,7 +131,7 @@ def run() -> None:
     for gmin, arr in arrays.items():
         g = np.maximum(arr["gamma"], 1e-12)
         n = len(g)
-        # geometric subsample for a readable log-x trace
+        # geometric subsample -> readable log-x trace
         idx = np.unique(np.geomspace(1, max(n - 1, 1), 400).astype(int))
         ax.loglog(idx + 1, g[idx], color=colors[gmin], linewidth=1.4,
                   label=labels[gmin], alpha=0.85)
@@ -140,7 +139,8 @@ def run() -> None:
     ax.set_xlabel(r"iteration $i$  (log scale)")
     ax.set_ylabel(r"$\gamma_i$  (log scale)")
     ax.set_title(r"Trajectory of $\gamma_i$ over iterations")
-    ax.legend(loc="lower left"); style_axes(ax)
+    ax.legend(loc="lower left")
+    style_axes(ax)
 
     ax = axes[1]
     for gmin, arr in arrays.items():
@@ -148,9 +148,11 @@ def run() -> None:
         d = np.maximum(d, 1e-323)
         ax.semilogy(np.arange(len(d)), d, color=colors[gmin],
                     linewidth=1.8, label=labels[gmin])
-    ax.set_xlabel("iteration"); ax.set_ylabel(r"$\delta_i$  (log scale)")
+    ax.set_xlabel("iteration")
+    ax.set_ylabel(r"$\delta_i$  (log scale)")
     ax.set_title(r"$\delta$ trajectory (single seed)")
-    ax.legend(loc="lower left"); style_axes(ax)
+    ax.legend(loc="lower left")
+    style_axes(ax)
 
     ax = axes[2]
     for gmin, arr in arrays.items():
@@ -160,7 +162,8 @@ def run() -> None:
     ax.set_xlabel("iteration  (log)")
     ax.set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$  (log)")
     ax.set_title("Record gap")
-    ax.legend(loc="upper right"); style_axes(ax)
+    ax.legend(loc="upper right")
+    style_axes(ax)
 
     fig.suptitle(rf"Floor test on ELM LASSO ($H=100$, $M=300$, $\lambda={LAMBDA}$, "
                  rf"$i_{{\max}}={I_MAX}$, $\rho={RHO}$)", y=1.02, fontsize=13)

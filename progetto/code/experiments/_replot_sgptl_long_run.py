@@ -1,14 +1,13 @@
 """Re-plot the SGPTL long-run figure from the saved CSV (no re-compute).
 
-experiment_sgptl_long_run.py stores the full gap trajectory and produces the
-figure in one shot. This script reproduces the same figure from
-results/tables/sgptl_long_run.csv without re-running the experiment, which
-takes ~30 minutes on california. It is useful when only the plot needs
-restyling.
+experiment_sgptl_long_run.py stores the full gap trajectory and builds the
+figure in one shot. This script rebuilds the same figure from
+results/tables/sgptl_long_run.csv without re-running the experiment (~30 min
+on california), for when only the plot needs restyling.
 
-The CSV-only path needs a numerical floor because the diabetes trajectory
-reaches floating-point underflow (~1e-300), which otherwise stretches the
-y-axis and hides the relevant range.
+The CSV-only path needs a numerical floor: the diabetes trajectory reaches
+floating-point underflow (~1e-300), which otherwise stretches the y-axis and
+hides the relevant range.
 """
 
 import csv
@@ -42,7 +41,7 @@ FLOOR = 1e-12
 def load_csv() -> dict:
     """Group the long-run CSV rows by dataset, sorted by iteration count.
 
-    Returns dict: dataset -> [{k, observed, predicted}, ...] ordered by k.
+    Returns dict: dataset -> [{k, observed, predicted}, ...] ordered by k
     """
     rows: dict = {}
     with open(TAB_PATH, newline="") as fh:
@@ -60,8 +59,8 @@ def load_csv() -> dict:
 
 
 def main() -> None:
-    # f* per dataset (relative gap = absolute gap / |f*|); matches the
-    # long_run_cache npz f_star values.
+    # f* per dataset (relative gap = absolute gap / |f*|)
+    # matches the long_run_cache npz f_star values
     FSTAR = {"diabetes": 52.948763, "california": 2358.019449}
     rows = load_csv()
     fig, axes = plt.subplots(1, 2, figsize=SIZE_DOUBLE)
@@ -70,7 +69,7 @@ def main() -> None:
         data = rows[name]
         ks = [d["k"] for d in data]
         obs = [d["observed"] / fs for d in data]
-        # g_0 implicit from predicted envelope: predicted = g_0 / sqrt(k).
+        # g_0 back out from the envelope: predicted = g_0 / sqrt(k)
         g0 = data[0]["predicted"] * (ks[0] ** 0.5) / fs
         i_max_str = f"{int(max(ks)):,}".replace(",", r"{,}")
         title = (

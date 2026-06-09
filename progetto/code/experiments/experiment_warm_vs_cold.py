@@ -1,12 +1,11 @@
 """SGPTL with warm (OLS) vs cold (w_0=0) start on a synthetic instance.
 
 Lemma 3.8 of d'Antonio-Frangioni 2009 does not depend on the starting point,
-but in practice OLS warm start + Polyak target level misbehaves on ELM LASSO:
-w_0 is close to w^*, so the Polyak numerator is dominated by delta_0 rather
-than by the true gap. Then either delta_0 is large and the first step
-overshoots, or delta_0 is small and the steps never let r reach R, so delta is
-never contracted. This script compares the record-value trajectory for the two
-starts under the same algorithm.
+but OLS warm start + Polyak target level degrades on ELM LASSO: w_0 sits close
+to w^*, so the Polyak numerator is dominated by delta_0, not by the true gap.
+Large delta_0 -> the first step overshoots, small delta_0 -> the steps never
+let r reach R, so delta is never contracted. Compares the record-value
+trajectory for the two starts under the same algorithm.
 """
 
 import os
@@ -30,11 +29,11 @@ from _plot_style import (apply_style, style_axes,
 apply_style()
 
 
-SEED   = 42
+SEED = 42
 LAMBDA = 0.10
-NOISE  = 0.05
-H, M   = 100, 300
-I_MAX  = 8000
+NOISE = 0.05
+H, M = 100, 300
+I_MAX = 8000
 
 FIG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "figures")
 TAB_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "results", "tables")
@@ -43,7 +42,7 @@ os.makedirs(TAB_DIR, exist_ok=True)
 
 
 def _n_contractions(delta_hist):
-    """Count how many times delta was contracted (strictly decreasing step)."""
+    """How many times delta was contracted, i.e. strictly decreasing steps"""
     d = np.asarray(delta_hist, dtype=float)
     return int(np.sum(np.diff(d) < 0))
 
@@ -60,7 +59,7 @@ def run() -> None:
     )
     print(f"Problem: H={H}, M={M}, lambda={LAMBDA}, f*={f_star:.6f}")
 
-    w_ols  = solve_spd(X.T @ X + 1e-12 * np.eye(H), X.T @ y, method="cholesky")
+    w_ols = solve_spd(X.T @ X + 1e-12 * np.eye(H), X.T @ y, method="cholesky")
     w_cold = np.zeros(H)
     from src.lasso_utils import f_lasso
     f_w0_warm = float(f_lasso(X, y, w_ols,  LAMBDA))
@@ -94,7 +93,7 @@ def run() -> None:
 
     fig, axes = plt.subplots(1, 2, figsize=SIZE_DOUBLE)
 
-    # Panel 1: record-gap trajectories (log-log).
+    # panel 1: record-gap trajectories (log-log)
     ax = axes[0]
     for key, color, label in (
         ("warm", COLOR_DSM,  "warm start (OLS)"),
@@ -114,7 +113,7 @@ def run() -> None:
     ax.legend(loc="lower left")
     style_axes(ax)
 
-    # Panel 2: delta history (linear-log).
+    # panel 2: delta history (linear-log)
     ax = axes[1]
     for key, color, label in (
         ("warm", COLOR_DSM,  "warm start (OLS)"),
@@ -138,7 +137,7 @@ def run() -> None:
     print(f"\nSaved: {path}")
     plt.close(fig)
 
-    # --- Save SGPTL synthetic warm/cold rows of Table 5.2 to CSV ---
+    # SGPTL synthetic warm/cold rows of Table 5.2 -> CSV
     csv_path = os.path.join(TAB_DIR, "warm_cold_sgptl_synthetic.csv")
     import csv as _csv
     with open(csv_path, "w", newline="") as fh:

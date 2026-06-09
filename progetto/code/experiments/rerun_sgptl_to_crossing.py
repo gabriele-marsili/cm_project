@@ -35,7 +35,7 @@ SEED: int = 42
 TEST_FRACTION: float = 0.2
 
 # relative-1e-6 crossing from long_run_cache is ~56k (diabetes), ~298k
-# (california); budgets give a comfortable safety margin above each.
+# (california) -> budgets sit a safe margin above each
 BUDGETS: dict[str, int] = {"diabetes": 90_000, "california": 360_000}
 
 

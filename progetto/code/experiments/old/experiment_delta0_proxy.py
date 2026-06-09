@@ -1,14 +1,13 @@
 """Validate the proxy δ_0 = c·f(w_OLS) against the ideal δ_0 = c·f^* on synthetic.
 
 The implementable rule (δ_0 = c·f(w_OLS)) uses only quantities a caller can
-compute at runtime; the ideal rule (δ_0 = c·f^*) requires knowing f^* in
-advance. On synthetic problems we know f^* exactly (sklearn-tight); this
-experiment compares the SGPTL trajectory under both rules across a grid of
-problem instances and c values, to quantify how much the proxy departs from
-the ideal.
+compute at runtime, the ideal rule (δ_0 = c·f^*) requires knowing f^* in
+advance. On synthetic problems we know f^* exactly (sklearn-tight). Compare the
+SGPTL trajectory under both rules across a grid of problem instances and c
+values, to quantify how much the proxy departs from the ideal.
 
-A third "uncalibrated" rule δ_0 = c·(½·||y||²) is added as a sanity floor: it
-uses no OLS solve and is the cheapest possible scale, but ignores both X and λ.
+A third "uncalibrated" rule δ_0 = c·(½·||y||²) is added as a sanity floor: no
+OLS solve, cheapest possible scale, ignores both X and λ.
 """
 
 import csv
@@ -41,7 +40,7 @@ RHO       = 0.7
 GAMMA_MIN = 0.05
 BETA      = 1.0
 
-# (label, d, p, m, sparsity, lam, noise): three regimes
+# (label, d, p, m, sparsity, lam, noise)
 INSTANCES = [
     ("easy",       8,  50,  300, 0.1, 0.1, 0.05),
     ("moderate",  12, 100, 1000, 0.1, 0.1, 0.10),
@@ -77,7 +76,7 @@ def run() -> None:
         )
         w_ols = solve_spd(X.T @ X + 1e-10 * np.eye(p), X.T @ y, method="cholesky")
         f_w_ols = float(f_lasso(X, y, w_ols, lam))
-        scale_y = float(0.5 * (y @ y))  # f(w=0) = ½||y||² + 0
+        scale_y = float(0.5 * (y @ y))  # f(w=0) = ½||y||²
 
         print(f"\n[{label}] d={d}, p={p}, m={m}, sparsity={sp}, lam={lam}")
         print(f"   f^* = {f_star:.4e}, f(w_OLS) = {f_w_ols:.4e}, "
@@ -103,7 +102,8 @@ def run() -> None:
     tab_path = os.path.join(TAB_DIR, "delta0_proxy.csv")
     with open(tab_path, "w", newline="") as fh:
         wr = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
-        wr.writeheader(); wr.writerows(rows)
+        wr.writeheader()
+        wr.writerows(rows)
     print(f"\nSaved: {tab_path}")
 
     fig, axes = plt.subplots(1, len(INSTANCES),
@@ -112,7 +112,7 @@ def run() -> None:
     for ax, (label, *_) in zip(axes[0], INSTANCES):
         block = [r for r in rows if r["instance"] == label]
         cs = [r["c"] for r in block]
-        # plotted quantity: relative gap (f - f*)/|f*|; CSV keeps absolute.
+        # plotted quantity: relative gap (f - f*)/|f*|, CSV keeps absolute
         gi = [r["gap_ideal"] / abs(r["f_star"]) for r in block]
         gp = [r["gap_proxy"] / abs(r["f_star"]) for r in block]
         gn = [r["gap_naive"] / abs(r["f_star"]) for r in block]

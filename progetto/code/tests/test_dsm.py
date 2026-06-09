@@ -6,7 +6,7 @@ from src.deflected_subgradient import deflected_subgradient, _optimal_gamma
 from src.lasso_utils import f_lasso, subgradient_f
 
 
-# Optimal deflection (white-box on the helper)
+# optimal deflection, white-box on the helper
 
 
 def test_optimal_gamma_in_unit_interval(rng):
@@ -27,23 +27,25 @@ def test_optimal_gamma_is_argmin_of_norm(rng):
     g = rng.standard_normal(10)
     d = rng.standard_normal(10)
     gamma_opt = _optimal_gamma(g, d)
-    # numerical argmin over a fine grid
+    # numerical argmin over a fine grid for comparison
     grid = np.linspace(0, 1, 1001)
     norms = np.array([np.linalg.norm(t * g + (1 - t) * d) ** 2 for t in grid])
     gamma_grid = grid[int(np.argmin(norms))]
     assert abs(gamma_opt - gamma_grid) < 2e-3
 
 
-# Warm start
+# warm start
 
 
 def test_dsm_default_init_is_cold(small_problem):
-    """Default w0 = 0 (cold start). The OLS warm start is admissible but is
-    expected to be passed explicitly by the caller (see chapter 3, §parameter
-    calibration)."""
+    """default w0 = 0 (cold start)
+
+    The OLS warm start is admissible but the caller is expected to pass it
+    explicitly (see chapter 3, parameter calibration).
+    """
     p = small_problem
     res = deflected_subgradient(p.X, p.y, p.lam, i_max=0)
-    # i_max=0 means no iterations; w_best is the starting point.
+    # i_max=0 -> no iterations, w_best is the starting point
     assert np.allclose(res["w"], np.zeros(p.X.shape[1]), atol=1e-12)
 
 
@@ -54,7 +56,7 @@ def test_dsm_user_warmstart_honoured(small_problem):
     assert np.allclose(res["w"], custom, atol=1e-12)
 
 
-# Record value monotonicity
+# record value monotonicity
 
 
 @pytest.mark.parametrize("seed", [0, 1, 2])
@@ -69,7 +71,7 @@ def test_dsm_record_non_increasing(seed):
     assert np.all(np.diff(f_bar) <= 1e-12), "record value must be non-increasing"
 
 
-# Convergence to f*
+# convergence to f*
 
 
 @pytest.mark.slow
@@ -80,17 +82,18 @@ def test_dsm_record_converges_to_fstar(small_problem):
         delta0=0.1 * p.f_star + 1e-3, rho=0.95, f_star=p.f_star,
     )
     final_gap = res["f_bar"][-1] - p.f_star
-    # DSM is sublinear O(1/eps^2); 1e-2 in 10k iters is realistic
+    # DSM is sublinear O(1/eps^2), so 1e-2 in 10k iters is realistic
     assert final_gap < 5e-2, f"final gap {final_gap:.3e}"
 
 
-# Subgradient sanity
+# subgradient sanity
 
 
 def test_dsm_subgradient_is_in_subdifferential(small_problem, rng):
-    """At any w, subgradient_f returns g such that f(w') >= f(w) + <g, w'-w>
-    for w' in a small neighbourhood (sub-gradient inequality
-    interpretation). Test on a random direction."""
+    """subgradient_f returns g with f(w') >= f(w) + <g, w'-w> in a small
+    neighbourhood of w, the subgradient inequality. Checked on random
+    directions.
+    """
     p = small_problem
     w = rng.standard_normal(p.X.shape[1])
     g = subgradient_f(p.X, p.y, w, p.lam)
@@ -98,10 +101,10 @@ def test_dsm_subgradient_is_in_subdifferential(small_problem, rng):
     for _ in range(10):
         d = rng.standard_normal(len(w))
         d /= np.linalg.norm(d)
-        # take a tiny step
+        # tiny step along d
         for h in [1e-5, 1e-4, 1e-3]:
             w_prime = w + h * d
             lhs = f_lasso(p.X, p.y, w_prime, p.lam)
             rhs = fw + h * np.dot(g, d)
-            # sub-gradient inequality with FD slack
+            # subgradient inequality with FD slack
             assert lhs >= rhs - 1e-6, f"subgrad inequality violated by {rhs - lhs:.2e}"

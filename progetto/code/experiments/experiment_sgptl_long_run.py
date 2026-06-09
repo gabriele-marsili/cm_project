@@ -1,15 +1,13 @@
 """Long-run SGPTL rate verification on the ELM-transformed real datasets.
 
-Runs SGPTL cold from w_0 = 0 with very large i_max on diabetes and
-california to test the O(1/sqrt(k)) envelope of Theorem 3.1 over multiple
-decades of k. Produces a log-log figure that overlays the empirical
-record gap against the theoretical envelope g_0 / sqrt(k), where g_0 is
-the initial gap to f^*.
+Runs SGPTL cold from w_0 = 0 with very large i_max on diabetes and california
+to test the O(1/sqrt(k)) envelope of Theorem 3.1 over several decades of k.
+Produces a log-log figure overlaying the empirical record gap against the
+envelope g_0 / sqrt(k), with g_0 the initial gap to f^*.
 
-This experiment is independent of experiment_real_data.py and
-experiment_warm_vs_cold_real_data.py: those use i_max = 8000 (the
-reported submission budget); this one pushes i_max much higher to verify
-that the rate predicted by the theorem continues to hold at scale.
+Independent of experiment_real_data.py and experiment_warm_vs_cold_real_data.py:
+those use i_max = 8000 (the reported submission budget), this one pushes i_max
+much higher to check that the predicted rate holds at scale.
 """
 import csv
 import os
@@ -39,8 +37,6 @@ from src.lasso_utils import f_lasso
 from src.linear_solvers import solve_spd
 
 from _plot_style import (
-    COLOR_DSM,
-    COLOR_IRLS,
     SIZE_DOUBLE,
     apply_style,
     plot_long_run_panel,
@@ -56,8 +52,8 @@ TEST_FRACTION = 0.2
 DSM_DELTA0_FACTOR = 0.1
 DSM_RHO = 0.7
 
-# Per-dataset iteration budgets. Diabetes is small (M=354) and takes a deeper
-# sweep; california is large (M=16512) and is capped at 1e6 to bound runtime.
+# per-dataset iteration budgets. diabetes is small (M=354) -> deeper sweep,
+# california is large (M=16512) -> capped at 1e6 to bound runtime
 I_MAX = {
     "diabetes": 10_000_000,
     "california": 1_000_000,
@@ -77,8 +73,10 @@ def _split_scale(X, y, seed=SEED):
     X_tr, X_te = X[tr], X[te]
     y_tr, y_te = y[tr].astype(float), y[te].astype(float)
     scaler = StandardScaler().fit(X_tr)
-    X_tr = scaler.transform(X_tr); X_te = scaler.transform(X_te)
-    y_mean = float(y_tr.mean()); y_std = float(y_tr.std()) or 1.0
+    X_tr = scaler.transform(X_tr)
+    X_te = scaler.transform(X_te)
+    y_mean = float(y_tr.mean())
+    y_std = float(y_tr.std()) or 1.0
     y_tr = (y_tr - y_mean) / y_std
     y_te = (y_te - y_mean) / y_std
     return X_tr, X_te, y_tr, y_te
@@ -100,7 +98,7 @@ def build_hidden(X_raw, d_in):
 
 
 def reference_fstar(X, y):
-    """IRLS-converged reference value (the same proxy used elsewhere)."""
+    """IRLS-converged reference value (same proxy used elsewhere)"""
     w0_ols = solve_spd(
         X.T @ X + 1e-12 * np.eye(X.shape[1]), X.T @ y, method="cholesky"
     )
@@ -162,8 +160,8 @@ def long_run(name):
     sp_1e6 = float(np.mean(np.abs(w_final) < 1e-6))
     print(f"  final f={f_final:.6f}  test MSE={mse:.4f}  sp@1e-3={sp_1e3:.0%}")
 
-    # Persist the full gap trace (sub-sampled geometrically) and final w
-    # so downstream scripts can reuse without re-running.
+    # persist the gap trace (geometric sub-sample) and final w so downstream
+    # scripts can reuse without re-running
     cache_dir = os.path.join(TAB_DIR, "long_run_cache")
     os.makedirs(cache_dir, exist_ok=True)
     idx = np.unique(np.geomspace(1, len(gaps), 2000).astype(int)) - 1
@@ -182,7 +180,7 @@ def long_run(name):
         elapsed_s=elapsed,
     )
 
-    # Sample at decade boundaries for the summary table
+    # sample at decade boundaries for the summary table
     sample_ks = [8_000, 80_000, 800_000, 8_000_000, 10_000_000]
     samples = []
     for k in sample_ks:
@@ -262,7 +260,7 @@ def main():
     for r in rows:
         print(f"\n{r['name']} (i_max={r['i_max']:_}, {r['elapsed_s']:.1f}s):")
         print(f"  g_0 = {r['gap0']:.4e}")
-        print(f"  k         observed           predicted (g_0/sqrt(k))")
+        print("  k         observed           predicted (g_0/sqrt(k))")
         for s in r["samples"]:
             print(
                 f"  {s['k']:>10_}   {s['observed']:.4e}        {s['predicted_env']:.4e}"

@@ -1,43 +1,46 @@
-"""LASSO objective f(w) = (1/2)||Xw-y||^2 + lam*||w||_1 and helpers."""
+"""LASSO objective and the small primitives the two solvers share.
+
+f(w) = 1/2 ||Xw - y||^2 + lam ||w||_1
+"""
 
 import numpy as np
 
 
 def f_lasso(X: np.ndarray, y: np.ndarray, w: np.ndarray, lam: float) -> float:
-    """Compute f(w) = (1/2)*||Xw - y||^2 + lam*||w||_1."""
     r = X @ w - y
     return float(0.5 * r @ r + lam * np.sum(np.abs(w)))
 
 
 def grad_smooth(X: np.ndarray, y: np.ndarray, w: np.ndarray) -> np.ndarray:
-    """Gradient of the smooth part: X^T(Xw - y)."""
+    # gradient of the smooth half only -> X^T(Xw - y)
     return X.T @ (X @ w - y)
 
 
 def subgradient_f(
     X: np.ndarray, y: np.ndarray, w: np.ndarray, lam: float,
 ) -> np.ndarray:
-    """A subgradient of f at w (picks sign(0) = 0 on null coordinates)."""
+    # one subgradient of f: on w_i = 0 we take sign(0) = 0 (the 0 of the
+    # subdifferential), which is what np.sign already returns
     return grad_smooth(X, y, w) + lam * np.sign(w)
 
 
 def optimality_gap(
     X: np.ndarray, y: np.ndarray, w: np.ndarray, lam: float, f_star: float,
 ) -> float:
-    """f(w) - f*."""
     return f_lasso(X, y, w, lam) - f_star
 
 
 def support_metrics(
     w_true: np.ndarray, w_hat: np.ndarray, tol: float = 1e-3,
 ) -> dict:
-    """Precision/recall/F1 of supp(w_hat) against supp(w_true) at threshold tol.
+    """Precision / recall / F1 of supp(w_hat) vs supp(w_true), threshold tol
 
-    Convention when the relevant denominator is zero:
-    - tp + fp = 0 (nothing predicted positive) -> precision = 0;
-    - tp + fn = 0 (true support empty) -> recall = 1 (vacuously, no positive
-      was missed). NB: this differs from sklearn's convention (0 + warning);
-      callers comparing against sklearn on degenerate supports must convert.
+    Empty-denominator conventions:
+        nothing predicted active -> precision = 0
+        true support empty -> recall = 1 (nothing was there to miss)
+
+    The recall case disagrees with sklearn (which returns 0 + a warning), so
+    anyone cross-checking on an empty true support has to convert.
     """
     s_true = np.abs(w_true) >= tol
     s_hat = np.abs(w_hat) >= tol
@@ -67,10 +70,11 @@ def check_optimality(
     X: np.ndarray, y: np.ndarray, w: np.ndarray, lam: float,
     zero_tol: float = 1e-6,
 ) -> float:
-    """Max KKT residual over coordinates.
+    """Worst KKT residual over the coordinates (0 => w is optimal up to tol).
 
-    A coordinate w_i is treated as zero when |w_i| < zero_tol. Returns 0 iff
-    w satisfies the LASSO optimality system up to the tolerance.
+    Coordinate split, with g = X^T(Xw - y):
+        |w_i| < zero_tol  ->  must have |g_i| <= lam   (residual = max(0, |g_i| - lam))
+        otherwise         ->  must have g_i = -lam sign(w_i)
     """
     g = grad_smooth(X, y, w)
     v = 0.0

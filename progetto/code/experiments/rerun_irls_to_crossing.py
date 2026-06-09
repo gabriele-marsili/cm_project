@@ -3,7 +3,7 @@ wall-time.
 
 t_cross is the IRLS iteration-loop time to reach the relative target. The
 one-time OLS warm-start factorisation is excluded here and timed separately by
-time_ols_warm_start.py (warm_start_cost.csv); the real-data table reports the
+time_ols_warm_start.py (warm_start_cost.csv). The real-data table reports the
 loop time and quotes the factorisation cost alongside it. Mirrors
 experiment_sgptl_long_run.py setup.
 
@@ -69,11 +69,12 @@ def time_irls_full(X: np.ndarray, y: np.ndarray, fstar: float) -> dict:
     """Wall-time of (OLS warm-start + IRLS loop) until the RELATIVE gap
     (f - f*)/|f*| <= TARGET.
 
-    IRLS converges far below relative 1e-6 on both datasets, so we report
-    two things: (i) the wall-time to first reach relative 1e-6 (the
-    crossing the table needs), measured from the same warm-start +
-    iteration loop; (ii) the iteration count and relative gap at full
-    convergence, which sit below the target.
+    IRLS converges far below relative 1e-6 on both datasets, so two things
+    get reported:
+        - wall-time to first reach relative 1e-6 (the crossing the table
+          needs), from the same warm-start + iteration loop
+        - iteration count and relative gap at full convergence, both below
+          the target
     """
     rel_thresh = TARGET * abs(fstar)
     t_cross_list: list[float] = []
@@ -93,14 +94,14 @@ def time_irls_full(X: np.ndarray, y: np.ndarray, fstar: float) -> dict:
         )
         elapsed_full = time.perf_counter() - t0
 
-        # res["gaps"][k] = f(w_{k+1}) - f*; first iter at/below the rel target.
+        # res["gaps"][k] = f(w_{k+1}) - f*, first iter at/below the rel target
         gaps_arr = np.asarray(res["gaps"], dtype=float)
         mask = gaps_arr <= rel_thresh
         if mask.any():
             k_cross = int(np.argmax(mask))
-            # res["times"] is cumulative wall-time inside the IRLS loop. The
-            # one-time OLS factorisation before the loop is timed separately
-            # (warm_start_cost.csv) and excluded here, as the report states.
+            # res["times"] is cumulative wall-time inside the IRLS loop
+            # the one-time OLS factorisation before the loop is timed
+            # separately (warm_start_cost.csv) and excluded here
             t_cross = float(res["times"][k_cross])
         else:
             k_cross = res["n_iter"]
