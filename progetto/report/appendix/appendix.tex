@@ -153,7 +153,7 @@ Then $\mathbf{P}^{-1}=\mathbf{B}^{-1/2}$ and:
        \underbrace{\mathbf{B}^{-1/2}\mathbf{B}^{1/2}}_{=\mathbf{I}} \\
     &= \mathbf{B}^{-1}\mathbf{H}.
 \end{align*}
-So, $\mathbf{B}^{-1}\mathbf{H}=\mathbf{P}^{-1}\mathbf{S}\mathbf{P}$. $\square$
+So, $\mathbf{B}^{-1}\mathbf{H}=\mathbf{P}^{-1}\mathbf{S}\mathbf{P}$.
 \end{proof}
 
 
@@ -185,7 +185,23 @@ Substitute $\mathbf{u}=\mathbf{B}^{1/2}\mathbf{v}$ (a bijection on $\mathbb{R}^H
     \underbrace{\mathbf{B}^{-1/2}\mathbf{B}^{1/2}}_{=\mathbf{I}}\mathbf{v} \\[4pt]
     \mathbf{v}^T\mathbf{B}\mathbf{v} &\ge \mathbf{v}^T\mathbf{H}\mathbf{v} \quad\forall\,\mathbf{v},
 \end{align*}
-which is exactly $\mathbf{H}\preceq\mathbf{B}$. $\square$
+which is exactly $\mathbf{H}\preceq\mathbf{B}$.
+
+Conversely, assume $\mathbf{H} \preceq \mathbf{B}$. By definition, this means $\mathbf{v}^T\mathbf{H}\mathbf{v} \le \mathbf{v}^T\mathbf{B}\mathbf{v}$ for all $\mathbf{v}$. 
+Since $\mathbf{B}$ is SPD, its inverse square root $\mathbf{B}^{-1/2}$ exists and is symmetric. We can substitute $\mathbf{v} = \mathbf{B}^{-1/2}\mathbf{u}$ (which is a bijection on $\mathbb{R}^H$):
+\begin{align*}
+    (\mathbf{B}^{-1/2}\mathbf{u})^T \mathbf{H} (\mathbf{B}^{-1/2}\mathbf{u}) 
+    &\le 
+    (\mathbf{B}^{-1/2}\mathbf{u})^T \mathbf{B} (\mathbf{B}^{-1/2}\mathbf{u}) \\[4pt]
+    \mathbf{u}^T (\mathbf{B}^{-1/2})^T \mathbf{H} \mathbf{B}^{-1/2} \mathbf{u} 
+    &\le 
+    \mathbf{u}^T (\mathbf{B}^{-1/2})^T \mathbf{B} \mathbf{B}^{-1/2} \mathbf{u} \\[4pt]
+    \mathbf{u}^T \underbrace{\mathbf{B}^{-1/2} \mathbf{H} \mathbf{B}^{-1/2}}_{=\mathbf{S}} \mathbf{u} 
+    &\le 
+    \mathbf{u}^T \underbrace{\mathbf{B}^{-1/2} \mathbf{B} \mathbf{B}^{-1/2}}_{=\mathbf{I}} \mathbf{u} \\[4pt]
+    \mathbf{u}^T \mathbf{S} \mathbf{u} &\le \mathbf{u}^T \mathbf{u} \quad \forall\,\mathbf{u},
+\end{align*}
+which is exactly the definition of $\mathbf{S} \preceq \mathbf{I}$.
 \end{proof}
 
 It remains to verify $\mathbf{H}\preceq\mathbf{B}$, i.e.\ $\mathbf{B}-\mathbf{H}\succeq\mathbf{0}$.
