@@ -14,23 +14,17 @@ def grad_smooth(X: np.ndarray, y: np.ndarray, w: np.ndarray) -> np.ndarray:
     return X.T @ (X @ w - y)
 
 
-def subgradient_f(
-    X: np.ndarray, y: np.ndarray, w: np.ndarray, lam: float,
-) -> np.ndarray:
+def subgradient_f(X: np.ndarray, y: np.ndarray, w: np.ndarray, lam: float) -> np.ndarray:
     """A subgradient of f at w (picks sign(0) = 0 on null coordinates)."""
     return grad_smooth(X, y, w) + lam * np.sign(w)
 
 
-def optimality_gap(
-    X: np.ndarray, y: np.ndarray, w: np.ndarray, lam: float, f_star: float,
-) -> float:
+def optimality_gap(X: np.ndarray, y: np.ndarray, w: np.ndarray, lam: float, f_star: float) -> float:
     """f(w) - f*."""
     return f_lasso(X, y, w, lam) - f_star
 
 
-def support_metrics(
-    w_true: np.ndarray, w_hat: np.ndarray, tol: float = 1e-3,
-) -> dict:
+def support_metrics(w_true: np.ndarray, w_hat: np.ndarray, tol: float = 1e-3) -> dict:
     """Precision/recall/F1 of supp(w_hat) against supp(w_true) at threshold tol.
 
     Convention when the relevant denominator is zero:

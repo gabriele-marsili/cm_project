@@ -7,11 +7,10 @@ import numpy as np
 from .deflected_subgradient import deflected_subgradient
 from .irls import irls
 
-# Clip z before exp(-z) in the sigmoid to avoid overflow. The sigmoid is
-# already saturated for |z| > 36, so 500 only guards extreme inputs.
+# clip z before exp(-z) in the sigmoid to avoid overflow. The sigmoid is already saturated for |z| > 36, so 500 only guards extreme inputs
 _SIGMOID_CLIP: float = 500.0
 
-# A coordinate counts as inactive when |w_i| < _SPARSITY_TOL.
+# a coordinate counts as inactive when |w_i| < _SPARSITY_TOL.
 _SPARSITY_TOL: float = 1e-8
 
 
@@ -61,7 +60,7 @@ class ELM:
     def fit(self, X_raw: np.ndarray, y: np.ndarray, solver: str = "irls", **kwargs) -> "ELM":
         """Fit output weights w by solving the LASSO on transformed inputs.
 
-        solver: 'irls' (A1) or 'dsm' (A2). Extra kwargs are forwarded.
+        solver: 'irls' (A1) or 'dsm' (A2). extra kwargs are forwarded
         """
         Xh = self.transform(X_raw)
         if solver == "irls":
@@ -93,7 +92,4 @@ class ELM:
         return int(np.sum(np.abs(self.w) >= _SPARSITY_TOL))
 
     def __repr__(self) -> str:
-        return (
-            f"ELM(d={self.d}, p={self.p}, "
-            f"activation={self.activation!r}, lam={self.lam})"
-        )
+        return (f"ELM(d={self.d}, p={self.p}, activation={self.activation!r}, lam={self.lam})")

@@ -22,14 +22,11 @@ import matplotlib.pyplot as plt
 
 from src import irls, deflected_subgradient, make_lasso_problem
 from src.linear_solvers import solve_spd
-from _plot_style import (apply_style, style_axes,
-                         COLOR_IRLS, COLOR_DSM,
-                         COLOR_FBAR, COLOR_FCUR, COLOR_REF, COLOR_AUX,
-                         SIZE_SINGLE, SIZE_DOUBLE)
+from _plot_style import (apply_style, style_axes, COLOR_IRLS, COLOR_DSM, COLOR_FBAR, COLOR_FCUR, COLOR_REF, COLOR_AUX, SIZE_SINGLE, SIZE_DOUBLE)
 apply_style()
 
 
-SEED      = 42
+SEED     = 42
 H         = 100
 M         = 300
 SPARSITY  = 0.10
@@ -37,9 +34,7 @@ LAMBDA    = 0.10
 NOISE     = 0.05
 
 IRLS_KMAX     = 1500
-IRLS_EPS_THR  = 1e-12   # tight on this figure to expose the linear tail
-                        # (default 1e-8 used elsewhere reaches its O(eps_thr)
-                        #  smoothing floor before the linear regime is visible)
+IRLS_EPS_THR  = 1e-12   # tight on this figure to expose the linear tail (default 1e-8 used elsewhere reaches its O(eps_thr) smoothing floor before the linear regime is visible)
 DSM_IMAX  = 8000
 DSM_RHO   = 0.7
 

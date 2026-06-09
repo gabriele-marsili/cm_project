@@ -12,8 +12,7 @@ def cholesky_solve(Q: np.ndarray, b: np.ndarray) -> np.ndarray:
     return la.cho_solve((c, low), b, check_finite=False)
 
 
-# Inner products (used as squared norms) below this are treated as zero:
-# either CG breakdown on a non-SPD matrix or a reached fixed point.
+# inner products (used as squared norms) below this are treated as zero: either CG breakdown on a non-SPD matrix or a reached fixed point
 _NUMERICAL_FLOOR = 1e-30
 
 
@@ -27,10 +26,7 @@ def conjugate_gradient(
 ) -> Tuple[np.ndarray, int]:
     """Preconditioned CG for SPD Q x = b. Returns (x, iters_done).
 
-    precond: M^{-1} = diag(precond). Default: Jacobi precond_i = 1 / Q_ii
-    (requires strictly positive diag(Q)). Stops on ||r|| <= tol * ||b|| or on
-    breakdown (p @ Qp <= 0, i.e. loss of SPD), returning the current iterate;
-    the caller should check the residual before using it.
+    precond: M^{-1} = diag(precond). Default: Jacobi precond_i = 1 / Q_ii (requires strictly positive diag(Q)). Stops on ||r|| <= tol * ||b|| or on breakdown (p @ Qp <= 0, i.e. loss of SPD), returning the current iterate. the caller should check the residual before using it.
     """
     n = len(b)
     if max_iter is None:
@@ -55,7 +51,7 @@ def conjugate_gradient(
         Qp = Q @ p
         pQp = p @ Qp
         if pQp <= _NUMERICAL_FLOOR:
-            # SPD lost to round-off: stop and return the current iterate.
+            # SPD lost to round-off, return the current iterate
             return x, k
         alpha = rz / pQp
         x += alpha * p
@@ -79,8 +75,7 @@ def solve_spd(
 ) -> Union[np.ndarray, Tuple[np.ndarray, Optional[int]]]:
     """Solve SPD system Q x = b. method in {'cholesky', 'cg'}.
 
-    return_info=True returns (x, info) where info is None for Cholesky and
-    the CG iteration count for CG.
+    return_info=True returns (x, info). info is None for cholesky and the CG iteration count for CG.
     """
     if method == "cholesky":
         x = cholesky_solve(Q, b)
