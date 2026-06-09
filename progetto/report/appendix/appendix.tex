@@ -319,9 +319,7 @@ starting gap.
         \texttt{california}~$H=200$ & 1 & $16512\times 200$ & cold $\mathbf{w}_{0}=\mathbf{0}$ & IRLS-converged proxy \\
         \bottomrule
     \end{tabular}
-    \caption{Instances used in the $\delta_{0}$ family sweep.
-    \texttt{california} runs cold because the OLS solution coincides with
-    $f^{*}$ to machine precision at $\lambda_\text{LASSO}=0.1$. All runs
+    \caption{Instances used in the $\delta_{0}$ family sweep. All runs
     share $\lambda_\text{LASSO}=0.1$, $i_{\max}=8000$, $\rho=0.7$,
     $\gamma_{\min}=0.05$, $\beta=1$, $R=1$.}
     \label{tab:delta0-families-summary}
@@ -374,7 +372,7 @@ $\varepsilon_\text{thr}=10^{-8}$) is reported here for completeness.
     $\varepsilon_\text{thr}=10^{-8}$), log--log axes, relative gap
     $(f-f^{*})/|f^{*}|$. Both starts converge to the
     $\varepsilon_\text{thr}$ floor ($(\bar f - f^{*})/|f^{*}|\approx 1.6\cdot
-    10^{-8}$) at iteration $940$ (warm) and $922$ (cold); the warm curve
+    10^{-8}$) at iteration $941$ (warm) and $923$ (cold); the warm curve
     sits below the cold one throughout the descent, consistent with the
     multiplicative role of $\norm{\mathbf{w}_{0}-\mathbf{w}^{*}}$ in the
     bound of Section~\ref{sec:irls_convergence}.}

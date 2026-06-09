@@ -1,0 +1,28 @@
+# Tooling config for the project code (Ruff lint + Pyright/Pylance).
+
+[tool.ruff]
+extend-exclude = ["lib"]  # the local venv, not our code
+
+[tool.ruff.lint]
+# Experiment scripts insert the repo root into sys.path before importing `src`,
+# so their module-level imports legitimately sit after code. E402 fires on all
+# of them and is expected -> silence it project-wide.
+ignore = ["E402"]
+
+[tool.pyright]
+exclude = ["lib"]
+# numpy / scipy / sklearn ship loose, dynamic type stubs, so static type
+# checking on a numerical codebase is mostly false positives: union return
+# types (ndarray | Tuple), Bunch.data/.target, operators on Optional, and
+# possibly-unbound on the guarded optional imports (cvxpy/pandas). Ruff already
+# covers the real lint. Switch to "basic" if you want the type hints back.
+typeCheckingMode = "off"
+reportPossiblyUnbound = "none"
+reportAttributeAccessIssue = "none"
+reportArgumentType = "none"
+reportCallIssue = "none"
+reportOperatorIssue = "none"
+reportOptionalOperand = "none"
+reportIndexIssue = "none"
+reportMissingImports = "none"
+reportMissingModuleSource = "none"

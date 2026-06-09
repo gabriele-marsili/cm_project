@@ -1,0 +1,14 @@
+# Core dependencies to run the algorithms and reproduce the experiments.
+# Tested with Python 3.12. Install with:  pip install -r requirements.txt
+numpy>=1.24
+scipy>=1.10
+scikit-learn>=1.3
+matplotlib>=3.7
+
+# Optional: only used as an independent interior-point cross-check (CVXPY/Clarabel)
+# in experiment_real_data.py and experiment_delta0_families.py. The core IRLS/DSM
+# results and all reported figures/tables reproduce without it.
+# cvxpy>=1.4
+
+# Optional: to run the unit-test suite (pytest tests/).
+# pytest>=7.0
