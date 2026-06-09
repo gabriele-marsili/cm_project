@@ -1,0 +1,30 @@
+partendo da : 
+- {w_i} limitato 
+- f convessa e finita su R^H (Lipshitz)
+- il sotto differenziale mappa compatti in compatti, ossia patial f mappa limitati in limitati:
+
+g_i = X^T(X*w_i-y) + lambda*s_i
+= X^T*X*w_i - y*X^T + lambda*s_i (solo riscritta svolgendo il prodotto)
+
+-> ||lambda*s_i|| <= sqrt(H)*lambda poiché s_i è il segno (−1, 0 o +1)
+
+mentre :
+||g_i|| <= ||X^T||*R + ||X^T*y|| + sqrt(H)*lambda  := L
+
+(-> praticamente R limita i w_i, il secondo termine è una costante e l'ultimo è la limitazione superiore sui s_i*lambda)
+
+ora da g_i (subgradiente) si deve passare alla direzione d_i, da definizione abbiamo : 
+
+d_i = gamma_i*g_i + (1-gamma_y)*d_i-1 
+
+dove gamma_i è tra [0,1]; d_0 = g_0 e praticamente puoi vedere d_i come una media pesata proprio da gamma_i
+
+Ora basta notare che la media pasata di vettori di norma <= L ha norma <= L 
+-> si vede per induzione :
+• i = 0 => d_0 = g_0, ma ||g_0|| <= L come visto prima, quindi vale ||d_0|| <= 0
+• passo induttivo: 
+||d_i-1|| si assume essere <= L , quindi per la disuguaglianza triangolare abbiamo:
+||d_i|| <= gamma_i * ||g_i|| + (1-gamma_i)*||d_i+1|| <= gamma_i * L + (1 - gamma_i)*L = L
+
+(da osservare che L è in relazione a ||g_i|| e ||d_i-1|| )
+-> quindi ||d_i|| <= L per ogni i

@@ -101,6 +101,34 @@ def sklearn_best_effort(X, y, lam, max_iter=100_000, tol=1e-10):
     return sk.coef_, f_lasso(X, y, sk.coef_, lam), int(sk.n_iter_)
 
 
+def sklearn_trace(X, y, lam, max_iter, n_samples=28, tol=1e-16):
+    """Convergence trace of sklearn coordinate descent over its own budget.
+
+    Sampled at geometrically spaced sweep counts up to `max_iter` (set to the
+    SGPTL long-run budget so both span the same iteration axis). A single CD
+    run is advanced incrementally with `warm_start`: each fit resumes from the
+    previous coefficient and runs the next block of sweeps. CD uses cyclic
+    coordinate selection and never meets `tol` on these problems
+    (cf. `sklearn_best_effort`), so each block runs in full and the snapshots
+    trace one continuous trajectory at total cost ~one run to `max_iter`.
+    Returns (iters, fvals) with `fvals[k]` the LASSO objective after
+    `iters[k]` sweeps."""
+    M = X.shape[0]
+    iters = np.unique(np.geomspace(1.0, max_iter, n_samples).astype(int))
+    fvals = np.empty(len(iters), dtype=float)
+    sk = SkLasso(alpha=lam / M, fit_intercept=False,
+                 warm_start=True, max_iter=1, tol=tol)
+    prev = 0
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for k, m in enumerate(iters):
+            sk.set_params(max_iter=int(m) - prev)
+            sk.fit(X, y)
+            fvals[k] = f_lasso(X, y, sk.coef_, lam)
+            prev = int(m)
+    return iters, fvals
+
+
 def reference_fstar(X, y, lam, w0=None):
     """Compute an independent reference f^*.
 
@@ -295,6 +323,14 @@ def run_one(name):
         print(f"  [no long-run cache at {cache_path}, "
               f"figure/table will fall back to i_max={DSM_IMAX} run]")
 
+    # sklearn CD convergence trace over the same iteration budget as SGPTL
+    # (the long-run i_max), so Figure 5.12 compares both on a common x-axis.
+    skl_budget = sgptl_long["i_max"] if sgptl_long is not None else 100_000
+    skl_iters, skl_fvals = sklearn_trace(X_tr, y_tr, LAMBDA, max_iter=skl_budget)
+    skl_trace_gap = (skl_fvals[-1] - f_star) / abs(f_star)
+    print(f"  sklearn CD trace (budget={skl_budget:_} sweeps): "
+          f"final rel. gap = {skl_trace_gap:+.2e}")
+
     return {
         "name": name,
         "M_train": M, "M_test": X_te_raw.shape[0], "d": d_in, "H": H,
@@ -332,6 +368,7 @@ def run_one(name):
         "_dsm_fbar_cold": res_d_cold["f_bar"],
         "_dsm_fbar_warm": res_d_warm["f_bar"],
         "_sgptl_long": sgptl_long,
+        "_skl_trace": {"iters": skl_iters, "fvals": skl_fvals},
     }
 
 
@@ -351,7 +388,7 @@ def run() -> None:
         print("\nNo datasets ran successfully; nothing to save.")
         return
 
-    # CSV table — strip the per-iteration trace columns (prefix "_").
+    # CSV table - strip the per-iteration trace columns (prefix "_").
     tab_path = os.path.join(TAB_DIR, "real_data.csv")
     public_keys = [k for k in rows[0].keys() if not k.startswith("_")]
     with open(tab_path, "w", newline="") as fh:
@@ -361,11 +398,10 @@ def run() -> None:
             wr.writerow({k: r[k] for k in public_keys})
     print(f"\nSaved: {tab_path}")
 
-    # gap to f* per dataset. The figure shows that IRLS reaches f* to machine
-    # precision in ~100 iterations and that SGPTL descends at the g_0/sqrt(i)
-    # rate, not stalling. The theoretical envelope is overlaid on the SGPTL
-    # cold trace, not the warm-start curve (which is pinned at the OLS floor
-    # on California).
+    # gap to f* per dataset. IRLS reaches f* to machine precision in ~100
+    # iterations; SGPTL cold descends at the sublinear rate to the f* floor;
+    # sklearn CD is overlaid as a third-party convergence trace (gap per
+    # coordinate sweep) that stalls above f* and returns at max_iter.
     n_panels = len(rows)
     fig, axes = plt.subplots(1, n_panels, figsize=(7.0 * n_panels, 5.5),
                              squeeze=False)
@@ -398,22 +434,20 @@ def run() -> None:
             cold_iters = np.arange(1, len(cold_gap) + 1)
             sgptl_label = r"SGPTL (cold, $i_{\max}=8000$)"
 
-        # Theoretical envelope g_0/sqrt(i)
-        env_i = np.geomspace(1.0, float(cold_iters[-1]), 200)
-        env_g = float(cold_gap[0]) / np.sqrt(env_i)
-
-        skl_gap = max((row["f_skl"] - f_baseline) / abs_fstar, floor)
+        # sklearn CD convergence trace (gap per coordinate sweep)
+        skl_iters = np.asarray(row["_skl_trace"]["iters"], dtype=float)
+        skl_gap = np.maximum(
+            (np.asarray(row["_skl_trace"]["fvals"], dtype=float) - f_baseline)
+            / abs_fstar, floor)
 
         ax.loglog(irls_iters, irls_gap,
                   color=COLOR_IRLS, marker="o", markersize=4.0,
                   linewidth=2.0, label=r"IRLS (warm)")
         ax.loglog(cold_iters, cold_gap,
                   color=COLOR_DSM, linewidth=2.0, label=sgptl_label)
-        ax.loglog(env_i, env_g, color="grey", linestyle="--",
-                  linewidth=1.4, label=r"$g_{0}^{\mathrm{rel}}/\sqrt{i}$ envelope")
-        ax.axhline(skl_gap, color="#2c7a30", linestyle=":",
-                   linewidth=1.4, alpha=0.85,
-                   label=fr"sklearn CD ($10^{{5}}$ iter, tol $10^{{-10}}$)")
+        ax.loglog(skl_iters, skl_gap, color="#2c7a30", linestyle=":",
+                  linewidth=1.6, marker="s", markersize=3.0, alpha=0.9,
+                  label=r"sklearn CD (cold, tol $10^{-16}$)")
 
         ax.set_xlabel("Iteration  (log scale)")
         ax.set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$")

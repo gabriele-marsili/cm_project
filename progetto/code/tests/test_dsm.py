@@ -6,9 +6,7 @@ from src.deflected_subgradient import deflected_subgradient, _optimal_gamma
 from src.lasso_utils import f_lasso, subgradient_f
 
 
-# ---------------------------------------------------------------------------
 # Optimal deflection (white-box on the helper)
-# ---------------------------------------------------------------------------
 
 
 def test_optimal_gamma_in_unit_interval(rng):
@@ -36,9 +34,7 @@ def test_optimal_gamma_is_argmin_of_norm(rng):
     assert abs(gamma_opt - gamma_grid) < 2e-3
 
 
-# ---------------------------------------------------------------------------
 # Warm start
-# ---------------------------------------------------------------------------
 
 
 def test_dsm_default_init_is_cold(small_problem):
@@ -58,9 +54,7 @@ def test_dsm_user_warmstart_honoured(small_problem):
     assert np.allclose(res["w"], custom, atol=1e-12)
 
 
-# ---------------------------------------------------------------------------
 # Record value monotonicity
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("seed", [0, 1, 2])
@@ -75,9 +69,7 @@ def test_dsm_record_non_increasing(seed):
     assert np.all(np.diff(f_bar) <= 1e-12), "record value must be non-increasing"
 
 
-# ---------------------------------------------------------------------------
 # Convergence to f*
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.slow
@@ -92,9 +84,7 @@ def test_dsm_record_converges_to_fstar(small_problem):
     assert final_gap < 5e-2, f"final gap {final_gap:.3e}"
 
 
-# ---------------------------------------------------------------------------
 # Subgradient sanity
-# ---------------------------------------------------------------------------
 
 
 def test_dsm_subgradient_is_in_subdifferential(small_problem, rng):

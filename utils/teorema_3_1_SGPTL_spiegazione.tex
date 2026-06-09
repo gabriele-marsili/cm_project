@@ -1,0 +1,1091 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[italian]{babel}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{bm}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{mdframed}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue!55!black,urlcolor=blue!55!black}
+
+\newtheorem{theorem}{Teorema}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposizione}
+\newtheorem{corollary}{Corollario}
+\theoremstyle{definition}
+\newtheorem{definition}{Definizione}
+\newtheorem{remark}{Osservazione}
+
+\newmdenv[linecolor=blue!40!black,linewidth=0.6pt,
+  backgroundcolor=blue!4,roundcorner=4pt,
+  innertopmargin=6pt,innerbottommargin=6pt]{keybox}
+\newmdenv[linecolor=red!50!black,linewidth=0.7pt,
+  backgroundcolor=red!4,roundcorner=4pt,
+  innertopmargin=6pt,innerbottommargin=6pt]{warnbox}
+\newmdenv[linecolor=green!45!black,linewidth=0.6pt,
+  backgroundcolor=green!4,roundcorner=4pt,
+  innertopmargin=6pt,innerbottommargin=6pt]{oralbox}
+
+\newcommand{\w}{\bm{w}}
+\newcommand{\X}{\bm{X}}
+\newcommand{\y}{\bm{y}}
+\newcommand{\g}{\bm{g}}
+\newcommand{\dvec}{\bm{d}}
+\newcommand{\svec}{\bm{s}}
+\newcommand{\wstar}{\w^{*}}
+\newcommand{\fstar}{f^{*}}
+\newcommand{\fref}{f_{\mathrm{ref}}}
+\newcommand{\fbar}{\bar{f}}
+\newcommand{\gmin}{\gamma_{\min}}
+\newcommand{\sign}{\operatorname{sign}}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\inner}[2]{\langle #1,\, #2\rangle}
+\newcommand{\norm}[1]{\lVert #1\rVert}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\lasso}{\lambda_{\mathrm{LASSO}}}
+
+\title{\textbf{Teorema 3.1 (convergenza di SGPTL), spiegato passo passo}\\[4pt]
+\large Il deflected subgradient con Polyak step e target level sul problema ELM\,+\,LASSO:\\
+statement, dimostrazione, e ogni passaggio ricostruito da zero}
+\author{Note di studio per l'orale --- progetto CM (ELM + LASSO, algoritmo A2)}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent Questo documento ricostruisce, partendo dai fondamenti e senza dare nulla per
+scontato, il Teorema~3.1 del report (sezione 3.5.2, ``Convergence of SGPTL'') e la sua
+dimostrazione. L'obiettivo non è ripetere il report ma renderne ogni riga \emph{discutibile
+all'orale}: ogni oggetto che compare nello statement (subgradiente, deflection, Polyak step,
+target level, valore-record, proprietà di Fej\'er) è introdotto prima di essere usato, e ogni
+passaggio della prova è giustificato per intero, incluse le due derivazioni che il report
+rimanda in appendice. Alla fine c'è una sezione di \emph{domande tipiche del professore}
+con le risposte, costruite intorno ai punti dove la dimostrazione è davvero delicata --- in
+particolare il punto in cui un argomento ``ovvio'' (la limitatezza degli iterati) sarebbe
+\emph{sbagliato} se motivato come si farebbe per un metodo di discesa.\\[4pt]
+La fonte teorica del teorema è il paper di D'Antonio--Frangioni 2009 (citato come
+\texttt{dantonio2009deflected} nel report); le slide del corso di Frangioni sul nonsmooth
+sono la fonte secondaria. I numeri di equazione/teorema fra parentesi ``(3.17)'', ``(2.9)'',
+``Cor.~3.2'', ``Thm~3.5/3.7'', ``Lemma~3.8'' si riferiscono a quel paper; ``eq.~(3.7)'' e
+``eq.~(3.8)'' del report sono il rate e la disuguaglianza per-step.
+\end{abstract}
+
+\tableofcontents
+\bigskip
+
+% =====================================================================
+\section{Mappa: cosa dimostra il teorema e perché conta}
+\label{sec:mappa}
+
+Il Teorema 3.1 fa due affermazioni \emph{distinte}, e all'orale è bene tenerle separate:
+
+\begin{enumerate}[label=(\Roman*)]
+\item \textbf{Convergenza (qualitativa).} I \emph{valori-record} $\fbar_i=\min_{h\le i}f(\w_h)$
+generati dall'algoritmo SGPTL convergono al minimo $\fstar$. Cioè: prima o poi il miglior
+valore di funzione visto fin lì si avvicina quanto si vuole all'ottimo.
+\item \textbf{Rate (quantitativo).} Sotto il regime asintotico (quando il target-level si è
+``affilato'' su $\fstar$), il gap del record decresce come
+\[
+\fbar_k-\fstar \;\le\; \frac{L\,\norm{\w_0-\wstar}_2}{\gmin\,\sqrt{k+1}},
+\]
+cioè un rate \emph{sublineare} $O(1/\sqrt{k})$. Equivalentemente: per ottenere
+$\fbar_k-\fstar\le\eps$ servono $O\!\big(L^2/(\gmin^2\eps^2)\big)$ iterazioni.
+\end{enumerate}
+
+\begin{keybox}
+\textbf{Perché ci interessa, in una frase.} Il problema ELM+LASSO è convesso ma
+\emph{non liscio} (per via del termine $\lasso\norm{\w}_1$): il gradiente non esiste ovunque,
+quindi non possiamo usare metodi del second'ordine o gradiente liscio. La classe giusta di
+metodi è quella dei \emph{subgradient methods}. Il teorema dice che la nostra variante
+(deflected + Polyak + target level) converge, e che il suo rate $O(1/\sqrt{k})$ è
+\emph{ottimale} per metodi del prim'ordine su problemi convessi nonsmooth (il lower bound
+$\Omega(L^2/\eps^2)$ non è migliorabile). Il prezzo della deflection è il fattore
+$1/\gmin^2$ davanti, non l'ordine.
+\end{keybox}
+
+La dimostrazione \textbf{non riparte da zero}: il paper di D'Antonio--Frangioni ha già un
+teorema generale di convergenza (il loro Teorema 3.7) per una famiglia di metodi. La nostra
+prova è quindi un lavoro di \emph{verifica delle ipotesi}: si controlla che il nostro
+Algoritmo soddisfi le tre condizioni del loro teorema (le condizioni (2.13), (3.5), (3.26)),
+si invoca il loro risultato per la convergenza, e poi si \emph{deriva a parte} il rate
+ricalcando una disuguaglianza per-step del paper. Questo schema --- ``verifico le ipotesi di
+un teorema citato, poi leggo la tesi'' --- è esattamente quello che il prof vuole vedere fatto
+con rigore, perché è qui che si nascondono gli errori (usare un teorema le cui ipotesi non
+valgono sul \emph{nostro} problema).
+
+% =====================================================================
+\section{Prerequisiti: tutti gli oggetti che compaiono nel teorema}
+\label{sec:prereq}
+
+Questa sezione è lunga ma è il vero investimento: se padroneggi questi otto oggetti, la prova
+diventa una sequenza di passaggi quasi meccanici.
+
+% ---------------------------------------------------------------
+\subsection{Il problema: ELM + LASSO}
+\label{sub:problema}
+
+Stiamo minimizzando, sui pesi del layer di output $\w\in\R^H$ di una Extreme Learning Machine,
+\begin{equation}\label{eq:problema}
+f(\w) \;=\; \tfrac12\norm{\X\w-\y}_2^2 \;+\; \lasso\,\norm{\w}_1,
+\end{equation}
+dove $\X\in\R^{M\times H}$ è la matrice delle feature nascoste (fissa: l'hidden layer della ELM
+è random e congelato), $\y\in\R^M$ il target, $\lasso>0$ il peso della penalità $L_1$.
+
+Due proprietà di $f$ che useremo continuamente:
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{$f$ è convessa.} Somma di un quadratico convesso (la matrice Hessiana del
+termine liscio è $\X^\top\X\succeq 0$) e di una norma $\norm{\cdot}_1$, che è convessa. La
+somma di funzioni convesse è convessa.
+\item \textbf{$f$ è nonsmooth.} Il termine $\norm{\w}_1=\sum_j|w_j|$ ha uno spigolo in ogni
+punto dove qualche coordinata $w_j=0$: lì il gradiente non esiste. È proprio il prezzo della
+sparsità.
+\item \textbf{$f$ è coerciva} (Proposizione 1.1 del report): $f(\w)\to+\infty$ quando
+$\norm{\w}\to\infty$. Questo garantisce che il minimo $\fstar=\min f$ esista, sia finito
+($>-\infty$) e sia raggiunto in qualche $\wstar$. È la \emph{prima ipotesi} del teorema, e su
+ELM+LASSO è \emph{verificata}, non assunta.
+\end{itemize}
+
+% ---------------------------------------------------------------
+\subsection{Subgradiente e subdifferenziale}
+\label{sub:subgrad}
+
+Per una funzione liscia, il gradiente $\nabla f(\w)$ definisce l'iperpiano tangente che sta
+sotto il grafico. Quando $f$ non è derivabile in $\w$, di iperpiani-supporto ce n'è tutto un
+fascio: ognuno è un \emph{subgradiente}.
+
+\begin{definition}[Subgradiente]
+$\g$ è un subgradiente di $f$ convessa in $\w$ se
+\begin{equation}\label{eq:subgrad-ineq}
+f(\bm{z}) \;\ge\; f(\w) + \inner{\g}{\bm{z}-\w}\qquad\text{per ogni }\bm{z}.
+\end{equation}
+L'insieme di tutti i subgradienti in $\w$ è il \emph{subdifferenziale} $\partial f(\w)$.
+\end{definition}
+
+La~\eqref{eq:subgrad-ineq} è la \emph{subgradient inequality} e sarà il motore di tutta la
+prova: dice che dal punto $\w$, muovendosi verso un qualunque $\bm{z}$, la funzione cresce
+almeno quanto predice il subgradiente. Conseguenza che useremo: ponendo $\bm{z}=\wstar$,
+\begin{equation}\label{eq:subgrad-verso-ottimo}
+\inner{\g}{\w-\wstar} \;\ge\; f(\w)-f(\wstar) \;=\; f(\w)-\fstar \;\ge\;0 .
+\end{equation}
+Cioè il subgradiente forma un angolo acuto con la direzione $\w-\wstar$ che punta
+\emph{via} dall'ottimo: $-\g$ è una direzione di discesa ``verso'' $\wstar$ nel senso della
+distanza. Questo è il motivo profondo per cui i subgradient methods funzionano.
+
+\paragraph{Subdifferenziale di ELM+LASSO.} Per la~\eqref{eq:problema}, sommando la parte
+liscia (gradiente classico) e la parte $L_1$ (subdifferenziale del valore assoluto),
+\begin{equation}\label{eq:subdiff-lasso}
+\partial f(\w) \;=\; \X^\top(\X\w-\y) \;+\; \lasso\,\partial\norm{\w}_1,
+\qquad
+\partial|w_j| \;=\;\begin{cases} \{\sign(w_j)\} & w_j\ne 0,\\ [-1,1] & w_j=0.\end{cases}
+\end{equation}
+L'algoritmo sceglie \emph{un} rappresentante (non serve tutto l'insieme): il
+\emph{sign-based}
+\begin{equation}\label{eq:scelta-g}
+\g \;=\; \X^\top(\X\w-\y) \;+\; \lasso\,\svec,\qquad s_j=\sign(w_j),\ \ \sign(0):=0 .
+\end{equation}
+La convenzione $\sign(0)=0$ è lecita perché $0\in[-1,1]=\partial|0|$, quindi $\g$ è un
+subgradiente \emph{ammissibile}. Il teorema chiede solo ammissibilità, non che $\g$ sia
+l'elemento di norma minima.
+
+% ---------------------------------------------------------------
+\subsection{Lipschitzianità locale e limitatezza dei subgradienti}
+\label{sub:lipschitz}
+
+\begin{keybox}
+\textbf{Fatto (slide 9 del corso, parte smooth).} Una funzione convessa e \emph{finita su
+tutto $\R^H$} è automaticamente \emph{localmente Lipschitz}. Conseguenza operativa: il suo
+subdifferenziale $\partial f$ manda insiemi limitati in insiemi limitati. In altre parole, se
+gli iterati $\{\w_i\}$ restano in un insieme limitato, allora $\norm{\g_i}_2\le L$ per una
+costante $L$ finita.
+\end{keybox}
+
+Questo è il meccanismo che produce la costante $L$ del teorema. \textbf{Attenzione}: la
+limitatezza dei subgradienti \emph{non è gratis}, dipende dal fatto che gli iterati stiano in
+un limitato. Provare \emph{quello} è il passaggio più sottile della dimostrazione
+(Sezione~\ref{sub:fejer} e \ref{sec:prova-bounded}).
+
+% ---------------------------------------------------------------
+\subsection{Il Polyak step e la ``disuguaglianza fondamentale''}
+\label{sub:polyak}
+
+Partiamo dal subgradient method puro: $\w_{i+1}=\w_i-\alpha_i\g_i$. Quanto vale la distanza
+dall'ottimo dopo un passo? Espandendo il quadrato e usando la
+subgradient inequality~\eqref{eq:subgrad-verso-ottimo}:
+\begin{equation}\label{eq:fundamental}
+\norm{\w_{i+1}-\wstar}_2^2
+\;\le\; \norm{\w_i-\wstar}_2^2 \;-\; 2\alpha_i\big(f(\w_i)-\fstar\big) \;+\; \alpha_i^2\norm{\g_i}_2^2 .
+\end{equation}
+Questa è la \emph{disuguaglianza fondamentale} (slide 10). Il lato destro è una parabola in
+$\alpha_i$: per far scendere il più possibile la distanza dall'ottimo si minimizza in
+$\alpha_i$, ottenendo lo \emph{stepsize di Polyak}
+\begin{equation}\label{eq:polyak-step}
+\alpha_i^\star \;=\; \frac{f(\w_i)-\fstar}{\norm{\g_i}_2^2}.
+\end{equation}
+È ``il passo giusto'': grande quando siamo lontani dall'ottimo (gap $f(\w_i)-\fstar$ grande),
+piccolo quando siamo vicini. Il problema pratico: \textbf{$\fstar$ non lo conosciamo}. Lo
+risolve il target level (Sezione~\ref{sub:target}).
+
+% ---------------------------------------------------------------
+\subsection{La deflection: memoria nella direzione}
+\label{sub:deflection}
+
+Il subgradient puro \emph{zig-zaga} su problemi mal condizionati (rimbalza fra le pareti di
+una ``valle'' stretta), perché è \emph{senza memoria}: ogni passo dimentica i precedenti. La
+deflection mescola il subgradiente corrente con la direzione precedente:
+\begin{equation}\label{eq:deflected}
+\dvec_i \;=\; \gamma_i\,\g_i + (1-\gamma_i)\,\dvec_{i-1}\quad(i\ge1),\qquad \dvec_0=\g_0,
+\end{equation}
+con $\gamma_i\in[\gmin,1]$ il \emph{parametro di deflection}. L'update diventa
+$\w_{i+1}=\w_i-\alpha_i\dvec_i$. Interpretazione: $\gamma_i=1$ riproduce il subgradiente puro;
+$\gamma_i<1$ tiene memoria di dove stavamo andando e smorza l'oscillazione.
+
+\paragraph{Come si sceglie $\gamma_i$.} Si prende il $\gamma$ che \emph{minimizza}
+$\norm{\dvec_i}_2^2$ su $[\gmin,1]$. Motivo: $\norm{\dvec_i}_2^2$ è il \emph{denominatore} del
+Polyak step, quindi minimizzarlo \emph{massimizza} la lunghezza del passo. È un problema
+quadratico in $\gamma$ con soluzione chiusa (derivata per intero nell'Appendice E del report,
+ricostruita qui in Sezione~\ref{sub:appE}):
+\begin{equation}\label{eq:gamma-star}
+\gamma^\star \;=\; \frac{\norm{\dvec_{i-1}}_2^2 - \inner{\g_i}{\dvec_{i-1}}}{\norm{\g_i-\dvec_{i-1}}_2^2},
+\qquad \gamma_i=\min\!\big(1,\max(\gmin,\gamma^\star)\big).
+\end{equation}
+
+\begin{warnbox}
+\textbf{Il clip a $\gmin>0$ è un'aggiunta nostra, non del paper, ed è cruciale per la prova.}
+Il greedy~\eqref{eq:gamma-star} su $[0,1]$ può far tendere $\gamma_i\to0^+$ quando i
+subgradienti consecutivi si allineano vicino alla stazionarietà. Ma la condizione (3.5) del
+paper richiede un bound \emph{uniforme} $\beta_i\ge\beta^\star>0$ sul moltiplicatore di passo.
+Proiettare su $[\gmin,1]$ fornisce esattamente quel bound con $\beta^\star=\gmin$. Senza il
+floor, l'ipotesi del teorema citato non sarebbe verificata. Questo è un punto da saper
+difendere all'orale (vedi Sezione~\ref{sec:orale}, D4).
+\end{warnbox}
+
+\paragraph{Proprietà che riuseremo.} Poiché $\gamma_i\in(0,1]$, ogni $\dvec_i$ è una
+\emph{combinazione convessa} di subgradienti calcolati lungo la run (lo si vede per induzione
+sulla ricorrenza~\eqref{eq:deflected}). Conseguenza:
+\begin{equation}\label{eq:d-bound}
+\norm{\dvec_i}_2 \;\le\; \max_{h\le i}\norm{\g_h}_2 \;\le\; L .
+\end{equation}
+
+% ---------------------------------------------------------------
+\subsection{Il target level: come aggirare la non-conoscenza di $\fstar$}
+\label{sub:target}
+
+Nel Polyak step~\eqref{eq:polyak-step} sostituiamo $\fstar$ con un \emph{target level}
+$\fref-\delta$:
+\begin{itemize}[leftmargin=1.4em]
+\item $\fref$ = miglior valore di funzione trovato fin qui (``reference'');
+\item $\delta>0$ = stima del gap residuo $\fref-\fstar$ ancora da colmare.
+\end{itemize}
+Lo step effettivamente usato (riga 13 dell'algoritmo, stepsize-restricted) è
+\begin{equation}\label{eq:sr-step}
+\alpha_i \;=\; \frac{\beta_i\,\big(f(\w_i)-(\fref-\delta)\big)}{\norm{\dvec_i}_2^2},
+\qquad \beta_i=\min(\beta,\gamma_i),\ \ \beta=1 .
+\end{equation}
+
+\paragraph{Il rischio e il rimedio.} Se il target è troppo aggressivo, $\fref-\delta<\fstar$,
+il test di sufficiente discesa $f(\w_{i+1})\le\fref-\delta/2$ diventa
+\emph{insoddisfacibile} (nessun iterato può scendere sotto $\fstar$), $\fref$ non si aggiorna
+mai e l'algoritmo si blocca in silenzio. Il rimedio è un \emph{contatore di pazienza}
+$r_i=\sum_j\alpha_j\norm{\dvec_j}$ (lo spostamento accumulato dall'ultimo aggiornamento di
+$\fref$): quando $r_i$ supera una soglia $R$ senza che sia scattata la discesa sufficiente, si
+\emph{contrae} $\delta\mapsto\rho\delta$ con $\rho\in(0,1)$ e si azzera $r$. Le contrazioni
+ripetute mandano $\delta\to0$, e prima o poi $\fref-\delta\ge\fstar$ torna feasible.
+
+\begin{keybox}
+\textbf{Lemma 3.8 del paper} è proprio il certificato che questa strategia di aggiornamento di
+$(\fref,\delta)$ --- test di discesa sufficiente, test di infeasibility su $r>R$, contatore
+$r$ --- garantisce $\liminf_k\delta_k=0$ e la condizione di serie (3.25). Le righe 16--21
+dell'algoritmo \emph{sono} questa strategia, parola per parola. Lo useremo nel punto (c) della
+prova.
+\end{keybox}
+
+% ---------------------------------------------------------------
+\subsection{Valore-record e proprietà di Fej\'er (il punto delicato)}
+\label{sub:fejer}
+
+\begin{definition}[Valore-record]
+$\fbar_i=\min_{h\le i}f(\w_h)$ è il miglior valore di funzione visto fino all'iterazione $i$.
+È \emph{monotono non crescente} per costruzione, anche se $f(\w_i)$ \emph{non} lo è.
+\end{definition}
+
+\begin{warnbox}
+\textbf{SGPTL non è un metodo di discesa.} Per via della deflection e del target level, in
+generale $f(\w_{i+1})\not\le f(\w_i)$: la successione dei valori \emph{oscilla}. Questo ha una
+conseguenza pesantissima per la prova, ed è l'errore-tipo che il prof cerca:
+\emph{non si può} dimostrare che gli iterati sono limitati dicendo ``stanno in un sublevel set
+$\{f\le f(\w_0)\}$''. Quel ragionamento vale solo per metodi monotoni
+($f(\w_{i+1})\le f(\w_i)$), che SGPTL non è.
+\end{warnbox}
+
+Lo strumento corretto è la \emph{Fej\'er monotonicity}: non è $f$ a decrescere, è la
+\emph{distanza dall'ottimo} $\norm{\w_i-\wstar}_2$ a essere (asintoticamente) non crescente.
+
+\begin{definition}[Fej\'er-monotonia, e la versione asintotica]
+$\{\w_i\}$ è \emph{Fej\'er-monotona} rispetto a $\wstar$ se
+$\norm{\w_{i+1}-\wstar}_2\le\norm{\w_i-\wstar}_2$ \emph{per ogni} $i$. In tal caso tutti gli
+iterati stanno nella palla di centro $\wstar$ e raggio $\norm{\w_0-\wstar}_2$, e la
+successione è limitata.
+\\[3pt]
+SGPTL realizza solo la versione \emph{asintotica}: la monotonia vale da un indice finito
+$\bar\imath$ in poi, non da $\w_0$. Allora la limitatezza si ottiene in due pezzi: la
+\emph{coda} $\{\w_i\}_{i\ge\bar\imath}$ sta nella palla di raggio $\norm{\w_{\bar\imath}-\wstar}_2$
+(Fej\'er), e il \emph{transiente} $\{\w_0,\dots,\w_{\bar\imath-1}\}$ è un insieme \emph{finito}
+di punti finiti, quindi limitato. Unione di due limitati $\Rightarrow$ $\{\w_i\}$ limitata.
+(\textbf{La spiegazione elementare} di ``insieme finito $\Rightarrow$ limitato'', con il
+controesempio sul caso infinito, è svolta passo per passo nel Fatto~2 di
+Sezione~\ref{sec:prova-bounded}; qui è solo enunciata.)
+\end{definition}
+
+\begin{warnbox}
+\textbf{Perché non da $\w_0$? Il colpevole è il target level.} La monotonia parte solo da
+$\bar\imath$ perché all'inizio il target $\fref-\delta$ può stare \emph{sotto} $\fstar$
+(``overshooting''): $\delta_0=c\,f(\w_0)$ è scelto senza conoscere $\fstar$, quindi può
+sovrastimare il gap. In quel regime il passo di Polyak punta a un valore irraggiungibile ed è
+troppo lungo, e la distanza all'ottimo \emph{può crescere}. Cosa garantisce il transiente
+allora? Non la monotonia, ma la sua \emph{finitezza}: la $\delta$-contrazione del Lemma 3.8
+manda $\delta\to0$; poiché $\fref\ge\fstar$ sempre, appena $\delta$ è piccolo si ha
+$\fref-\delta\ge\fstar$ \emph{stabilmente}, e questo accade dopo un numero finito di
+contrazioni. Il conto quantitativo del segno è nel Fatto 2 di
+Sezione~\ref{sec:prova-bounded}; la domanda d'orale dedicata è D8.
+\end{warnbox}
+
+È da qui che esce la limitatezza degli iterati --- e quindi, via
+Sezione~\ref{sub:lipschitz}, il bound $\norm{\g_i}_2\le L$. La disuguaglianza per-step
+\eqref{eq:def-step} che dimostreremo è precisamente l'enunciato ``la distanza al quadrato
+scende a ogni passo attivo \emph{quando il target è feasible}'', cioè la proprietà di Fej\'er
+resa quantitativa.
+
+% =====================================================================
+\section{Lo statement del Teorema 3.1}
+\label{sec:statement}
+
+\begin{theorem}[Convergenza di SGPTL, da \texttt{dantonio2009deflected}]
+\label{thm:main}
+Sia $f:\R^H\to\R$ convessa con $\fstar=\min_\w f(\w)>-\infty$ raggiunto in qualche $\wstar$, e
+sia $\{\w_i\}$ la successione generata dall'Algoritmo (SGPTL). Si assuma che i subgradienti
+incontrati lungo la run siano \emph{uniformemente limitati}, $\norm{\g_i}_2\le L$, e che valga
+la regola stepsize-restricted $\beta_i\le\gamma_i$ con $\gamma_i\ge\gmin>0$. Allora i
+valori-record $\fbar_i=\min_{h\le i}f(\w_h)$ convergono a $\fstar$; e una volta che la stima
+target-level si è affilata su $\fstar$ (cioè $\delta_k\to0$ e $f^k_{\mathrm{ref}}\to\fstar$,
+garantito dal Lemma 3.8 del paper), il rate asintotico, derivato dalla (3.17) nella prova del
+Teorema 3.5 del paper, è
+\begin{equation}\label{eq:rate}
+\fbar_k-\fstar \;\le\; \frac{L\,\norm{\w_0-\wstar}_2}{\gmin\,\sqrt{k+1}},
+\end{equation}
+e dunque la complessità worst-case per ottenere $\fbar_k-\fstar\le\eps$ è
+$O\!\big(L^2/(\gmin^2\eps^2)\big)$.
+\end{theorem}
+
+\begin{keybox}
+\textbf{Le tre ipotesi, e dove vengono verificate sul nostro problema.}
+\begin{enumerate}[label=(H\arabic*),leftmargin=2.4em]
+\item $f$ convessa con minimo finito raggiunto $\Rightarrow$ vera su ELM+LASSO per
+\emph{coercività} (Prop.~1.1). Vedi Sezione~\ref{sub:problema}.
+\item subgradienti uniformemente limitati $\norm{\g_i}_2\le L$ $\Rightarrow$ \emph{non} è
+un'assunzione gratuita: si \emph{dimostra} dentro la prova via Fej\'er + Lipschitz locale.
+Vedi Sezione~\ref{sec:prova-bounded}. Questo è il cuore tecnico.
+\item stepsize-restricted $\beta_i\le\gamma_i$ con $\gamma_i\ge\gmin$ $\Rightarrow$ vera per
+costruzione: $\beta_i=\min(1,\gamma_i)$ e il clip~\eqref{eq:gamma-star} tiene
+$\gamma_i\ge\gmin$.
+\end{enumerate}
+\end{keybox}
+
+% =====================================================================
+\section{La dimostrazione, passo per passo}
+\label{sec:prova}
+
+La struttura è: \textbf{(0)} dizionario di notazione fra paper e report; \textbf{(a)--(c)}
+verifica delle tre condizioni del Teorema 3.7 del paper; \textbf{(d)} limitatezza dei
+subgradienti (il pezzo che chiude il cerchio con (H2)); \textbf{(e)} conclusione di
+convergenza; \textbf{(f)} disuguaglianza per-step; \textbf{(g)} telescoping e nascita del
+$1/\sqrt{k}$; \textbf{(h)} conteggio iterazioni e fattore $1/\gmin^2$.
+
+% ---------------------------------------------------------------
+\subsection{(0) Il dizionario di notazione --- da leggere prima di tutto}
+\label{sub:dizionario}
+
+\begin{warnbox}
+\textbf{Trappola di notazione (il prof può chiederlo apposta).} Nel paper di D'Antonio le
+lettere greche \emph{non} hanno lo stesso significato che nel report. La corrispondenza è:
+\[
+\underbrace{\alpha_k^{\text{paper}}}_{\text{loro}} \leftrightarrow \underbrace{\gamma_i}_{\text{nostra deflection}},
+\qquad
+\beta_k^{\text{paper}} \leftrightarrow \beta_i,
+\qquad
+\underbrace{\nu_k^{\text{paper}}}_{\text{loro}} \leftrightarrow \underbrace{\alpha_i}_{\text{nostro stepsize}},
+\qquad
+\mu^{\text{paper}}\leftrightarrow\rho,
+\]
+con $X=\R^H$ (nessun vincolo) e
+$\lambda_k^{\text{paper}}\leftrightarrow f(\w_i)-(f^k_{\mathrm{ref}}-\delta_k)$ (il gap al
+target, il segno di $\lambda_k$ dice se il target è già stato raggiunto). Morale: la
+\emph{loro} $\alpha$ è la \emph{nostra} deflection $\gamma$, e il \emph{loro} $\nu$ è il
+\emph{nostro} stepsize $\alpha$. Se confondi questi due all'orale, la prova diventa
+incomprensibile.
+\end{warnbox}
+
+Inoltre il framework del paper è scritto per subgradienti \emph{$\sigma_k$-inesatti} (con un
+errore d'oracolo $\sigma_k\ge0$). Noi calcoliamo $\g_i$ \emph{esattamente}
+via~\eqref{eq:scelta-g}, quindi il parametro di inesattezza è $\sigma_k=0$ (e $\sigma^\star=0$
+asintoticamente). Questo semplifica diverse formule: tutti i termini d'errore d'oracolo
+spariscono.
+
+% ---------------------------------------------------------------
+\subsection{(a) Condizione (2.13): consistenza della deflection}
+\label{sub:cond213}
+
+\begin{warnbox}
+\textbf{Attenzione: (2.13) parla di \emph{direzioni}, non di stepsize.} I tre oggetti che vi
+compaiono sono tutti \emph{vettori} in $\R^H$, non scalari, e lo stepsize di Polyak non c'entra:
+\begin{itemize}[leftmargin=1.4em]
+\item $\dvec_k$ = la direzione di ricerca \emph{usata} al passo $k$ (la nostra $\dvec_i$); ci si
+muove lungo di essa, $\bm{x}_{k+1}=\bm{x}_k-\nu_k\dvec_k$;
+\item $\tilde\dvec_k$ = la direzione deflessa \emph{grezza} $\gamma_k\g_k+(1-\gamma_k)\bm{v}_k$,
+\emph{prima} di un'eventuale proiezione (nel caso vincolato può puntare fuori dalla regione
+ammissibile e venire corretta, dando $\dvec_k\ne\tilde\dvec_k$);
+\item $\bm{v}_{k+1}$ = la \emph{memoria} riciclata nella deflection del passo \emph{successivo},
+$\dvec_{k+1}=\gamma_{k+1}\g_{k+1}+(1-\gamma_{k+1})\bm{v}_{k+1}$: gioca il ruolo della nostra
+$\dvec_{i-1}$.
+\end{itemize}
+Lo stepsize è $\nu_k$ (il nostro $\alpha_i$) e governa \emph{quanto} ci si sposta, non
+\emph{in che direzione}: non appare in (2.13). Nota la trappola di notazione: nel paper
+$\alpha_k$ è il parametro di \emph{deflection} (la nostra $\gamma$), non lo stepsize.
+\end{warnbox}
+
+La condizione del Lemma 2.4 del paper chiede $\bm{v}_{k+1}=\tilde\dvec_k$ ogni volta che
+$\dvec_k=\tilde\dvec_k$: cioè la \emph{memoria} riciclata deve coincidere con la direzione grezza
+quando non c'è stata proiezione. È una condizione di \emph{coerenza della memoria della
+deflection} --- serve a garantire che la ricorrenza che mescola subgradiente e direzione
+precedente sia pulita (la memoria è davvero la direzione precedente, non una sua versione
+alterata dalla proiezione). Da noi il vincolo non c'è ($X=\R^H$), quindi \emph{nessuna
+proiezione avviene}: $\dvec_k=\tilde\dvec_k$ a ogni iterazione, e l'algoritmo pone semplicemente
+$\bm{v}_{k+1}=\dvec_k\,(=\tilde\dvec_k)$. La (2.13) è quindi verificata \emph{banalmente}: è solo
+la formalizzazione del fatto che la nostra ricorrenza
+$\dvec_i=\gamma_i\g_i+(1-\gamma_i)\dvec_{i-1}$ usa davvero $\dvec_{i-1}$ come memoria, senza
+alterarla. È il vantaggio di lavorare non vincolati.
+
+% ---------------------------------------------------------------
+\subsection{(b) Condizione (3.5): il bound uniforme sullo stepsize}
+\label{sub:cond35}
+
+Tradotta nella nostra notazione, la (3.5) ha due clausole:
+\begin{itemize}[leftmargin=1.4em]
+\item se $\lambda_k\ge0$ (target non ancora raggiunto), allora
+$\gamma_i\ge\beta_i\ge\beta^\star>0$ per una costante uniforme $\beta^\star$ indipendente da
+$i$;
+\item se $\lambda_k<0$ (target già raggiunto in $\w_i$), allora il passo è nullo,
+$\alpha_i=0$.
+\end{itemize}
+
+\paragraph{Caso $\lambda_k>0$.} L'algoritmo pone $\beta_i=\min(1,\gamma_i)$ e il
+clip~\eqref{eq:gamma-star} tiene $\gamma_i\in[\gmin,1]$. Quindi $\beta_i\ge\gmin$ per ogni $i$,
+e il bound uniforme vale con $\boxed{\beta^\star=\gmin}$. L'altra disuguaglianza
+$\gamma_i\ge\beta_i$ è semplicemente $\gamma_i\ge\min(1,\gamma_i)$, vera per definizione di
+$\min$.
+
+\paragraph{Caso $\lambda_k\le0$.} La safeguard numerica (punto 2 dei ``Numerical safeguards''
+del report) salta l'iterazione con $\alpha_i=0$, che è la seconda clausola alla lettera.
+\emph{Qui si vede perché il clip a $\gmin$ è indispensabile}: è ciò che produce il
+$\beta^\star=\gmin>0$ richiesto.
+
+% ---------------------------------------------------------------
+\subsection{(c) Condizione (3.26): il target-level scende correttamente}
+\label{sub:cond326}
+
+La (3.26) chiede \emph{o} che $f^\infty_{\mathrm{ref}}=\fstar=-\infty$ (caso illimitato
+inferiormente) \emph{oppure} che valgano insieme $\liminf_k\delta_k=0$ e la condizione di
+serie (3.25), $\sum_k\lambda_k/\norm{\dvec_k}^2=\infty$.
+
+Su ELM+LASSO $\fstar>-\infty$ (coercività), quindi il primo ramo è \emph{escluso} e ci serve
+il secondo. È esattamente ciò che fornisce il \textbf{Lemma 3.8} del paper: la strategia di
+aggiornamento di $(f^k_{\mathrm{ref}},\delta_k)$ --- test di discesa sufficiente
+$f_{k+1}\le f^k_{\mathrm{ref}}-\delta_k/2$, test di infeasibility $r_k>R$, contatore
+$r$ accumulato --- garantisce sia $\liminf_k\delta_k=0$ sia la (3.25). Le righe 16--21
+dell'algoritmo implementano quella strategia \emph{verbatim} (con $\mu\leftrightarrow\rho$),
+quindi la (3.26) vale.
+
+% ---------------------------------------------------------------
+\subsection{(d) Limitatezza dei subgradienti --- il cuore della prova}
+\label{sec:prova-bounded}
+
+Questo è il passaggio che giustifica l'ipotesi (H2), e dove la \emph{non-monotonicità} di
+SGPTL rende l'argomento delicato. Si articola in due fatti.
+
+\paragraph{Fatto 1 --- Lipschitz locale.} $f$ è convessa e finita su tutto $\R^H$, quindi
+localmente Lipschitz (slide 9, smooth), quindi $\partial f$ manda limitati in limitati
+(Sezione~\ref{sub:lipschitz}). Dunque \emph{se} $\{\w_i\}$ è limitata, $\norm{\g_i}_2\le L$
+segue. Resta da provare che $\{\w_i\}$ è limitata.
+
+\paragraph{Fatto 2 --- limitatezza via Fej\'er, non via sublevel set.} Si parte dalla
+disuguaglianza per-step (quella che diventerà la~\eqref{eq:def-step}): sostituendo il Polyak
+step nella fondamentale~\eqref{eq:fundamental} e maggiorando $\inner{\dvec_i}{\w_i-\wstar}$ via
+il Corollario 3.2 del paper si ottiene
+\[
+\norm{\w_{i+1}-\wstar}_2^2 - \norm{\w_i-\wstar}_2^2 \;\le\; \frac{\beta_i\,\lambda_i\,\eta_i}{\norm{\dvec_i}_2^2},
+\]
+con $\lambda_i=f(\w_i)-(\fref-\delta)\ge0$ sui passi attivi. Il prefattore
+$\beta_i\lambda_i/\norm{\dvec_i}_2^2$ è $\ge0$, quindi \textbf{il segno del passo è il segno di
+$\eta_i$}, e $\eta_i$ non dipende da $\norm{\dvec_i}_2$ (questo evita una circolarità: non
+stiamo assumendo $\norm{\dvec_i}$ limitato per dimostrare che lo è).
+
+\textbf{Da dove viene $\eta_i$ (derivazione esplicita).} Non è una definizione calata
+dall'alto: esce dai tre passaggi appena citati, fatti per esteso. \emph{(i)~Espansione del
+quadrato} ($\w_{i+1}=\w_i-\alpha_i\dvec_i$):
+\[
+\norm{\w_{i+1}-\wstar}_2^2-\norm{\w_i-\wstar}_2^2 = -2\alpha_i\inner{\dvec_i}{\w_i-\wstar}+\alpha_i^2\norm{\dvec_i}_2^2 .
+\]
+\emph{(ii)~Corollario 3.2}, $\inner{\dvec_i}{\w_i-\wstar}\ge\gamma_i g_i$ con $g_i:=f(\w_i)-\fstar$;
+moltiplicando per $-2\alpha_i\le0$ il verso si gira:
+\[
+\norm{\w_{i+1}-\wstar}_2^2-\norm{\w_i-\wstar}_2^2 \le -2\alpha_i\gamma_i g_i+\alpha_i^2\norm{\dvec_i}_2^2 .
+\]
+\emph{(iii)~Polyak step} $\alpha_i=\beta_i\lambda_i/\norm{\dvec_i}_2^2$ (con
+$\lambda_i:=f(\w_i)-(\fref-\delta)$ il gap al \emph{target}), sostituito nei due termini:
+$-2\alpha_i\gamma_i g_i=-2\frac{\beta_i\lambda_i}{\norm{\dvec_i}_2^2}\gamma_i g_i$ e
+$\alpha_i^2\norm{\dvec_i}_2^2=\frac{\beta_i^2\lambda_i^2}{\norm{\dvec_i}_2^2}$. Raccogliendo
+$\beta_i\lambda_i/\norm{\dvec_i}_2^2$:
+\[
+\norm{\w_{i+1}-\wstar}_2^2-\norm{\w_i-\wstar}_2^2 \le \frac{\beta_i\lambda_i}{\norm{\dvec_i}_2^2}\,\underbrace{\big(-2\gamma_i g_i+\beta_i\lambda_i\big)}_{=\,\eta_i}.
+\]
+Quindi \emph{per definizione} $\eta_i=-2\gamma_i g_i+\beta_i\lambda_i$, ancora in funzione del
+gap al target $\lambda_i$.
+
+\textbf{Decomposizione di $\eta_i$ --- chi controlla il segno.} Il passo che rende leggibile il
+segno è riscrivere $\lambda_i$ (gap al target) tramite $g_i$ (gap all'ottimo). Aggiungendo e
+togliendo $\fstar$, con l'\emph{offset del target} $t_i:=(\fref-\delta)-\fstar$:
+\[
+\lambda_i=f(\w_i)-(\fref-\delta)=\underbrace{[f(\w_i)-\fstar]}_{g_i}-\underbrace{[(\fref-\delta)-\fstar]}_{t_i}=g_i-t_i .
+\]
+Sostituendo $\lambda_i=g_i-t_i$ in $\eta_i=-2\gamma_i g_i+\beta_i\lambda_i$ ed espandendo:
+\[
+\eta_i=-2\gamma_i g_i+\beta_i(g_i-t_i) = \underbrace{-(2\gamma_i-\beta_i)\,g_i}_{\le\,0\ \text{(floor }\gamma_i\ge\gmin)} \;\underbrace{-\;\beta_i\,t_i}_{\text{segno di }-t_i}.
+\]
+Il primo termine è sempre $\le0$ (porta il floor $2\gamma_i-\beta_i=\gamma_i\ge\gmin$). Il
+secondo dipende da \emph{dove sta il target rispetto a $\fstar$}:
+\begin{itemize}[leftmargin=1.4em]
+\item se $\fref-\delta\ge\fstar$ (target feasible, $t_i\ge0$): il secondo termine è $\le0$ e
+\emph{rinforza} la discesa $\Rightarrow$ $\eta_i<0$, la distanza scende;
+\item se $\fref-\delta<\fstar$ (\emph{overshooting}, $t_i<0$): il secondo termine è $+\beta_i|t_i|>0$
+e \emph{può} far diventare $\eta_i>0$ se domina il primo (cioè vicino all'ottimo, dove $g_i$ è
+piccolo). Qui la distanza all'ottimo \emph{può crescere}.
+\end{itemize}
+Poiché $\fref\ge\fstar$ sempre, vale $t_i\ge-\delta$, dunque il termine target aggiunge al più
+$\beta_i\delta$. La $\delta$-contrazione del Lemma 3.8 manda $\delta\to0$ (l'errore di
+deflection svanisce, oracolo esatto $\sigma^\star=0$), quindi da un indice finito $\bar\imath$
+in poi $t_i\ge0$ \emph{stabilmente} e $\eta_i<0$: $\norm{\w_i-\wstar}_2$ è \emph{non crescente
+sulla coda} $i\ge\bar\imath$.
+
+\textbf{Il transiente $i<\bar\imath$.} Non serve che sia monotono: basta che sia limitato, e lo
+è per un motivo elementare. Spacchetto in tre passi, perché è il punto che a prima vista sembra
+``detto troppo in fretta''.
+
+\emph{Passo 1 --- ricordare cosa significa ``limitato''.} Un insieme di vettori $S$ è limitato
+se esiste un raggio $R<\infty$ con $\norm{\w}_2\le R$ per ogni $\w\in S$: tutti i punti stanno
+in una palla di raggio $R$.
+
+\emph{Passo 2 --- ogni iterato del transiente è un punto finito.} Per induzione sull'update:
+$\w_0=\bm0$ è finito; se $\w_i$ è finito allora $\w_{i+1}=\w_i-\alpha_i\dvec_i$ è finito, perché
+$\dvec_i$ è combinazione di subgradienti finiti, e
+$\alpha_i=\beta_i\lambda_i/\norm{\dvec_i}_2^2$ è un rapporto di quantità finite con
+\emph{denominatore $>0$} (se $\norm{\dvec_i}_2^2<10^{-30}$ la safeguard~1 \emph{termina}
+l'algoritmo, quindi non si divide mai per $\approx0$). Somma e multiplo di vettori finiti
+restano finiti, e la safeguard~3 scarta esplicitamente ogni $\w_{i+1}$ con componente
+non-finita. Dunque $\norm{\w_i}_2<\infty$ per ogni $i$.
+
+\emph{Passo 3 --- finiti \emph{quanti} punti $\Rightarrow$ massimo delle norme.} Il numero di
+iterati del transiente è $\bar\imath<\infty$ ($\bar\imath$ è finito perché
+$\delta_k=\rho^k\delta_0\to0$ e basta $\delta\le\fref-\fstar$ per ripristinare la feasibility
+del target). Le norme $\norm{\w_0}_2,\dots,\norm{\w_{\bar\imath-1}}_2$ sono allora
+\emph{finitamente molti numeri finiti}, e tra finitamente molti reali il massimo \emph{esiste
+sempre}:
+\[
+R_{\mathrm{trans}}:=\max_{0\le i<\bar\imath}\norm{\w_i}_2 \;<\;\infty .
+\]
+Per costruzione ogni punto del transiente ha norma $\le R_{\mathrm{trans}}$, cioè il transiente
+è limitato.
+
+\begin{keybox}
+\textbf{Perché ``finito'' è la parola che conta (e perché la coda è diversa).} Per un insieme
+\emph{infinito} di punti il massimo delle norme può non esistere, anche se ogni singolo punto è
+finito: la successione $(1,0,\dots),(2,0,\dots),(3,0,\dots),\dots$ ha tutti i punti finiti ma
+norme $1,2,3,\dots$ che crescono senza limite, quindi \emph{non} è limitata. Per questo sulla
+\emph{coda} (infinita) non basta ``punti finiti'': serve Fej\'er, che tiene le norme tutte sotto
+$\norm{\w_{\bar\imath}-\wstar}_2$. Sul \emph{transiente} (solo $\bar\imath$ punti) il massimo
+esiste gratis e l'argomento di Fej\'er non serve.
+\end{keybox}
+
+\emph{Unione.} $\{\w_i\}$ = transiente $\cup$ coda, entrambi limitati (raggi $R_{\mathrm{trans}}$
+e $\norm{\w_{\bar\imath}-\wstar}_2+\norm{\wstar}_2$); l'unione sta nella palla di raggio il
+massimo dei due. Quindi $\{\w_i\}$ è limitata.
+
+\paragraph{La condizione di feasibility è davvero verificata? (e il caso al contorno).}
+La monotonia sulla coda richiede che il target diventi feasible, $\fref-\delta\ge\fstar$, e
+\emph{ci resti}. Due fatti la garantiscono: $\fref\ge\fstar$ sempre (il record non scende sotto
+il minimo) e $\delta_k\to0$ (Lemma 3.8, le cui ipotesi sono i punti (a)(b)(c) appena
+verificati). Appena $\delta\le\fref-\fstar$ il target è feasible. C'è però un caso da
+dichiarare, perché il prof lo cerca:
+\begin{itemize}[leftmargin=1.4em]
+\item se $\fref$ si \emph{assesta sopra} $\fstar$ (margine $\fref-\fstar>0$ fisso), allora
+$\delta\to0$ scende sotto il margine e la feasibility vale \emph{definitivamente}: monotonia
+esatta sulla coda, come descritto;
+\item se invece $\fref\to\fstar$ (il record converge all'ottimo), il margine
+$\fref-\fstar\to0$ \emph{insieme} a $\delta\to0$ e la disuguaglianza $\delta\le\fref-\fstar$
+può oscillare: la feasibility non è garantita ``una volta per tutte''. Ma in questo caso
+$\fref\to\fstar$ \emph{è già} la tesi di convergenza, quindi nulla va perso.
+\end{itemize}
+La limitatezza nel caso al contorno si salva senza invocare la monotonia esatta: il termine di
+disturbo in $\eta_i$ è limitato da $\sim\beta_i\delta\to0$, dunque la per-step ha la forma
+\emph{quasi-Fej\'er} $\norm{\w_{i+1}-\wstar}_2^2\le\norm{\w_i-\wstar}_2^2+\eps_i$ con
+perturbazioni $\eps_i$ evanescenti/sommabili. Una successione quasi-Fej\'er è comunque limitata
+e convergente: è il contenuto effettivo del Teorema 3.5 del paper, di cui la ``monotonia da un
+indice in poi'' è solo la versione semplificata. Riassunto: le ipotesi \emph{sono} verificate;
+la monotonia stretta vale quando il target è feasible, e dove la feasibility oscilla subentra
+la quasi-Fej\'er.
+
+\paragraph{Le condizioni esatte, in forma di enunciato (da saper recitare).}
+Raccolgo in una proposizione \emph{cosa} esattamente garantisce la (quasi-)Fej\'er, usando la
+decomposizione $\eta_i=-(2\gamma_i-\beta_i)\,g_i-\beta_i\,t_i$ già ottenuta sopra
+($g_i=f(\w_i)-\fstar\ge0$ il gap vero, $t_i=(\fref-\delta)-\fstar$ l'offset del target).
+
+\begin{proposition}[Condizione per-passo di non-crescita della distanza]
+\label{prop:fejer-cond}
+Al passo $i$ vale $\norm{\w_{i+1}-\wstar}_2\le\norm{\w_i-\wstar}_2$ se sono soddisfatte
+\emph{entrambe}:
+\begin{enumerate}[label=\textnormal{(\arabic*)},leftmargin=2.2em]
+\item \textbf{passo attivo}: $\lambda_i=f(\w_i)-(\fref-\delta)\ge0$ \;(se $\lambda_i<0$ il passo
+è nullo, $\alpha_i=0$, e la distanza resta invariata --- comunque non cresce);
+\item \textbf{target feasible}: $\fref-\delta\ge\fstar$, cioè $t_i\ge0$.
+\end{enumerate}
+\end{proposition}
+
+\emph{Dimostrazione (tre righe).} Sui passi attivi il prefattore
+$\beta_i\lambda_i/\norm{\dvec_i}_2^2\ge0$, quindi il segno della variazione è quello di
+$\eta_i$. Sotto (2), entrambi i termini di $\eta_i$ sono $\le0$: il primo perché
+$2\gamma_i-\beta_i\ge\gamma_i>0$ e $g_i\ge0$; il secondo perché $-\beta_i t_i\le0$ quando
+$t_i\ge0$. Dunque $\eta_i\le0$ e la distanza non cresce. \hfill$\square$
+
+\textbf{Perché (1) e (2) valgono sul nostro problema.} (1) è una dicotomia interna
+all'algoritmo: o il passo è attivo, o la safeguard lo annulla (seconda clausola di (3.5),
+punto~(b)) --- in entrambi i casi la distanza non aumenta. (2) vale \emph{definitivamente}
+perché $\fref\ge\fstar$ sempre e $\delta_k\to0$ (Lemma 3.8, ipotesi (a)(b)(c) verificate),
+quindi $\exists\,\bar\imath:\ \forall i\ge\bar\imath,\ \fref-\delta\ge\fstar$. Nei finitamente
+molti passi $i<\bar\imath$ con target infeasible la crescita per-passo è limitata da
+$|t_i|\le\delta\to0$: è esattamente l'errore $\eps_i$ della quasi-Fej\'er.
+
+\begin{definition}[Quasi-Fej\'er-monotonia]
+\label{def:quasi-fejer}
+$\{\w_i\}$ è quasi-Fej\'er rispetto a $\wstar$ se esiste $\eps_i\ge0$ con
+$\sum_i\eps_i<\infty$ tale che
+$\norm{\w_{i+1}-\wstar}_2^2\le\norm{\w_i-\wstar}_2^2+\eps_i$. Risultato classico (Polyak;
+Combettes): una successione quasi-Fej\'er è \emph{limitata} e $\norm{\w_i-\wstar}_2$ converge.
+\end{definition}
+
+\begin{keybox}
+\textbf{La difesa, in una frase.} Non assumo la Fej\'er-monotonia: è la \emph{tesi} del Teorema
+3.5 del paper, che mostra $\{\w_i\}$ quasi-Fej\'er rispetto a $\wstar$. Le \emph{ipotesi} di quel
+teorema sono le condizioni (2.13),(3.5),(3.26), verificate sul nostro problema in (a),(b),(c).
+Il meccanismo concreto è la Proposizione~\ref{prop:fejer-cond}: dove il target è feasible la
+distanza non cresce ($\eta_i\le0$, entrambi i termini negativi), e il target diventa feasible
+definitivamente perché $\fref\ge\fstar$ e $\delta\to0$; nei finitamente molti passi iniziali
+l'overshoot $\le\delta\to0$ dà l'errore sommabile della quasi-Fej\'er. \emph{Quindi non devo
+``dimostrare che è Fej\'er'': devo verificare (a)(b)(c), e l'ho fatto.}
+\end{keybox}
+
+\begin{warnbox}
+\textbf{Questo è il punto da raccontare bene all'orale.} La limitatezza \emph{non} viene da
+``$f$ scende quindi sto in un sublevel set'' (falso: SGPTL non è descent). Viene dalla
+proprietà di Fej\'er: è la \emph{distanza all'ottimo} a non crescere sulla coda, non il valore
+di $f$. Confondere le due cose è esattamente l'errore che è già costato una correzione in
+questo progetto.
+\end{warnbox}
+
+Sulla $\{\w_i\}$ limitata, $\partial f$ è limitato: $\norm{\g_i}_2\le L$ e
+$\sup_i\norm{\dvec_i}_2=D<\infty$ lungo la run. (H2) è verificata.
+
+\begin{warnbox}
+\textbf{Non è un loop? (verifico (a)(b)(c) usando la Fej\'er che dipende da (a)(b)(c)?)}
+No, e il motivo è che \emph{nessuno} di (a),(b),(c) usa la Fej\'er, e la Fej\'er non usa $L$.
+Guarda \emph{come} si verificano:
+\begin{itemize}[leftmargin=1.4em]
+\item (a) (2.13): vale perché $X=\R^H$, niente proiezione $\Rightarrow$ \emph{struttura}
+dell'algoritmo;
+\item (b) (3.5): vale per $\beta_i=\min(1,\gamma_i)$ e il clip $\gamma_i\ge\gmin$, più la
+safeguard $\alpha_i=0$ se $\lambda_i<0$ $\Rightarrow$ \emph{meccanismo} di stepsize;
+\item (c) (3.26): vale per il Lemma 3.8 ($\delta\to0$) implementato dalle righe 16--21
+$\Rightarrow$ \emph{logica} del target level.
+\end{itemize}
+Tutti e tre si leggono dal \emph{codice}, non da proprietà degli iterati. La Fej\'er entra solo
+per ottenere $\norm{\g_i}_2\le L$, e --- punto decisivo --- \emph{si dimostra senza $L$}: il
+segno della per-step è il segno di $\eta_i$, che dipende da $\gamma_i,\beta_i,g_i,t_i$ ma
+\emph{non} da $\norm{\dvec_i},\norm{\g_i}$ (compaiono solo come fattori positivi che non
+cambiano il segno). L'ordine delle dipendenze è quindi aciclico:
+\[
+\underbrace{(a),(b),(c)}_{\text{struttura, no Fej\'er, no }L}
+\ \longrightarrow\
+\underbrace{\text{segno }\eta_i\le0}_{\text{usa (a),(c); no }L}
+\ \longrightarrow\
+\text{Fej\'er}\ \longrightarrow\ \{\w_i\}\text{ limitata}\ \longrightarrow\ L\ \longrightarrow\
+\underbrace{\text{Thm 3.7}}_{\text{usa (a)(b)(c)}+L}.
+\]
+Le frecce vanno in una sola direzione: la Fej\'er \emph{usa} (a),(c) ma (a),(c) \emph{non} usano
+la Fej\'er; e $L$ arriva \emph{dopo} la Fej\'er, come conseguenza, non come prerequisito.
+\end{warnbox}
+
+% ---------------------------------------------------------------
+\subsection{(e) Conclusione di convergenza via Teorema 3.7}
+\label{sub:conclusione}
+
+Verificate (2.13), (3.5), (3.26) con $\sigma^\star=0$, il \textbf{Teorema 3.7} del paper dà
+direttamente
+\[
+f^\infty_{\mathrm{ref}} \;\le\; \fstar+\sigma^\star \;=\; \fstar,
+\]
+e poiché $f^\infty_{\mathrm{ref}}\ge\fstar$ sempre (è il limite di valori di funzione, tutti
+$\ge\fstar$), si ha $f^\infty_{\mathrm{ref}}=\fstar$, cioè $\fbar_i\to\fstar$. \emph{Prima
+parte del teorema dimostrata.}
+
+Per attaccare un \emph{rate} a questa convergenza ci mettiamo nel regime asintotico dove il
+Lemma 3.8 ha già portato il target $f^k_{\mathrm{ref}}-\delta_k$ esattamente a $\fstar$. Lì il
+Polyak step usa il target vero:
+$\alpha_i=\beta_i(f(\w_i)-\fstar)/\norm{\dvec_i}_2^2$.
+
+% ---------------------------------------------------------------
+\subsection{(f) La disuguaglianza per-step (eq.~3.8 del report)}
+\label{sub:perstep}
+
+\textbf{Obiettivo:} dimostrare
+\begin{equation}\label{eq:def-step}
+\norm{\w_{i+1}-\wstar}_2^2 \;\le\; \norm{\w_i-\wstar}_2^2 \;-\; \beta_i(2\gamma_i-\beta_i)\,\frac{(f(\w_i)-\fstar)^2}{\norm{\dvec_i}_2^2}.
+\end{equation}
+Questa è la versione deflessa della fondamentale, ed è la (3.17) del paper. La derivazione (la
+sviluppo per intero, è l'Appendice D del report) ha tre ingredienti.
+
+\paragraph{Ingrediente 1 --- identità (2.9): espandere il quadrato.} Senza vincoli,
+\begin{equation}\label{eq:prf-29}
+\norm{\w_{i+1}-\wstar}_2^2 \;=\; \norm{\w_i-\wstar}_2^2 \;-\; 2\alpha_i\inner{\dvec_i}{\w_i-\wstar} \;+\; \alpha_i^2\norm{\dvec_i}_2^2 .
+\end{equation}
+È solo $\norm{\w_i-\alpha_i\dvec_i-\wstar}_2^2$ sviluppato. Nessuna disuguaglianza ancora.
+
+\paragraph{Ingrediente 2 --- Corollario 3.2: il prodotto interno della direzione deflessa.}
+Qui entra la deflection. Per il subgradiente puro la subgradient
+inequality~\eqref{eq:subgrad-verso-ottimo} darebbe $\inner{\g_i}{\w_i-\wstar}\ge f(\w_i)-\fstar$,
+con coefficiente $1$. Ma $\dvec_i$ \emph{non} è un subgradiente: è una combinazione convessa
+che include subgradienti \emph{passati} (in $\w_{i-1},\w_{i-2},\dots$). Solo il peso $\gamma_i$
+sul subgradiente \emph{corrente} $\g_i$ può essere certificato dalla subgradient inequality.
+Il Corollario 3.2 (specializzato a $\bar x=\wstar$, $\sigma_k=0$) formalizza questo:
+\begin{equation}\label{eq:prf-32}
+\inner{\dvec_i}{\w_i-\wstar} \;\ge\; \gamma_i\,\big(f(\w_i)-\fstar\big).
+\end{equation}
+
+\begin{keybox}
+\textbf{Perché compare $\gamma_i$ e non $1$.} È la ``perdita indotta dalla deflection'': la
+memoria $\dvec_{i-1}$ punta verso $\wstar$ rispetto a iterati \emph{passati}, non rispetto a
+$\w_i$, quindi non possiamo certificarla con la subgradient inequality in $\w_i$. Solo la
+frazione $\gamma_i$ della direzione --- il pezzo $\g_i$ fresco --- separa garantitamente $\w_i$
+da $\wstar$. È esattamente da qui che nascerà il fattore $\gamma_i^2$ nel descent, e quindi il
+$1/\gmin^2$ nel conteggio iterazioni.
+\end{keybox}
+
+\paragraph{Ingrediente 3 --- sostituire il Polyak step.} Nel regime target$=\fstar$,
+$\alpha_i=\beta_i(f(\w_i)-\fstar)/\norm{\dvec_i}_2^2$. Sostituiamo nei due termini non costanti
+della~\eqref{eq:prf-29}, usando~\eqref{eq:prf-32} nel primo:
+\begin{align}
+-2\alpha_i\inner{\dvec_i}{\w_i-\wstar}
+&\;\overset{\eqref{eq:prf-32}}{\le}\; -2\alpha_i\gamma_i(f(\w_i)-\fstar)
+\;=\; -2\beta_i\gamma_i\,\frac{(f(\w_i)-\fstar)^2}{\norm{\dvec_i}_2^2}, \label{eq:prf-a}\\[2pt]
+\alpha_i^2\norm{\dvec_i}_2^2
+&\;=\; \Big(\tfrac{\beta_i(f(\w_i)-\fstar)}{\norm{\dvec_i}_2^2}\Big)^2\norm{\dvec_i}_2^2
+\;=\; \beta_i^2\,\frac{(f(\w_i)-\fstar)^2}{\norm{\dvec_i}_2^2}. \label{eq:prf-b}
+\end{align}
+
+\paragraph{Collezionando.} Sommando~\eqref{eq:prf-a} e~\eqref{eq:prf-b}
+nella~\eqref{eq:prf-29} e raccogliendo $\beta_i$:
+\[
+\norm{\w_{i+1}-\wstar}_2^2 \;\le\; \norm{\w_i-\wstar}_2^2 \;-\;\underbrace{(2\beta_i\gamma_i-\beta_i^2)}_{=\,\beta_i(2\gamma_i-\beta_i)}\,\frac{(f(\w_i)-\fstar)^2}{\norm{\dvec_i}_2^2},
+\]
+che è la~\eqref{eq:def-step}. \checkmark
+
+\paragraph{Specializzazione al nostro algoritmo.} Poiché il clip tiene $\gamma_i\le1$,
+l'algoritmo pone $\beta_i=\min(1,\gamma_i)=\gamma_i$. Allora il fattore di discesa collassa:
+\begin{equation}\label{eq:fattore-gamma2}
+\beta_i(2\gamma_i-\beta_i) \;=\; \gamma_i(2\gamma_i-\gamma_i) \;=\; \gamma_i^2 \;\ge\; \gmin^2 .
+\end{equation}
+
+% ---------------------------------------------------------------
+\subsection{(g) Telescoping: da dove nasce il $1/\sqrt{k}$}
+\label{sub:telescoping}
+
+Inserendo $\beta_i(2\gamma_i-\beta_i)=\gamma_i^2\ge\gmin^2$ nella~\eqref{eq:def-step} e
+sommando da $i=0$ a $k$. La somma a sinistra \emph{telescopa} (i termini intermedi si
+cancellano: $\sum_i(\norm{\w_i-\wstar}^2-\norm{\w_{i+1}-\wstar}^2)=\norm{\w_0-\wstar}^2-\norm{\w_{k+1}-\wstar}^2$),
+e buttando via il termine finale non negativo $\norm{\w_{k+1}-\wstar}^2\ge0$:
+\[
+\gmin^2\sum_{i=0}^k \frac{(f(\w_i)-\fstar)^2}{\norm{\dvec_i}_2^2} \;\le\; \norm{\w_0-\wstar}_2^2 .
+\]
+Usando $\norm{\dvec_i}_2\le L$ dalla~\eqref{eq:d-bound} (quindi
+$1/\norm{\dvec_i}_2^2\ge1/L^2$):
+\[
+\sum_{i=0}^k (f(\w_i)-\fstar)^2 \;\le\; \frac{L^2\,\norm{\w_0-\wstar}_2^2}{\gmin^2}.
+\]
+Adesso il trucco del record. Per ogni $i\le k$, $\fbar_k-\fstar\le f(\w_i)-\fstar$ (il record
+è il minimo), quindi $(\fbar_k-\fstar)^2\le(f(\w_i)-\fstar)^2$ per ogni $i$, e sommando
+$k+1$ copie:
+\[
+(k+1)(\fbar_k-\fstar)^2 \;\le\; \sum_{i=0}^k (f(\w_i)-\fstar)^2 \;\le\; \frac{L^2\norm{\w_0-\wstar}_2^2}{\gmin^2}.
+\]
+Dividendo per $(k+1)$ e prendendo la radice:
+\[
+\boxed{\;\fbar_k-\fstar \;\le\; \frac{L\,\norm{\w_0-\wstar}_2}{\gmin\,\sqrt{k+1}}\;}
+\]
+che è la~\eqref{eq:rate}. \emph{Seconda parte del teorema dimostrata.}
+
+\begin{keybox}
+\textbf{La logica del $1/\sqrt{k}$ in una frase.} Il telescoping limita la \emph{somma} degli
+$k+1$ gap al quadrato con una costante. Se la somma di $k+1$ numeri positivi è limitata, il più
+piccolo di essi (il record) è al più $\text{costante}/(k+1)$ al quadrato, cioè
+$\sim1/\sqrt{k+1}$ dopo la radice. È lo stesso meccanismo del rate dei subgradient methods
+classici; la deflection cambia solo la costante (mette $\gmin^2$ al denominatore).
+\end{keybox}
+
+% ---------------------------------------------------------------
+\subsection{(h) Conteggio iterazioni e il prezzo $1/\gmin^2$}
+\label{sub:count}
+
+Risolvendo la~\eqref{eq:rate} per il numero di iterazioni necessario a
+$\fbar_k-\fstar\le\eps$:
+\[
+k+1 \;\ge\; \frac{L^2\,\norm{\w_0-\wstar}_2^2}{\gmin^2\,\eps^2}.
+\]
+Il Polyak \emph{non} deflesso, sotto le stesse ipotesi (stesso conto col fattore
+$\beta_i(2-\beta_i)$ invece di $\beta_i(2\gamma_i-\beta_i)$), dà
+$k+1\ge L^2\norm{\w_0-\wstar}_2^2/\eps^2$. Quindi:
+\begin{itemize}[leftmargin=1.4em]
+\item il \emph{rate-order} è lo stesso, $O(L^2/\eps^2)$ --- ed è \emph{ottimale}: il lower
+bound per metodi del prim'ordine su convessi nonsmooth è $\Omega(L^2/\eps^2)$;
+\item la deflection \emph{gonfia la costante} di un fattore $1/\gmin^2$. Con $\gmin=0.05$ è un
+moltiplicatore $1/0.05^2=400\times$.
+\end{itemize}
+
+\begin{oralbox}
+\textbf{Trade-off da saper difendere.} Perché accettare un $400\times$? Perché il
+$1/\gmin^2$ è un bound \emph{worst-case} sulla costante, mentre la deflection \emph{riduce in
+pratica} l'oscillazione (zig-zag) che fa esplodere il numero di iterazioni reali su problemi
+mal condizionati. Inoltre $\gmin$ entra solo nel \emph{floor}: nella maggior parte delle
+iterazioni $\gamma_i$ è ben più grande di $\gmin$ (il clip è inattivo), quindi il $400\times$
+è un soffitto raramente toccato. La scelta $\gmin=0.05$ bilancia ``clip quasi sempre inattivo''
+(serve $\gmin$ piccolo) contro ``costante peggiore $1/\gmin^2$'' (serve $\gmin$ non troppo
+piccolo). Vedi §3.4.1 del report.
+\end{oralbox}
+
+\hfill$\square$
+
+% =====================================================================
+\section{Le due derivazioni che il report manda in appendice}
+\label{sec:appendici}
+
+Per completezza, ricostruisco i due conti che la prova usa come scatole nere.
+
+\subsection{Appendice D --- la per-step (3.8) per intero}
+È esattamente la Sezione~\ref{sub:perstep} sopra (l'ho già svolta lì passo per passo:
+identità (2.9) $\to$ Corollario 3.2 $\to$ sostituzione Polyak $\to$ raccolta). Il punto
+concettuale da ricordare: \emph{il $\gamma_i$ in~\eqref{eq:prf-32} è la sorgente di tutto il
+peggioramento}.
+
+\subsection{Appendice E --- la formula chiusa di $\gamma^\star$}
+\label{sub:appE}
+Si minimizza $h(\gamma)=\norm{\gamma\g_i+(1-\gamma)\dvec_{i-1}}_2^2$. Sviluppando per
+bilinearità del prodotto interno e raccogliendo le potenze di $\gamma$:
+\[
+h(\gamma) \;=\; \underbrace{\norm{\g_i-\dvec_{i-1}}_2^2}_{\ge0}\,\gamma^2 \;+\; 2\big(\inner{\g_i}{\dvec_{i-1}}-\norm{\dvec_{i-1}}_2^2\big)\,\gamma \;+\; \norm{\dvec_{i-1}}_2^2 .
+\]
+È una parabola con coefficiente di testa $\norm{\g_i-\dvec_{i-1}}_2^2\ge0$, quindi convessa
+verso l'alto. Annullando $h'(\gamma)=0$:
+\[
+\gamma^\star \;=\; \frac{\norm{\dvec_{i-1}}_2^2-\inner{\g_i}{\dvec_{i-1}}}{\norm{\g_i-\dvec_{i-1}}_2^2}.
+\]
+Poiché la parabola apre verso l'alto, il minimo su $[\gmin,1]$ è la proiezione del vertice:
+$\gamma_i=\min(1,\max(\gmin,\gamma^\star))$. Casi limite: se $\g_i=\dvec_{i-1}$ il coefficiente
+di testa si annulla, $h$ è costante e si pone $\gamma_i=1$ per convenzione; alla prima
+iterazione $\dvec_{-1}=\bm0$ darebbe $\gamma^\star=0$, ma si forza $\gamma_0=1$ così che
+$\dvec_0=\g_0$.
+
+\paragraph{Interpretazione del clip (utile all'orale).} I due estremi del clip servono a due
+cose \emph{diverse}: il clip inferiore $\gmin$ fornisce il $\beta^\star=\gmin>0$ della
+condizione (3.5) --- è ciò che rende la prova valida; il clip superiore a $1$ tiene
+$\gamma_i\in(0,1]$ così che $\dvec_i$ resti combinazione convessa di $\g_i$ e $\dvec_{i-1}$ ---
+proprietà usata in~\eqref{eq:d-bound} e nel Corollario 3.2.
+
+% =====================================================================
+\section{Verifica delle ipotesi sul problema specifico ELM+LASSO}
+\label{sec:verifica}
+
+Il report dedica un paragrafo apposta a questo (è ciò che il prof valuta di più). Riepilogo:
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{(H1) minimo finito raggiunto.} Vera per coercività (Prop.~1.1): $f$ è somma di
+un quadratico $\succeq0$ e di $\lasso\norm{\cdot}_1$ con $\lasso>0$, quindi
+$f(\w)\to\infty$ per $\norm{\w}\to\infty$; un livello-insieme è compatto e $f$ continua vi
+raggiunge il minimo.
+\item \textbf{(H2) $\norm{\g_i}_2\le L$.} La parte liscia $\X^\top(\X\w-\y)$ cresce con
+$\norm{\w}$ ma resta limitata su ogni limitato; la parte $L_1$ ha subgradienti in $[-1,1]^H$,
+sempre limitati. Poiché $\{\w_i\}$ è limitata (Fej\'er, Sezione~\ref{sec:prova-bounded}),
+$L<\infty$. \emph{Verificata, non assunta.}
+\item \textbf{(H3) stepsize-restricted.} $\beta_i\le\gamma_i$ per costruzione
+($\beta_i=\min(1,\gamma_i)$) e $\gamma_i\ge\gmin$ per il floor del clip.
+\end{itemize}
+
+% =====================================================================
+\section{Cosa deve combaciare con gli esperimenti}
+\label{sec:esperimenti}
+
+Il rate~\eqref{eq:rate} predice, su un grafico log--log di $\fbar_i-\fstar$ contro $i$, una
+retta di pendenza $-1/2$ (cioè inviluppo $\propto 1/\sqrt{i}$). Punti da tenere a mente per
+discutere la Figura 5.1/5.12:
+\begin{itemize}[leftmargin=1.4em]
+\item Il teorema limita il \emph{record} $\fbar_i$, non il valore corrente $f(\w_i)$. Quindi
+nel plot la curva-record (rossa) sta sotto l'inviluppo $1/\sqrt{i}$, mentre il valore corrente
+(arancione) \emph{oscilla} sopra: coerente con la non-monotonicità.
+\item $L$ scala con $\norm{\X}_2$ e $\lasso$ (più penalità $\Rightarrow$ inviluppo più alto).
+\item $\norm{\w_0-\wstar}_2$ entra moltiplicativamente: separa cold start ($\norm{\wstar}$) da
+warm start OLS ($\norm{\w_{\mathrm{OLS}}-\wstar}$). Quale dei due vince dipende dall'istanza.
+\end{itemize}
+
+% =====================================================================
+\section{Domande tipiche del professore, con risposte}
+\label{sec:orale}
+
+\begin{oralbox}
+\textbf{D1. ``Mi dimostri che gli iterati sono limitati.''}\\
+\emph{Trappola:} se rispondi ``stanno nel sublevel set $\{f\le f(\w_0)\}$'' hai
+\textbf{sbagliato}, perché SGPTL non è un metodo di discesa ($f(\w_i)$ oscilla). \emph{Risposta
+corretta:} la limitatezza viene dalla proprietà di Fej\'er. Dalla per-step~\eqref{eq:def-step}
+la distanza al quadrato $\norm{\w_i-\wstar}^2$ è non crescente sui passi attivi finché il
+record sta sopra $\fstar$ (il termine sottratto è $\ge0$); quindi gli iterati della coda
+stanno nella palla di raggio $\norm{\w_0-\wstar}$, e i finitamente molti precedenti formano un
+insieme limitato. È la \emph{distanza all'ottimo} a non crescere, non il valore di $f$.
+\end{oralbox}
+
+\begin{oralbox}
+\textbf{D2. ``Perché nel Corollario 3.2 compare $\gamma_i$ e non $1$?''}\\
+Perché $\dvec_i$ non è un subgradiente in $\w_i$: è una combinazione convessa che pesa
+$\gamma_i$ sul subgradiente corrente $\g_i$ e $1-\gamma_i$ su direzioni passate. Solo il pezzo
+$\gamma_i\g_i$ può essere certificato dalla subgradient inequality in $\w_i$ a separare $\w_i$
+da $\wstar$. Le direzioni passate ``puntavano a $\wstar$'' rispetto a iterati precedenti, non a
+$\w_i$. È la perdita indotta dalla deflection, e si propaga fino al fattore $\gamma_i^2$ nel
+descent.
+\end{oralbox}
+
+\begin{oralbox}
+\textbf{D3. ``Da dove esce il $1/\sqrt{k}$? Perché non lineare come IRLS?''}\\
+Dal telescoping: la somma degli $k+1$ gap al quadrato è limitata da una costante, quindi il
+minimo (record) è $\le\text{cost}/(k+1)$ al quadrato, cioè $\sim1/\sqrt{k+1}$. È sublineare,
+non lineare, perché i subgradient methods sfruttano solo l'informazione del prim'ordine
+nonsmooth: il lower bound $\Omega(L^2/\eps^2)$ dice che \emph{non si può} fare meglio in
+$O(\cdot)$. IRLS è lineare perché lavora sulla \emph{riformulazione liscia} (Newton-like,
+informazione di second'ordine), un regime diverso.
+\end{oralbox}
+
+\begin{oralbox}
+\textbf{D4. ``Il clip a $\gmin$ ve lo siete inventato voi: serve davvero?''}\\
+Sì, serve per verificare l'ipotesi (3.5) del teorema citato. Il greedy che minimizza
+$\norm{\dvec_i}^2$ su $[0,1]$ può mandare $\gamma_i\to0^+$ vicino alla stazionarietà; ma (3.5)
+richiede un bound \emph{uniforme} $\beta_i\ge\beta^\star>0$. Il clip a $\gmin$ fornisce
+$\beta^\star=\gmin$. Senza, non potremmo invocare il Teorema 3.7. Il costo è il fattore
+$1/\gmin^2$ nella costante, accettabile perché è worst-case e il clip è quasi sempre inattivo.
+\end{oralbox}
+
+\begin{oralbox}
+\textbf{D5. ``Il teorema assume $\norm{\g_i}\le L$. Non è circolare assumerlo e poi usarlo?''}\\
+No: nel report l'ipotesi (H2) è \emph{dimostrata sul nostro problema}, non assunta. La catena
+è: Fej\'er $\Rightarrow$ iterati limitati $\Rightarrow$ (Lipschitz locale di $f$ finita su
+$\R^H$) $\Rightarrow$ subgradienti limitati. E non è circolare con la per-step: nel Fatto 2 di
+Sezione~\ref{sec:prova-bounded} il segno del passo dipende da $\eta_i$, che è \emph{indipendente}
+da $\norm{\dvec_i}$, quindi non stiamo assumendo ciò che vogliamo provare.
+\end{oralbox}
+
+\begin{oralbox}
+\textbf{D6. ``Cosa garantisce che il target $\fref-\delta$ non resti sempre sotto $\fstar$ e
+blocchi tutto?''}\\
+Il contatore di pazienza: se per uno spostamento accumulato $r>R$ non scatta la discesa
+sufficiente, si contrae $\delta\mapsto\rho\delta$. Le contrazioni ripetute danno
+$\delta\to0$ (Lemma 3.8), quindi prima o poi $\fref-\delta\ge\fstar$ e il test torna feasible.
+Formalmente è la condizione (3.26): $\liminf\delta_k=0$ più la serie (3.25).
+\end{oralbox}
+
+\begin{oralbox}
+\textbf{D8. ``Dice Fej\'er-monotona da un certo indice in poi: perché non da $\w_0$? E cosa
+controlla il comportamento prima di quell'indice?''}\\
+\emph{Perché non da $\w_0$:} il passo di Polyak usa il gap al target $\fref-\delta$, non a
+$\fstar$. La variazione della distanza ha segno $\eta_i=-(2\gamma_i-\beta_i)g_i-\beta_i t_i$
+con $g_i=f(\w_i)-\fstar\ge0$ e $t_i=(\fref-\delta)-\fstar$. All'inizio $\delta_0=c\,f(\w_0)$ è
+tarato senza conoscere $\fstar$ e può mandare il target \emph{sotto} $\fstar$ ($t_i<0$,
+overshooting): allora il termine $-\beta_i t_i=+\beta_i|t_i|$ è positivo e la distanza
+all'ottimo può \emph{crescere}. Quindi la monotonia non vale da $\w_0$.
+\\[3pt]
+\emph{Cosa controlla il transiente:} non la monotonia, ma la sua \emph{finitezza}. La
+$\delta$-contrazione del Lemma 3.8 ($\delta\mapsto\rho\delta$ quando la pazienza $r>R$) manda
+$\delta\to0$; poiché $\fref\ge\fstar$ sempre, appena $\delta\le\fref-\fstar$ il target torna
+feasible \emph{e ci resta}, dopo un numero finito di contrazioni $\Rightarrow$ indice
+$\bar\imath$ finito. Il transiente $\{\w_0,\dots,\w_{\bar\imath-1}\}$ è un insieme finito di
+punti finiti, dunque limitato. La limitatezza globale è (transiente limitato) $\cup$ (coda
+Fej\'er). \emph{Trabocchetto da evitare:} pretendere ``Fej\'er da subito'' è lo stesso tipo di
+errore del sublevel-set --- si assume una monotonia che il metodo non ha. Alla limitatezza dei
+subgradienti basta la monotonia \emph{sulla coda}.
+\end{oralbox}
+
+\begin{oralbox}
+\textbf{D9. ``Mi enunci \emph{esattamente} sotto quali condizioni la successione è
+Fej\'er-monotona, e perché valgono qui.''}\\
+\emph{Inquadramento (la mossa che sblocca):} la (quasi-)Fej\'er non è un'ipotesi che assumo, è
+la \emph{tesi} del Teorema 3.5 del paper; io devo solo verificarne le ipotesi --- le condizioni
+(2.13),(3.5),(3.26) --- e l'ho fatto in (a),(b),(c).
+\\[3pt]
+\emph{Condizione per-passo (Proposizione~\ref{prop:fejer-cond}):} la distanza
+$\norm{\w_i-\wstar}$ non cresce al passo $i$ se (1) il passo è attivo
+($\lambda_i=f(\w_i)-(\fref-\delta)\ge0$; altrimenti $\alpha_i=0$ e la distanza è invariata) e
+(2) il target è feasible ($\fref-\delta\ge\fstar$). Sotto (1)+(2), nella variazione
+$\propto\eta_i=-(2\gamma_i-\beta_i)g_i-\beta_i t_i$ entrambi i termini sono $\le0$
+($2\gamma_i-\beta_i\ge\gamma_i>0$, $g_i\ge0$, $t_i\ge0$), quindi $\eta_i\le0$.
+\\[3pt]
+\emph{Perché valgono:} (1) è una dicotomia gestita dall'algoritmo; (2) vale \emph{definitivamente}
+perché $\fref\ge\fstar$ sempre e $\delta\to0$ (Lemma 3.8). Nei finitamente molti passi iniziali
+in cui il target sovrastima ($\fref-\delta<\fstar$) la distanza può salire, ma di al più
+$\sim|t_i|\le\delta\to0$: questo è l'errore sommabile $\eps_i$ della
+\emph{quasi-Fej\'er} (Definizione~\ref{def:quasi-fejer}), che basta per limitatezza e
+convergenza. \emph{Non recito ``è Fej\'er'': verifico (a)(b)(c) e leggo il segno di $\eta_i$.}
+\end{oralbox}
+
+\begin{oralbox}
+\textbf{D10. ``Per verificare (a)(b)(c) e applicare il Teorema 3.5/3.7 lei usa la
+Fej\'er-monotonia, che però è la \emph{tesi} di quei teoremi. Non è circolare?''}\\
+No, perché \emph{nessuno} di (a),(b),(c) usa la Fej\'er, e la Fej\'er non usa $L$. (a) vale per
+assenza di proiezione ($X=\R^H$); (b) per il clip $\gamma_i\ge\gmin$ e la safeguard; (c) per il
+Lemma 3.8 ($\delta\to0$): tutti e tre si leggono dalla \emph{struttura dell'algoritmo}, non
+dagli iterati. La Fej\'er serve solo per $\norm{\g_i}\le L$, e si dimostra \emph{senza} $L$
+perché il segno della per-step ($\eta_i$) è indipendente da $\norm{\dvec_i},\norm{\g_i}$.
+L'ordine è aciclico: (a)(b)(c) $\to$ segno $\eta_i\le0$ $\to$ Fej\'er $\to$ $\{\w_i\}$ limitata
+$\to$ $L$ $\to$ Teorema 3.7. La Fej\'er \emph{usa} (a),(c), ma (a),(c) non usano la Fej\'er, e
+$L$ arriva \emph{dopo} la Fej\'er come conseguenza. Nessun cerchio si chiude.
+\end{oralbox}
+
+\begin{oralbox}
+\textbf{D7. ``Perché $\beta=1$?''}\\
+Sostituendo il Polyak step nella fondamentale, la riduzione di $\norm{\w_i-\wstar}^2$ è
+proporzionale a $\beta(2-\beta)$, una parabola verso il basso massimizzata in $\beta=1$.
+Quindi $\beta=1$ è la scelta che dà la massima discesa per-step; con $\beta=1$,
+$\beta_i=\min(1,\gamma_i)$ è guidato interamente da $\gamma_i$.
+\end{oralbox}
+
+\bigskip
+\begin{center}\rule{0.5\textwidth}{0.4pt}\end{center}
+\begin{center}\footnotesize
+Documento di studio. Coerente con §3.5.2 e Appendici D--E del report CM (gruppo 63).\\
+Fonte teorica: D'Antonio--Frangioni 2009; slide Frangioni (nonsmooth). Numeri (2.9), (3.17),
+Cor.~3.2, Thm~3.5/3.7, Lemma~3.8 riferiti al paper.
+\end{center}
+
+\end{document}

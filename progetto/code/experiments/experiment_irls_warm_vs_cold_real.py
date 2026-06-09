@@ -112,12 +112,9 @@ def run_one(name):
         _, f_star = reference_solution(X_tr, y_tr, LAMBDA)
         print(f"  f* (sklearn baseline) = {f_star:.6f}")
 
-    # ==========================================
     # WARM START (OLS)
-    # ==========================================
     t0 = time.time()
     w_ols = ols_warm_start(X_tr, y_tr)
-    # IRLS call (Note: IRLS returns dict mapping usually inside ELM, but assuming your IRLS returns the dict directly)
     res_warm = irls(
         X_tr, y_tr, LAMBDA, eps_thr=EPS_THR, eps_stop=EPS_STOP, k_max=IRLS_KMAX,
         solver='cholesky', w0=w_ols, f_star=f_star
@@ -127,9 +124,7 @@ def run_one(name):
     n_iter_w = len(res_warm.get("f_vals", []))
     print(f"  IRLS (Warm) : {n_iter_w} iter, f = {f_w:.6f}, time = {time_warm:.4f}s")
 
-    # ==========================================
     # COLD START (w = 0)
-    # ==========================================
     w_cold = np.zeros(H)
     t0 = time.time()
     res_cold = irls(

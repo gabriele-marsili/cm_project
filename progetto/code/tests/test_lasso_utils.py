@@ -11,9 +11,7 @@ from src.lasso_utils import (
 )
 
 
-# ---------------------------------------------------------------------------
 # Objective value
-# ---------------------------------------------------------------------------
 
 
 def test_f_lasso_handcrafted():
@@ -37,9 +35,7 @@ def test_f_lasso_non_negative_at_zero(small_problem):
     )
 
 
-# ---------------------------------------------------------------------------
 # Gradient of the smooth part
-# ---------------------------------------------------------------------------
 
 
 def test_grad_smooth_finite_difference(rng, small_problem):
@@ -75,9 +71,7 @@ def test_grad_smooth_zero_when_residual_is_zero():
     assert np.allclose(g, 0.0, atol=1e-12)
 
 
-# ---------------------------------------------------------------------------
 # Subgradient
-# ---------------------------------------------------------------------------
 
 
 def test_subgradient_at_smooth_point(small_problem, rng):
@@ -111,9 +105,7 @@ def test_subgradient_minimum_norm_at_zero():
     assert np.allclose(g, grad_smooth(X, y, w))
 
 
-# ---------------------------------------------------------------------------
 # Optimality check
-# ---------------------------------------------------------------------------
 
 
 def test_check_optimality_zero_at_sklearn_solution(small_problem):

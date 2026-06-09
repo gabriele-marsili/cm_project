@@ -1,5 +1,5 @@
 """
-Tests for src/elm.py — the ELM model wrapping IRLS / DSM.
+Tests for src/elm.py - the ELM model wrapping IRLS / DSM.
 """
 import numpy as np
 import pytest

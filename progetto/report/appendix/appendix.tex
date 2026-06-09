@@ -420,6 +420,32 @@ Algorithm~\ref{alg:dsm} sets $\beta_i = \min(1, \gamma_i) = \gamma_i$ (because t
 \]
 which is the form fed back into the telescoping argument of the proof of Theorem~\ref{thm:dsm_convergence}.
 
+\chapter{Derivation of the per-step estimate with target level}
+\label{app:def-step-target}
+
+The boundedness argument in the proof of Theorem~\ref{thm:dsm_convergence} (paragraph \emph{Subgradients uniformly bounded}) uses the per-step estimate behind eq.~(3.17) of~\cite{dantonio2009deflected} in its target-level form, with the active-step stepsize $\alpha_i = \beta_i\lambda_i/\norm{\mathbf{d}_i}_2^2$ and $\lambda_i = f(\mathbf{w}_i)-(f_{\mathrm{ref}}-\delta)$. The $f^*$-target special case is Appendix~\ref{app:def-step-polyak}; here $f_{\mathrm{ref}}-\delta$ replaces $f^*$ in the stepsize.
+
+Steps 1 and 2 do not involve the target and are exactly~\eqref{eq:app-prf-29} (identity (2.9)) and~\eqref{eq:app-prf-32} (Corollary~3.2) of Appendix~\ref{app:def-step-polyak},
+\begin{gather*}
+\norm{\mathbf{w}_{i+1}-\mathbf{w}^*}_2^2 = \norm{\mathbf{w}_i-\mathbf{w}^*}_2^2 - 2\alpha_i\inner{\mathbf{d}_i}{\mathbf{w}_i-\mathbf{w}^*} + \alpha_i^2\norm{\mathbf{d}_i}_2^2,\\
+\inner{\mathbf{d}_i}{\mathbf{w}_i-\mathbf{w}^*}\ge\gamma_i\big(f(\mathbf{w}_i)-f^*\big).
+\end{gather*}
+
+\paragraph{Step 3 --- target-level Polyak step.} Substituting $\alpha_i = \beta_i\lambda_i/\norm{\mathbf{d}_i}_2^2$ into the two non-constant terms, and bounding the first through Corollary~3.2,
+\[
+-2\alpha_i\inner{\mathbf{d}_i}{\mathbf{w}_i-\mathbf{w}^*} \;\le\; -2\,\frac{\beta_i\lambda_i}{\norm{\mathbf{d}_i}_2^2}\,\gamma_i\big(f(\mathbf{w}_i)-f^*\big), \qquad \alpha_i^2\norm{\mathbf{d}_i}_2^2 \;=\; \frac{\beta_i^2\lambda_i^2}{\norm{\mathbf{d}_i}_2^2}.
+\]
+Adding the two and factoring $\beta_i\lambda_i/\norm{\mathbf{d}_i}_2^2$,
+\begin{equation}\label{eq:app-target-eta}
+\norm{\mathbf{w}_{i+1}-\mathbf{w}^*}_2^2 - \norm{\mathbf{w}_i-\mathbf{w}^*}_2^2 \;\le\; \frac{\beta_i\lambda_i}{\norm{\mathbf{d}_i}_2^2}\,\eta_i, \qquad \eta_i = -2\gamma_i\big(f(\mathbf{w}_i)-f^*\big)+\beta_i\lambda_i .
+\end{equation}
+
+\paragraph{Step 4 --- offset form of $\eta_i$.} The gap to the target and the gap to the optimum differ by the target offset $t_i = (f_{\mathrm{ref}}-\delta)-f^*$, namely $\lambda_i = (f(\mathbf{w}_i)-f^*) - t_i$. Substituting into~\eqref{eq:app-target-eta} and expanding,
+\[
+\eta_i = -2\gamma_i\big(f(\mathbf{w}_i)-f^*\big)+\beta_i\big((f(\mathbf{w}_i)-f^*)-t_i\big) = -(2\gamma_i-\beta_i)\big(f(\mathbf{w}_i)-f^*\big) - \beta_i t_i,
+\]
+the form used in the proof. Setting $t_i=0$ (target $f^*$) gives $\lambda_i = f(\mathbf{w}_i)-f^*$ and $\beta_i\lambda_i\eta_i = -\beta_i(2\gamma_i-\beta_i)(f(\mathbf{w}_i)-f^*)^2$, which is eq.~\eqref{eq:def-step-polyak} of Appendix~\ref{app:def-step-polyak}.
+
 \chapter{Derivation of the optimal deflection \texorpdfstring{$\gamma^{*}$}{gamma*}}
 \label{app:gamma-star}
 

@@ -59,11 +59,9 @@ def style_axes(ax) -> None:
         ax.spines[spine].set_color("#333333")
 
 
-# ---------------------------------------------------------------------------
 # Shared plot panel for the SGPTL long-run figure.
 # Used by experiment_sgptl_long_run.py (full run) and
 # _replot_sgptl_long_run.py (CSV-only re-plot).
-# ---------------------------------------------------------------------------
 def plot_long_run_panel(
     ax,
     ks,

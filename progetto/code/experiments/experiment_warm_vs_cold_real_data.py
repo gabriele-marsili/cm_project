@@ -147,7 +147,7 @@ def run_one(name):
     w_ols = ols_warm_start(X_tr, y_tr)
     f_w_ols = float(f_lasso(X_tr, y_tr, w_ols, lambda_))
 
-    # Independent reference f^* — IRLS-converged + CVXPY validation. Used only
+    # Independent reference f^* - IRLS-converged + CVXPY validation. Used only
     # for the gap-to-f^* visualisation; the SGPTL algorithm itself never sees it.
     f_star, src = reference_fstar(X_tr, y_tr, lambda_, w_ols)
     print(f"  f(w_OLS) = {f_w_ols:.6f}")
@@ -165,9 +165,7 @@ def run_one(name):
     delta0_cold = c_delta * f_w_cold
 
 
-    # ------------------------------------------------------------------
     # WARM START (OLS)
-    # ------------------------------------------------------------------
     t0    = time.time()
     res_warm = deflected_subgradient(
         X_tr, y_tr, lam=lambda_,
@@ -179,11 +177,9 @@ def run_one(name):
     f_w = f_lasso(X_tr, y_tr, res_warm["w"], LAMBDA_CALIFORNIA if name == "california" else LAMBDA_DIABETES)
     print(f"  SGPTL (Warm) : {res_warm['n_iter']} iter, "
           f"gap = {res_warm['gaps'][-1]:.3e}, f = {f_w:.6f}, time = {time_warm:.4f}s")
-    
 
-    # ------------------------------------------------------------------
+
     # COLD START (w = 0)
-    # ------------------------------------------------------------------
     t0     = time.time()
     res_cold = deflected_subgradient(
         X_tr, y_tr, lam=lambda_,
@@ -232,7 +228,7 @@ def run_one(name):
 
 def run() -> None:
     print("=" * 60)
-    print("Real-data experiment (ELM + LASSO) — Warm vs Cold Start")
+    print("Real-data experiment (ELM + LASSO) - Warm vs Cold Start")
     print("=" * 60)
 
     rows = []
@@ -271,9 +267,7 @@ def run() -> None:
         t_warm = row["time_warm"]
         t_cold = row["time_cold"]
 
-        # ------------------------------------------------------------------
         # Panel 1: gap vs iterations
-        # ------------------------------------------------------------------
         iters_w = np.arange(1, len(gw) + 1)
         iters_c = np.arange(1, len(gc) + 1)
 
@@ -286,13 +280,11 @@ def run() -> None:
 
         ax_iter.set_xlabel("Iteration (linear scale)")
         ax_iter.set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$ (log scale)")
-        ax_iter.set_title(f"{row['name'].capitalize()} — Convergence vs Iterations")
+        ax_iter.set_title(f"{row['name'].capitalize()} - Convergence vs Iterations")
         ax_iter.legend(loc="upper right")
         style_axes(ax_iter)
 
-        # ------------------------------------------------------------------
         # Panel 2: gap vs wall-clock time
-        # ------------------------------------------------------------------
         time_arr_w = np.linspace(0, t_warm, len(gw))
         time_arr_c = np.linspace(0, t_cold, len(gc))
 
@@ -305,7 +297,7 @@ def run() -> None:
 
         ax_time.set_xlabel("Time [seconds] (linear scale)")
         ax_time.set_ylabel(r"relative gap  $(f - f^{*})/|f^{*}|$ (log scale)")
-        ax_time.set_title(f"{row['name'].capitalize()} — Convergence vs Time")
+        ax_time.set_title(f"{row['name'].capitalize()} - Convergence vs Time")
         ax_time.legend(loc="upper right")
         style_axes(ax_time)
 

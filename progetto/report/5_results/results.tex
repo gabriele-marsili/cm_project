@@ -691,63 +691,133 @@ floor, both recover the support exactly.
 \subsection{Scalability}
 \label{sec:scalability}
 
-\paragraph{Setting.}
-We grow the ELM size $H\in\{50,100,500,1000,2000\}$ at $M=5H$ on the
-synthetic instance and time both algorithms at a \emph{fixed iteration
-budget}: $100$ Cholesky iterations for IRLS, $3000$ subgradient
-iterations for SGPTL. The per-iteration costs $O(MH^{2}+H^{3})$ for IRLS
-and $O(MH)$ for SGPTL are derived in
-Chapter~\ref{chap:comparison} (Table~\ref{tab:comp_cost}) and
-appear as the $O(H^{3})$ and $O(H^{2})$ slopes drawn in
-Figure~\ref{fig:scalability} (left) at $M=5H$.
+\paragraph{Two regimes.}
+We measure cost growth in two regimes. \emph{Synthetic} ($M=5H$): $H$ and
+$M$ grow together, over five sizes 50, 100, 500, 1000, 2000, so the
+per-iteration costs of Table~\ref{tab:comp_cost} read $O(H^{3})$ for IRLS and
+$O(H^{2})$ for SGPTL. \emph{Real} (\texttt{california}, $M=16512$ fixed): only
+the ELM hidden size $H$ grows, over 50, 100, 200, 500, 1000. Both use a fixed iteration
+budget, $100$ Cholesky iterations for IRLS and $3000$ subgradient iterations
+for SGPTL, except that on \texttt{california} IRLS met its stopping tolerance
+before the cap at $H\le 100$ ($7$ and $37$ iterations) and reached the cap at
+$H\ge 200$. Each time is the median of five runs after one warm-up, with an
+idle gap between problems, on one CPU with default multi-threaded BLAS and a
+single problem seed.
 
-\paragraph{What we measure.}
-Both algorithms scale up with $H$
-(Table~\ref{tab:scalability}), but IRLS stays faster than SGPTL
-throughout the tested range and reaches a final gap roughly two
-orders of magnitude smaller. At $H=2000$: IRLS takes $1.8$\,s to reach
-relative gap $3.7\cdot 10^{-7}$; SGPTL takes $23$\,s to reach
-$1.9\cdot 10^{-5}$. The
-right panel of Figure~\ref{fig:scalability} confirms the per-iteration
-ordering (SGPTL is cheaper there), but the cumulative time inverts
-because SGPTL needs many more iterations.
+\paragraph{FLOP count and wall-clock.}
+For each algorithm we report two quantities on the same $H$ axis. The
+\emph{analytic FLOP count} sums the operations the implementation runs: the
+one-time $\mathbf X^\top\mathbf X$, and per iteration a Cholesky factorisation
+($H^{3}/3$ flops~\cite[Lecture 23]{trefethen1997numerical}) plus one residual
+$\mathbf X\mathbf w$ for IRLS, two matrix--vector products ($2MH$ each) for
+SGPTL, evaluated at the measured iteration counts. The \emph{wall-clock} is the
+realised cost. The FLOP count is implementation-independent and exact; the
+fitted wall-clock exponent shifts by $\pm 0.2$--$0.3$ between runs with the BLAS
+efficiency and thermal state of the machine, so we read the scaling from the
+FLOP count and use wall-clock for the absolute head-to-head and for the
+throughput it implies. Fitted log--log slopes (upper range) are collected in
+Table~\ref{tab:scalability}; timings are in Table~\ref{tab:scalability-time}.
 
-\paragraph{Why the fixed-budget table understates SGPTL's cost to a target.}
-This comparison fixes iterations, not accuracy. To reach a target
-$\varepsilon$ Theorem~\ref{thm:dsm_convergence} forces
-$\Omega(L^{2}/(\gamma_{\min}^{2}\varepsilon^{2}))$ SGPTL iterations with
-$L$ growing in $H$; the cost-to-accuracy ratio is then much wider than
-Table~\ref{tab:scalability} suggests, as quantified in
-Section~\ref{sec:iters-to-eps}.
+\paragraph{Synthetic regime.}
+The FLOP count scales as $H^{2.97}$ for IRLS and $H^{2.00}$ for SGPTL, which is
+the $O(H^{3})$ and $O(H^{2})$ per-iteration cost of Table~\ref{tab:comp_cost}
+instantiated at $M=5H$, with no lower-order contamination in the tested range.
+IRLS wall-clock ($H^{2.95}$) follows its FLOP count; SGPTL wall-clock
+($H^{2.84}$) grows faster than its quadratic FLOP count. The throughput panel
+of Figure~\ref{fig:scalability} (FLOP divided by wall-clock) shows why:
+IRLS reaches and holds $\sim\!80$--$90$\,GFLOP/s once the matrices are large
+enough for BLAS to run near peak, while SGPTL throughput drops at $H\approx1000$,
+consistent with the working set ($\mathbf X$ is $5000\times1000$, $\sim\!40$\,MB)
+exceeding cache and leaving the matrix--vector loop memory-bandwidth bound. IRLS is faster in
+wall-clock at every $H$ ($3.3$\,s vs $34$\,s at $H=2000$): the quadratic FLOP
+count of SGPTL would overtake the cubic one of IRLS only past the largest size
+we test, and the implementation effects push that crossover further out still.
+
+\paragraph{Real regime (fixed $M$).}
+With $M$ fixed and large the exponents drop. IRLS scales as $H^{2.17}$ in FLOPs:
+the one-time $O(MH^{2})$ dominates at small $H$ and the per-iteration $O(H^{3})$
+term takes over as $H$ grows. SGPTL scales as $H^{1.00}$, since $O(MH)$ is linear
+in $H$ at fixed $M$. Wall-clock tracks both ($H^{2.02}$ and $H^{1.12}$), and IRLS
+is again faster throughout ($1.3$\,s vs $40$\,s at $H=1000$). The synthetic
+sweep and this one probe different regimes: here $M$ stays fixed, so the
+$MH^{2}$ and $MH$ terms stay bounded and the exponent gap is narrower than at
+$M=5H$.
+
+\paragraph{Fixed budget vs cost to a target.}
+Both tables fix iterations, not accuracy. To reach a target $\varepsilon$
+Theorem~\ref{thm:dsm_convergence} forces
+$\Omega(L^{2}/(\gamma_{\min}^{2}\varepsilon^{2}))$ SGPTL iterations with $L$
+growing in $H$, so the cost-to-accuracy ratio is wider than a fixed-budget time
+suggests, as quantified in Section~\ref{sec:iters-to-eps}.
 
 \begin{table}[H]
     \centering
-    \begin{tabular}{rrrrrr}
+    \begin{tabular}{llcc}
         \toprule
-        $H$ & $M$ & $t_\text{IRLS}$ (s) & rel.\,gap$_\text{IRLS}$ &
-        $t_\text{SGPTL}$ (s) & rel.\,gap$_\text{SGPTL}$ \\
+        Regime & Algorithm & wall-clock & FLOP count \\
         \midrule
-        $   50$ & $   250$ & $\phantom{0}0.003$ & $9.8\cdot 10^{-7}$ & $\phantom{0}0.050$ & $1.8\cdot 10^{-4}$ \\
-        $  100$ & $   500$ & $\phantom{0}0.004$ & $1.4\cdot 10^{-7}$ & $\phantom{0}0.062$ & $7.6\cdot 10^{-5}$ \\
-        $  500$ & $  2500$ & $\phantom{0}0.051$ & $2.6\cdot 10^{-7}$ & $\phantom{0}0.293$ & $4.6\cdot 10^{-5}$ \\
-        $ 1000$ & $  5000$ & $\phantom{0}0.319$ & $5.4\cdot 10^{-7}$ & $\phantom{0}6.07\phantom{0}$ & $3.4\cdot 10^{-5}$ \\
-        $ 2000$ & $ 10000$ & $\phantom{0}1.756$ & $3.7\cdot 10^{-7}$ & $23.27\phantom{0}$ & $1.9\cdot 10^{-5}$ \\
+        synthetic, $M=5H$       & IRLS  & $H^{2.95}$ & $H^{2.97}$ \\
+                                & SGPTL & $H^{2.84}$ & $H^{2.00}$ \\
+        \midrule
+        \texttt{california}, $M=16512$ & IRLS  & $H^{2.02}$ & $H^{2.17}$ \\
+                                & SGPTL & $H^{1.12}$ & $H^{1.00}$ \\
         \bottomrule
     \end{tabular}
-    \caption{Total wall-clock time and final relative gap
-    $(f-f^{*})/|f^{*}|$ as $H$ grows at $M=5H$.
-    IRLS: $100$ Cholesky iterations; SGPTL: $3000$ subgradient
-    iterations.}
+    \caption{Fitted log--log scaling exponents in $H$ (slope over the upper
+    half of the range). The FLOP count matches the per-iteration complexity of
+    Table~\ref{tab:comp_cost}; wall-clock matches it except for SGPTL on the
+    synthetic sweep, where the memory-bandwidth cliff at $H\approx1000$ steepens
+    the measured slope (Figure~\ref{fig:scalability}, throughput panel).}
     \label{tab:scalability}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{rrrrr}
+        \toprule
+        $H$ & $M$ & $k_\text{IRLS}$ & $t_\text{IRLS}$ (s) & $t_\text{SGPTL}$ (s) \\
+        \midrule
+        \multicolumn{5}{l}{\emph{synthetic, $M=5H$}}\\
+        $  50$ & $  250$ & $100$ & $0.003$ & $\phantom{0}0.085$ \\
+        $ 100$ & $  500$ & $100$ & $0.006$ & $\phantom{0}0.066$ \\
+        $ 500$ & $ 2500$ & $100$ & $0.055$ & $\phantom{0}0.672$ \\
+        $1000$ & $ 5000$ & $100$ & $0.546$ & $\phantom{0}7.937$ \\
+        $2000$ & $10000$ & $100$ & $3.271$ & $34.281$ \\
+        \midrule
+        \multicolumn{5}{l}{\emph{\texttt{california}, $M=16512$ fixed}}\\
+        $  50$ & $16512$ & $\phantom{0}7$ & $0.001$ & $\phantom{0}0.942$ \\
+        $ 100$ & $16512$ & $37$ & $0.006$ & $\phantom{0}2.059$ \\
+        $ 200$ & $16512$ & $100$ & $0.049$ & $\phantom{0}6.498$ \\
+        $ 500$ & $16512$ & $100$ & $0.314$ & $18.287$ \\
+        $1000$ & $16512$ & $100$ & $1.269$ & $39.512$ \\
+        \bottomrule
+    \end{tabular}
+    \caption{Median wall-clock at the fixed iteration budget ($k_\text{IRLS}\le
+    100$, $3000$ SGPTL iterations). $k_\text{IRLS}$ is the iteration count
+    actually run; on \texttt{california} IRLS converges before the cap at
+    $H\le 100$.}
+    \label{tab:scalability-time}
 \end{table}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{images/scalability.pdf}
-    \caption{Scaling with $H$ at $M=5H$. Left: total time, log--log,
-    with $O(H^{3})$ (IRLS) and $O(H^{2})$ (SGPTL) references anchored on
-    the smallest-$H$ point. Right: per-iteration cost.}
+    \caption{Synthetic regime ($M=5H$). Left: median wall-clock (solid) and
+    analytic FLOP count (dashed, anchored on the largest-$H$ point), log--log,
+    with fitted slopes annotated. Right: effective throughput, FLOP count
+    divided by wall-clock. IRLS rises toward the BLAS peak; SGPTL throughput
+    drops near $H=1000$, where the working set exceeds cache.}
     \label{fig:scalability}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/scalability_real.pdf}
+    \caption{Real regime (\texttt{california}, $M=16512$ fixed): neuron scaling
+    in $H$. Left: wall-clock vs FLOP count; right: throughput. With $M$ fixed
+    the FLOP exponents fall to $\approx\!2$ (IRLS) and $\approx\!1$ (SGPTL), and
+    wall-clock tracks them.}
+    \label{fig:scalability-real}
 \end{figure}
 
 \subsection{Iterations to a target accuracy}
@@ -757,7 +827,7 @@ cost to reach relative gap $(f-f^{*})/|f^{*}|\le\varepsilon$ on the
 moderate problem ($H=50$, $M=200$). At the loosest accuracy the two are
 competitive ($5$ vs $1$ at $10^{-1}$); past that the gap widens fast:
 SGPTL needs $203,1008,4193$ iterations for $10^{-2},10^{-3},10^{-4}$
-against IRLS's $4,10,25$ ($68$\,ms vs $0.7$\,ms at $10^{-4}$). The
+against IRLS's $4,10,25$ ($74$\,ms vs $0.7$\,ms at $10^{-4}$). The
 per-decade ratio predicted by Chapter~\ref{chap:comparison} (constant
 increment for IRLS, $\sim\!100\times$ multiplier for SGPTL) is reproduced
 here; SGPTL does not reach $10^{-6}$ within $30\,000$ iterations, IRLS
@@ -770,11 +840,11 @@ reaches it in $125$.
         $\varepsilon$ & $k_\text{IRLS}$ & $t_\text{IRLS}$ (s) &
         $i_\text{SGPTL}$ & $t_\text{SGPTL}$ (s) \\
         \midrule
-        $10^{-1}$ & $  1$ & $5.4\cdot 10^{-5}$ & $    5$ & $1.2\cdot 10^{-4}$ \\
-        $10^{-2}$ & $  4$ & $1.6\cdot 10^{-4}$ & $  203$ & $3.5\cdot 10^{-3}$ \\
-        $10^{-3}$ & $ 10$ & $3.1\cdot 10^{-4}$ & $ 1008$ & $1.7\cdot 10^{-2}$ \\
-        $10^{-4}$ & $ 25$ & $6.9\cdot 10^{-4}$ & $ 4193$ & $6.8\cdot 10^{-2}$ \\
-        $10^{-6}$ & $125$ & $3.1\cdot 10^{-3}$ & --- & --- \\
+        $10^{-1}$ & $  1$ & $5.7\cdot 10^{-5}$ & $    5$ & $1.3\cdot 10^{-4}$ \\
+        $10^{-2}$ & $  4$ & $1.6\cdot 10^{-4}$ & $  203$ & $3.7\cdot 10^{-3}$ \\
+        $10^{-3}$ & $ 10$ & $3.3\cdot 10^{-4}$ & $ 1008$ & $1.8\cdot 10^{-2}$ \\
+        $10^{-4}$ & $ 25$ & $7.3\cdot 10^{-4}$ & $ 4193$ & $7.4\cdot 10^{-2}$ \\
+        $10^{-6}$ & $125$ & $3.4\cdot 10^{-3}$ & --- & --- \\
         \bottomrule
     \end{tabular}
     \caption{Iterations and time to reach relative gap
@@ -894,9 +964,9 @@ on \texttt{california} to reach the same relative $10^{-6}$ target,
 $\sim\!10^{3}$ to $10^{5}$ times the iteration count of the other two and
 a wall-time loss of $\sim\!10^{2}$--$10^{5}\times$. Figure~\ref{fig:real-data}
 gives the per-iteration view: IRLS hits its accuracy floor at
-$\sim\!100$ iterations, SGPTL follows the $g_{0}^{\mathrm{rel}}/\sqrt{i}$
-envelope of Theorem~\ref{thm:dsm_convergence} for $10^{5}$--$10^{7}$
-iterations.
+$\sim\!100$ iterations, while SGPTL reaches the same $f^{*}$ floor only
+after $10^{5}$--$10^{7}$ iterations at the sublinear
+$g_{0}^{\mathrm{rel}}/\sqrt{i}$ rate of Theorem~\ref{thm:dsm_convergence}.
 
 \begin{figure}[H]
     \centering
@@ -906,15 +976,16 @@ iterations.
     $\varepsilon_\text{thr}=10^{-12}$) reaches the $f^{*}$ floor in
     $\sim\!100$ iterations on both. SGPTL cold (red, long-run trace
     from Section~\ref{sec:dsm_long_run}: $i_{\max}=10^{7}$ on
-    \texttt{diabetes}, $10^{6}$ on \texttt{california}) follows the
-    $g_{0}^{\mathrm{rel}}/\sqrt{i}$ envelope predicted by
-    Theorem~\ref{thm:dsm_convergence} (dashed grey) and reaches relative gap
-    $\le 10^{-12}$ on \texttt{diabetes} and $\approx 5\cdot 10^{-10}$ on
-    \texttt{california}. The horizontal green dotted line marks where
-    sklearn CD returns at $\texttt{max\_iter}=10^{5}$ (included to make
-    the iteration-budget gap visible: SGPTL closes that residual at
-    $\sim 10^{6}$ extra iterations, sklearn cannot reach $10^{-6}$ on
-    either dataset within its own tolerance).}
+    \texttt{diabetes}, $10^{6}$ on \texttt{california}) descends at the
+    sublinear $g_{0}^{\mathrm{rel}}/\sqrt{i}$ rate of
+    Theorem~\ref{thm:dsm_convergence} to relative gap
+    $\le 10^{-12}$ on \texttt{diabetes} and $\approx 4\cdot 10^{-10}$ on
+    \texttt{california}. sklearn coordinate descent (green dotted) is the
+    third-party convergence trace: the LASSO objective after a capped
+    number of coordinate sweeps, run cold to $\texttt{max\_iter}=10^{5}$ at
+    $\texttt{tol}=10^{-16}$ so it never stops early. It returns at the
+    iteration cap still above $f^{*}$, without reaching the $10^{-6}$
+    target on either dataset.}
     \label{fig:real-data}
 \end{figure}
 

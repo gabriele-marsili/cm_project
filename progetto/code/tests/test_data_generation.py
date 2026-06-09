@@ -1,5 +1,5 @@
 """
-Tests for src/data_generation.py — synthetic problem builders.
+Tests for src/data_generation.py - synthetic problem builders.
 
 Critical invariant: f_star must be the actual minimum of f over R^n, i.e.
 no random perturbation of w_star produces a lower value.

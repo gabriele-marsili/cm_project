@@ -35,7 +35,6 @@ def check(name, cond, msg=''):
 def run_tests():
     all_passed = True
 
-    # ------------------------------------------------------------------
     print("\n=== lasso_utils ===")
     from src.lasso_utils import f_lasso, grad_smooth, subgradient_f, optimality_gap
 
@@ -65,7 +64,6 @@ def run_tests():
                         np.allclose(g_full, g_num, atol=1e-4),
                         f"max err={np.max(np.abs(g_full - g_num)):.2e}")
 
-    # ------------------------------------------------------------------
     print("\n=== linear_solvers ===")
     from src.linear_solvers import cholesky_solve, conjugate_gradient, solve_spd
 
@@ -84,7 +82,6 @@ def run_tests():
     all_passed &= check("cholesky vs CG",
                         np.allclose(w_cho, w_cg, atol=1e-6))
 
-    # ------------------------------------------------------------------
     print("\n=== IRLS ===")
     from src.irls import irls
     from src.lasso_utils import f_lasso
@@ -106,7 +103,6 @@ def run_tests():
     viol = check_optimality(X2, y2, res['w'], lam=0.1)
     all_passed &= check("IRLS optimality condition", viol < 1e-4, f"violation={viol:.2e}")
 
-    # ------------------------------------------------------------------
     print("\n=== Deflected Subgradient ===")
     from src.deflected_subgradient import deflected_subgradient
 
@@ -119,7 +115,7 @@ def run_tests():
     sk.fit(X2, y2)
     w_sk = sk.coef_
     f_star_test = f_lasso(X2, y2, w_sk, lam_test)
-    
+
     # we use 0.1 * f(w_0) at the default cold start w_0 = 0.
     f_w0 = f_lasso(X2, y2, np.zeros(X2.shape[1]), lam_test)
     res_d = deflected_subgradient(X2, y2, lam=0.1, i_max=3000, beta=1.0,
@@ -131,7 +127,6 @@ def run_tests():
     final_gap = res_d['gaps'][-1] if res_d['gaps'] else float('nan')
     all_passed &= check("DSM gap < 0.1", final_gap < 0.1, f"gap={final_gap:.3e}")
 
-    # ------------------------------------------------------------------
     print("\n=== ELM ===")
     from src.elm import ELM
 
@@ -149,7 +144,6 @@ def run_tests():
     all_passed &= check("ELM predict shape", y_hat.shape == (m3,))
     all_passed &= check("ELM w fitted", elm.w is not None)
 
-    # ------------------------------------------------------------------
     print("\n=== data_generation ===")
     from src.data_generation import make_lasso_problem, make_elm_problem
 
@@ -159,7 +153,6 @@ def run_tests():
                         X_d.shape == (100, 30) and len(y_d) == 100)
     all_passed &= check("f_star positive", f_s > 0)
 
-    # ------------------------------------------------------------------
     print()
     if all_passed:
         print(f"{PASS} All tests passed.")

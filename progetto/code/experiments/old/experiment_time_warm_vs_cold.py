@@ -66,9 +66,7 @@ def run() -> None:
     gw = np.maximum(np.asarray(sol_ols["gaps"], dtype=float), 1e-16)
     gc = np.maximum(np.asarray(sol_cold["gaps"], dtype=float), 1e-16)
 
-    # ---------------------------------------------------------
     # Panel 1: Error vs Number of Iterations (Linear X-Axis)
-    # ---------------------------------------------------------
     ax1 = axes[0]
     ax1.semilogy(np.arange(1, len(gw) + 1), gw,
                  color=COLOR_DSM, linewidth=2.0, label=f"warm start (OLS) [{time_ols:.2f}s]")
@@ -84,9 +82,7 @@ def run() -> None:
     ax1.legend(loc="upper right")
     style_axes(ax1)
 
-    # ---------------------------------------------------------
     # Panel 2: Error vs Execution Time (Linear X-Axis)
-    # ---------------------------------------------------------
     ax2 = axes[1]
     
     # Approximate time per iteration linearly across the execution time
@@ -104,9 +100,7 @@ def run() -> None:
     ax2.legend(loc="upper right")
     style_axes(ax2)
 
-    # ---------------------------------------------------------
     # Finalize Figure
-    # ---------------------------------------------------------
     fig.suptitle(rf"SGPTL on $H={H}$, $M={M}$, "
                  rf"$\lambda_{{\mathrm{{LASSO}}}}={LAMBDA}$, "
                  rf"$i_{{\max}}={I_MAX}$",

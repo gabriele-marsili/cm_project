@@ -322,7 +322,7 @@ def run() -> None:
                 else:
                     ax.plot([], [], color=color, label=rf"$c={c:g}$")
             short_name = name.replace("-H", "/H=")
-            ax.set_title(f"{short_name} — Family {fam_id}: {fam_labels[fam_id]}",
+            ax.set_title(f"{short_name} - Family {fam_id}: {fam_labels[fam_id]}",
                          fontsize=10)
             ax.legend(loc="lower left", fontsize=8)
             style_axes(ax)

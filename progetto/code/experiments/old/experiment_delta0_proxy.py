@@ -41,7 +41,7 @@ RHO       = 0.7
 GAMMA_MIN = 0.05
 BETA      = 1.0
 
-# (label, d, p, m, sparsity, lam, noise) — three regimes
+# (label, d, p, m, sparsity, lam, noise): three regimes
 INSTANCES = [
     ("easy",       8,  50,  300, 0.1, 0.1, 0.05),
     ("moderate",  12, 100, 1000, 0.1, 0.1, 0.10),

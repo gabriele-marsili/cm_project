@@ -1,4 +1,4 @@
-""" Experiment IRLS: warm start (using OLS) vs cold start (w = 0) on SYNTHETIC DATA """
+"""IRLS on a synthetic instance: warm start (OLS) vs cold start (w = 0)."""
 import os
 import sys
 import warnings
@@ -45,9 +45,7 @@ def run() -> None:
     )
     print(f"Problem: H={H}, M={M}, lambda={LAMBDA}, f*={f_star:.6f}")
 
-    # ==========================================
     # WARM START (OLS)
-    # ==========================================
     t0 = time.time()
     w_ols = solve_spd(X.T @ X + 1e-12 * np.eye(H), X.T @ y, method="cholesky")
     sol_ols = irls(
@@ -56,9 +54,7 @@ def run() -> None:
     )
     time_ols = time.time() - t0
 
-    # ==========================================
     # COLD START (w = 0)
-    # ==========================================
     t0 = time.time()
     w_cold = np.zeros(H)
     sol_cold = irls(

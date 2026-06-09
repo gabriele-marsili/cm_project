@@ -1,5 +1,5 @@
 """
-Tests for src/linear_solvers.py — Cholesky and Conjugate Gradient on SPD systems.
+Tests for src/linear_solvers.py - Cholesky and Conjugate Gradient on SPD systems.
 """
 import numpy as np
 import pytest

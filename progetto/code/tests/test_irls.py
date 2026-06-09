@@ -6,9 +6,7 @@ from src.irls import irls
 from src.lasso_utils import check_optimality, f_lasso
 
 
-# ---------------------------------------------------------------------------
 # Monotonicity
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("seed", [0, 1, 2, 3, 4])
@@ -24,9 +22,7 @@ def test_irls_monotone_decrease(seed):
     )
 
 
-# ---------------------------------------------------------------------------
 # Convergence to f*
-# ---------------------------------------------------------------------------
 
 
 def test_irls_converges_to_sklearn_fstar(medium_problem):
@@ -49,9 +45,7 @@ def test_irls_kkt_residual_small(medium_problem):
     assert viol < 1e-5, f"KKT violation {viol:.2e}"
 
 
-# ---------------------------------------------------------------------------
 # Sparsity
-# ---------------------------------------------------------------------------
 
 
 def test_irls_produces_sparse_iterate_when_lambda_large():
@@ -65,9 +59,7 @@ def test_irls_produces_sparse_iterate_when_lambda_large():
     assert n_inside >= int(0.5 * n), f"only {n_inside}/{n} small components"
 
 
-# ---------------------------------------------------------------------------
 # Implementation knobs
-# ---------------------------------------------------------------------------
 
 
 def test_irls_warm_start_honoured(small_problem):
@@ -87,7 +79,7 @@ def test_irls_solver_choice_cholesky_vs_cg(small_problem):
     diagonal entry 1/eps_thr can reach 1e8), and CG's relative residual
     tolerance does not match Cholesky's machine-precision factorisation
     in that regime. What we require is that both reach the same value
-    of f within a small gap — they solve the same convex problem.
+    of f within a small gap - they solve the same convex problem.
     """
     p = small_problem
     res_cho = irls(p.X, p.y, p.lam, solver="cholesky", k_max=200, eps_stop=1e-12)

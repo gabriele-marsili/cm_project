@@ -109,6 +109,16 @@ def run() -> None:
     dsm_gaps  = np.maximum(np.asarray(dsm_rel_gaps,  dtype=float), 1e-16)
     rel_label = r"relative gap  $(f - f^{*})/|f^{*}|$"
 
+    # IRLS hits the numerical floor of the relative gap (~3e-8) around iter 220,
+    # then runs to k_max at a constant gap. Those post-convergence iterations
+    # add no information and inflate the wall-clock panel with timing jitter, so
+    # we truncate the IRLS curve at the floor. Every reported target is >= 1e-6,
+    # reached by iter 125, so this cut leaves all tabulated numbers unchanged.
+    irls_floor = 1e-7
+    irls_cut = (int(np.argmax(irls_gaps <= irls_floor)) + 1
+                if np.any(irls_gaps <= irls_floor) else len(irls_gaps))
+    irls_gaps = irls_gaps[:irls_cut]
+
     ax = axes[0]
     irls_iters = np.arange(1, len(irls_gaps) + 1)
     dsm_iters  = np.arange(1, len(dsm_gaps)  + 1)
@@ -118,6 +128,8 @@ def run() -> None:
     ax.loglog(dsm_iters, dsm_gaps,
               color=COLOR_DSM, linewidth=2.0,
               label=r"SGPTL  $(\bar{f}^{i} - f^{*})/|f^{*}|$")
+    ax.scatter([1], [irls_gaps[0]], s=80, marker="*",
+               color="black", zorder=6, label="OLS warm start (shared)")
     ax.set_xlabel("Iteration  (log scale)")
     ax.set_ylabel(rel_label + r"  (log scale)")
     ax.set_title("Convergence vs. iterations")
@@ -126,7 +138,7 @@ def run() -> None:
 
     ax = axes[1]
     # OLS warm-start time is 0; offset to plot in log scale.
-    irls_t = np.asarray(res_irls["times"], dtype=float)
+    irls_t = np.asarray(res_irls["times"], dtype=float)[:irls_cut]
     dsm_t  = np.asarray(res_dsm["times"],  dtype=float)
     smallest = min(irls_t[1] if len(irls_t) > 1 else 1e-5,
                    dsm_t[1]  if len(dsm_t)  > 1 else 1e-5)

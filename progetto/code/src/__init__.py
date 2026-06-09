@@ -1,4 +1,4 @@
-"""Project 25 — Extreme Learning Machine with L1 regularization. Source package."""
+"""Project 25 - Extreme Learning Machine with L1 regularization. Source package."""
 
 from .lasso_utils import (
     f_lasso, grad_smooth, subgradient_f,

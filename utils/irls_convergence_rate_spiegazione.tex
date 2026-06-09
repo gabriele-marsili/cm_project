@@ -1,0 +1,430 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[italian]{babel}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{bm}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{mdframed}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue!55!black,urlcolor=blue!55!black}
+
+\newtheorem{theorem}{Teorema}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposizione}
+\theoremstyle{definition}
+\newtheorem{definition}{Definizione}
+\newtheorem{remark}{Osservazione}
+
+\newmdenv[linecolor=blue!40!black,linewidth=0.6pt,
+  backgroundcolor=blue!4,roundcorner=4pt,
+  innertopmargin=6pt,innerbottommargin=6pt]{keybox}
+
+\newcommand{\w}{\bm{w}}
+\newcommand{\X}{\bm{X}}
+\newcommand{\y}{\bm{y}}
+\newcommand{\A}{\bm{A}}
+\newcommand{\bvec}{\bm{b}}
+\newcommand{\Q}{\bm{Q}}
+\newcommand{\Hess}{\bm{H}}
+\newcommand{\Id}{\bm{I}}
+\newcommand{\wstar}{\w^{*}}
+\newcommand{\Mmap}{\mathcal{M}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\sign}{\operatorname{sign}}
+\newcommand{\spec}{\rho}
+\newcommand{\lam}{\lambda}
+\newcommand{\eps}{\varepsilon}
+
+\title{\textbf{IRLS: rate di convergenza, spiegato passo passo}\\[2pt]
+\large La Jacobiana $\nabla\Mmap(\wstar)=\Id-\Q(\wstar)^{-1}\nabla^2 f_\eps(\wstar)$
+e la dimostrazione di $\spec(\nabla\Mmap(\wstar))<1$}
+\author{Note di studio --- progetto CM (ELM + LASSO, algoritmo A1)}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent Documento di supporto allo studio (per me e per Matthew). Ricostruisce, partendo
+dalle basi, perché IRLS converge \emph{linearmente} sul problema ELM\,+\,LASSO e perché
+il rate è \emph{lento} (fattore di contrazione vicino a $1$). Il cuore sono due cose:
+(i)~la forma della Jacobiana della mappa di IRLS nel punto fisso, e (ii)~la dimostrazione
+che il suo raggio spettrale è strettamente minore di $1$. Tutto è coerente con il
+paragrafo \emph{Convergence rate} del capitolo IRLS del report; qui è solo svolto con più
+dettaglio e senza passaggi impliciti.
+\end{abstract}
+
+\tableofcontents
+
+% ===================================================================
+\section{Il problema e cosa fa IRLS}
+
+Il problema che vogliamo risolvere (ELM con regolarizzazione LASSO) è
+\begin{equation}
+\label{eq:problem}
+\min_{\w\in\mathbb{R}^H}\; f(\w)=\tfrac12\|\X\w-\y\|_2^2+\lam\|\w\|_1 ,
+\end{equation}
+con $\X\in\mathbb{R}^{M\times H}$ la matrice delle feature dello strato nascosto (assunta a
+\emph{rango colonna pieno}, $M\ge H$) e $\lam>0$ il peso LASSO. Il termine $\|\w\|_1$ rende
+$f$ \textbf{non differenziabile} dove qualche componente è zero, quindi non si possono usare
+metodi a gradiente direttamente.
+
+\medskip
+\noindent\textbf{Idea di IRLS.} A ogni passo si sostituisce $|w_i|$ con un maggiorante
+quadratico (liscio) costruito attorno al punto corrente $\w_k$, e si minimizza il modello
+risultante. Concretamente, usando la disuguaglianza $(|w_i|-|(w_k)_i|)^2\ge 0$ si ottiene
+\[
+|w_i|\;\le\;\frac{w_i^2}{2|(w_k)_i|}+\frac{|(w_k)_i|}{2}\qquad((w_k)_i\neq 0),
+\]
+e sommando su $i$ il termine $L_1$ viene maggiorato da una forma quadratica pesata. Il modello
+(surrogato) da minimizzare a ogni iterazione è quindi un \textbf{minimi quadrati pesati con
+regolarizzazione $L_2$}, che ha soluzione in forma chiusa risolvendo un sistema lineare SPD.
+
+\medskip
+\noindent\textbf{Pesi con soglia.} Per evitare la divisione per zero quando una componente si
+avvicina a $0$, i pesi usano una soglia $\eps>0$:
+\begin{equation}
+\label{eq:weights}
+(\bm{W}_k)_{ii}=\Big(\max\!\big(|(w_k)_i|,\eps\big)\Big)^{-1/2}.
+\end{equation}
+Questa soglia, come vedremo, è ciò che trasforma il problema risolto da IRLS in una versione
+\emph{smussata} del LASSO, ed è anche il motivo per cui la teoria diventa pulita.
+
+% ===================================================================
+\section{Cosa significa ``rate'': lineare vs sublineare}
+
+Chiamiamo $g_k$ una misura dell'errore al passo $k$ (per esempio $\|\w_k-\wstar\|$, oppure
+il gap $f(\w_k)-f^\star$).
+
+\begin{definition}[Convergenza lineare]
+La successione converge \emph{linearmente} con fattore $\spec\in(0,1)$ se
+\[
+\lim_{k\to\infty}\frac{g_{k+1}}{g_k}=\spec,\qquad 0<\spec<1 .
+\]
+A ogni passo l'errore viene moltiplicato (asintoticamente) per la stessa costante $\spec$.
+\end{definition}
+
+\begin{definition}[Convergenza sublineare]
+La convergenza è \emph{sublineare} se $g_{k+1}/g_k\to 1$ (l'errore cala, ma il guadagno per
+passo svanisce). Esempio tipico: il metodo del subgradiente, con $g_k\sim 1/\sqrt{k}$.
+\end{definition}
+
+\begin{keybox}
+\textbf{Lettura su grafico semilog} (asse $y=\log g_k$, asse $x=k$):
+\begin{itemize}[nosep]
+\item lineare $\Rightarrow$ \emph{retta} di pendenza $\log\spec$. Se $\spec\approx0.99$ la
+  retta è quasi orizzontale (lineare ma \emph{lenta});
+\item sublineare $\Rightarrow$ curva \emph{concava} che si appiattisce progressivamente.
+\end{itemize}
+Una lineare con $\spec\approx0.99$ su poche iterazioni è facilmente scambiabile a occhio
+per una sublineare: è esattamente il malinteso da chiarire nella figura del report.
+\end{keybox}
+
+% ===================================================================
+\section{IRLS come iterazione a punto fisso}
+\label{sec:fixedpoint}
+
+La soluzione del sotto-problema di IRLS (equazione normale pesata) è, a meno della costante,
+\begin{equation}
+\label{eq:system}
+\Q_k\,\w_{k+1}=\bvec,\qquad
+\Q_k=\A+\lam\,\diag\!\Big(\tfrac{1}{\max(|(w_k)_i|,\eps)}\Big),\quad
+\A=\X^{\!\top}\X,\ \ \bvec=\X^{\!\top}\y .
+\end{equation}
+(La costante $\lam$ qui è il peso LASSO; nel report compare anche $\lam_{\text{IRLS}}=\tfrac12\lam_{\text{LASSO}}$
+dovuto al fattore $1/2$ del maggiorante, ma nella matrice finale i conti tornano a $\lam_{\text{LASSO}}$.)
+
+Poiché $\Q_k$ dipende \emph{solo} da $\w_k$, l'intera iterazione è una funzione del punto corrente:
+\begin{equation}
+\label{eq:map}
+\boxed{\ \w_{k+1}=\Mmap(\w_k),\qquad \Mmap(\w)=\Q(\w)^{-1}\bvec\ }
+\end{equation}
+con $\Q(\w)=\A+\lam\diag\!\big(1/\max(|w_i|,\eps)\big)$. La soluzione $\wstar$ è un
+\textbf{punto fisso}: $\Mmap(\wstar)=\wstar$, cioè $\Q(\wstar)\wstar=\bvec$.
+
+\begin{keybox}
+\textbf{Principio guida.} Studiare la velocità di IRLS = studiare quanto la mappa $\Mmap$
+\emph{contrae} le distanze vicino a $\wstar$. Se vicino al punto fisso $\Mmap$ avvicina i
+punti a $\wstar$ di un fattore $\spec<1$ a ogni applicazione, allora la convergenza è
+lineare con rate $\spec$. Questo fattore è il raggio spettrale della Jacobiana di $\Mmap$
+in $\wstar$.
+\end{keybox}
+
+% ===================================================================
+\section{Il problema ``vero'' che IRLS risolve: la versione smussata}
+\label{sec:smoothed}
+
+La soglia $\eps$ in \eqref{eq:weights} non è solo un trucco numerico: cambia la funzione
+obiettivo. Cerchiamo la funzione liscia $\psi_\eps$ il cui maggiorante quadratico ha
+esattamente i pesi $1/\max(|w_i|,\eps)$. Imponendo che la derivata di $\psi_\eps$ sia
+$\lam\,w_i/\max(|w_i|,\eps)$ si ottiene
+\begin{equation}
+\label{eq:huber}
+\psi_\eps(t)=
+\begin{cases}
+|t|, & |t|>\eps,\\[2pt]
+\dfrac{t^2}{2\eps}+\dfrac{\eps}{2}, & |t|\le\eps,
+\end{cases}
+\end{equation}
+cioè una smussatura di tipo Huber del valore assoluto (lineare lontano da $0$, quadratica
+in un intorno di $0$, raccordata in modo $C^1$). Il problema effettivamente risolto da IRLS è
+\begin{equation}
+\label{eq:feps}
+\min_{\w}\ f_\eps(\w)=\tfrac12\|\X\w-\y\|_2^2+\lam\sum_{i=1}^H\psi_\eps(w_i).
+\end{equation}
+Il minimo di $f_\eps$ dista dal minimo del LASSO originale di $O(\eps)$ in valore obiettivo,
+e lo recupera per $\eps\to0$. Con $\eps=10^{-8}$ la differenza è sotto la soglia di
+rilevabilità rispetto a un solver di riferimento.
+
+\begin{proposition}[Forte convessità]
+\label{prop:strong}
+Se $\X$ ha rango colonna pieno, allora $\A=\X^{\!\top}\X\succ0$ e $f_\eps$ è
+\emph{fortemente convessa}, quindi ha un unico minimizzatore $\wstar$.
+\end{proposition}
+\begin{proof}
+Per ogni $\bm v\neq\bm0$ si ha $\bm v^{\!\top}\A\bm v=\|\X\bm v\|_2^2>0$ (rango pieno),
+dunque $\A\succ0$. La parte di penalità $\sum_i\psi_\eps(w_i)$ è convessa ($\psi_\eps$ è
+convessa: derivata seconda $0$ o $1/\eps$, mai negativa). Somma di una funzione fortemente
+convessa e di una convessa è fortemente convessa; l'unicità del minimo segue.
+\end{proof}
+
+\noindent La Hessiana del problema smussato è
+\begin{equation}
+\label{eq:hessian}
+\nabla^2 f_\eps(\w)=\A+\lam\,\diag\!\big(\psi_\eps''(w_i)\big),\qquad
+\psi_\eps''(t)=
+\begin{cases}
+0, & |t|>\eps \quad(\text{tratto lineare}),\\[2pt]
+1/\eps, & |t|<\eps \quad(\text{tratto quadratico}).
+\end{cases}
+\end{equation}
+È qui che si gioca tutto: \textbf{sulle componenti attive} ($|w_i|>\eps$) la funzione vera
+$|w_i|$ è una retta, curvatura nulla; \textbf{sulle componenti schiacciate a zero}
+($|w_i|<\eps$, ``pinned'') la curvatura è $1/\eps$.
+
+% ===================================================================
+\section{La Jacobiana della mappa: derivazione da zero}
+\label{sec:jacobian}
+
+Vogliamo $\nabla\Mmap(\wstar)$. Partiamo da $\Mmap(\w)=\Q(\w)^{-1}\bvec$ e differenziamo.
+Usiamo l'identità $d(\bm A^{-1})=-\bm A^{-1}(d\bm A)\bm A^{-1}$:
+\begin{equation}
+\label{eq:dM1}
+d\Mmap=-\Q^{-1}(d\Q)\,\Q^{-1}\bvec=-\Q^{-1}(d\Q)\,\w ,
+\end{equation}
+dove nell'ultimo passaggio abbiamo usato che nel punto fisso $\Q(\wstar)^{-1}\bvec=\wstar$.
+
+\medskip
+\noindent\textbf{Calcolo di $d\Q$.} La matrice $\Q(\w)$ è $\A$ (costante) più la diagonale
+$\lam\,\diag(1/\max(|w_i|,\eps))$. La derivata dell'$i$-esimo elemento diagonale rispetto a
+$w_i$:
+\[
+\frac{d}{dw_i}\,\frac{1}{\max(|w_i|,\eps)}=
+\begin{cases}
+-\dfrac{\sign(w_i)}{w_i^2}, & |w_i|>\eps,\\[4pt]
+0, & |w_i|<\eps.
+\end{cases}
+\]
+Quindi $d\Q$ è diagonale, con entrate non nulle solo sull'insieme attivo.
+
+\medskip
+\noindent\textbf{Il prodotto $(d\Q)\,\wstar$.} Sull'insieme attivo l'$i$-esima componente è
+\[
+\big[(d\Q)\,\wstar\big]_i=\lam\left(-\frac{\sign(w^*_i)}{(w^*_i)^2}\right)(w^*_i)\,dw_i
+=-\,\lam\,\frac{\sign(w^*_i)}{w^*_i}\,dw_i
+=-\,\frac{\lam}{|w^*_i|}\,dw_i ,
+\]
+mentre sull'insieme pinned è $0$. In forma matriciale
+\begin{equation}
+\label{eq:dQw}
+(d\Q)\,\wstar=-\underbrace{\lam\,\diag\!\Big(\tfrac{1}{|w^*_i|}\ \text{(attive)},\ 0\ \text{(pinned)}\Big)}_{=\,\Q(\wstar)-\nabla^2 f_\eps(\wstar)}\;d\w .
+\end{equation}
+L'uguaglianza con $\Q(\wstar)-\nabla^2 f_\eps(\wstar)$ si verifica confrontando \eqref{eq:system}
+con \eqref{eq:hessian}:
+\[
+\Q(\wstar)-\nabla^2 f_\eps(\wstar)=\lam\,\diag\!\Big(\tfrac{1}{\max(|w^*_i|,\eps)}-\psi_\eps''(w^*_i)\Big)
+=\lam\,\diag\!\Big(\underbrace{\tfrac{1}{|w^*_i|}-0}_{\text{attive}},\ \underbrace{\tfrac1\eps-\tfrac1\eps}_{\text{pinned}}\Big).
+\]
+Sostituendo \eqref{eq:dQw} in \eqref{eq:dM1}:
+\[
+d\Mmap=-\Q^{-1}\Big(-(\Q-\nabla^2 f_\eps)\,d\w\Big)
+=\Q^{-1}(\Q-\nabla^2 f_\eps)\,d\w=(\Id-\Q^{-1}\nabla^2 f_\eps)\,d\w .
+\]
+
+\begin{keybox}
+\begin{equation}
+\label{eq:jac}
+\boxed{\ \nabla\Mmap(\wstar)=\Id-\Q(\wstar)^{-1}\,\nabla^2 f_\eps(\wstar)\ }
+\end{equation}
+È \emph{esattamente} la matrice di contrazione di una iterazione Majorization--Minimization.
+Non l'abbiamo presa per citazione: l'abbiamo \emph{derivata} differenziando la mappa.
+\end{keybox}
+
+\begin{remark}[Quando $\Mmap$ è derivabile]
+Il calcolo sopra usa $\psi_\eps''$, che ha un salto in $|w_i|=\eps$. La derivazione è quindi
+lecita finché \emph{nessuna} componente di $\wstar$ giace esattamente sul bordo
+$|w^*_i|=\eps$ (le attive stanno strettamente sopra, le pinned strettamente sotto). In quel
+caso $\Mmap$ e $f_\eps$ sono $C^1$ in $\wstar$. È un'ipotesi tecnica generica (insieme di
+misura nulla), ma è un'\emph{assunzione}, non un teorema --- vedi la
+sezione~\ref{sec:caveats}.
+\end{remark}
+
+% ===================================================================
+\section{Dimostrazione che il raggio spettrale e' minore di 1}
+\label{sec:proof}
+
+Questo è il risultato centrale. Poniamo per brevità
+\[
+\bm B:=\Q(\wstar),\qquad \Hess:=\nabla^2 f_\eps(\wstar),\qquad
+\nabla\Mmap(\wstar)=\Id-\bm B^{-1}\Hess .
+\]
+
+\paragraph{Passo 0 --- entrambe SPD.}
+$\bm B=\A+\lam\,\diag(1/\max(|w^*_i|,\eps))$: somma di $\A\succ0$ e di una diagonale
+strettamente positiva, quindi $\bm B\succ0$.
+$\Hess=\A+\lam\,\diag(\psi_\eps''\ge0)$: somma di $\A\succ0$ e di una diagonale $\succeq0$,
+quindi $\Hess\succ0$. Entrambe sono simmetriche definite positive.
+
+\paragraph{Passo 1 --- gli autovalori di $\bm B^{-1}\Hess$ sono reali e positivi.}
+$\bm B^{-1}\Hess$ in generale non è simmetrica, ma è \emph{simile} a una matrice simmetrica:
+\[
+\bm B^{-1}\Hess=\bm B^{-1/2}\big(\bm B^{-1/2}\Hess\,\bm B^{-1/2}\big)\bm B^{1/2},
+\qquad
+\bm S:=\bm B^{-1/2}\Hess\,\bm B^{-1/2}.
+\]
+$\bm S$ è simmetrica e, essendo $\Hess\succ0$, è anche definita positiva. Matrici simili hanno
+gli stessi autovalori, dunque gli autovalori di $\bm B^{-1}\Hess$ coincidono con quelli di
+$\bm S$: sono \textbf{reali e $>0$}. Chiamiamoli $\mu_1\ge\cdots\ge\mu_H>0$.
+
+\paragraph{Passo 2 --- limite superiore: $\mu_i\le 1$.}
+Vale $\bm S\preceq\Id$ se e solo se $\Hess\preceq\bm B$, cioè $\bm B-\Hess\succeq0$.
+Ma dalla sezione~\ref{sec:jacobian},
+\begin{equation}
+\label{eq:diff}
+\bm B-\Hess=\lam\,\diag\!\Big(\underbrace{\tfrac{1}{|w^*_i|}}_{\text{attive}>0},\ \underbrace{0}_{\text{pinned}}\Big)\ \succeq\ 0 ,
+\end{equation}
+una matrice diagonale con entrate $\ge0$, quindi semidefinita positiva. Dunque $\Hess\preceq\bm B$,
+quindi $\bm S\preceq\Id$, quindi $\mu_i\le1$ per ogni $i$.
+
+\paragraph{Passo 3 --- conclusione.}
+Combinando i passi 1--2: $\mu_i\in(0,1]$. Gli autovalori di
+$\nabla\Mmap(\wstar)=\Id-\bm B^{-1}\Hess$ sono allora $1-\mu_i\in[0,1)$. Il raggio spettrale è
+il massimo modulo:
+\[
+\spec(\nabla\Mmap(\wstar))=\max_i|1-\mu_i|=1-\mu_{\min}<1,
+\]
+dove $\mu_{\min}=\mu_H>0$ è il più piccolo autovalore di $\bm B^{-1}\Hess$. Poiché
+$\mu_{\min}>0$ \emph{strettamente}, si ha $\spec<1$ strettamente. \qed
+
+\begin{keybox}
+\textbf{Conseguenza (teorema di Ostrowski).} Per un'iterazione a punto fisso
+$\w_{k+1}=\Mmap(\w_k)$ con $\Mmap$ di classe $C^1$ in $\wstar$ e
+$\spec(\nabla\Mmap(\wstar))<1$, il punto $\wstar$ è un \emph{punto di attrazione}: esiste un
+intorno da cui IRLS converge a $\wstar$, e la convergenza è \textbf{lineare} con rate
+asintotico esattamente $\spec(\nabla\Mmap(\wstar))$. (Ostrowski, in
+Ortega--Rheinboldt, \emph{Iterative Solution of Nonlinear Equations}.)
+\end{keybox}
+
+% ===================================================================
+\section{Perché il rate è vicino a 1 (cioè: perché IRLS è lento)}
+\label{sec:slow}
+
+Abbiamo $\spec=1-\mu_{\min}$, quindi ``vicino a $1$'' equivale a ``$\mu_{\min}$ piccolo''.
+Il più piccolo autovalore generalizzato è
+\[
+\mu_{\min}=\min_{\bm v\neq\bm0}\frac{\bm v^{\!\top}\Hess\,\bm v}{\bm v^{\!\top}\bm B\,\bm v}.
+\]
+Consideriamo una direzione $\bm v$ concentrata su una componente attiva con $|w^*_i|$ piccolo.
+Su quella componente $\Hess$ ha solo il contributo di $\A$ (curvatura $0$ dalla penalità,
+perché $|w_i|$ è affine lì), mentre $\bm B$ ha in più il termine $\lam/|w^*_i|$, che è
+\emph{grande} quando $|w^*_i|$ è piccolo. Quindi
+\[
+\frac{\bm v^{\!\top}\Hess\,\bm v}{\bm v^{\!\top}\bm B\,\bm v}
+\approx\frac{\bm v^{\!\top}\A\,\bm v}{\bm v^{\!\top}\A\,\bm v+\lam\sum_i v_i^2/|w^*_i|}
+\xrightarrow[\ |w^*_i|\to0\ ]{}0 .
+\]
+
+\begin{keybox}
+\textbf{Meccanismo della lentezza.} IRLS modella $|w_i|$ con una parabola. Sulle componenti
+attive $|w_i|$ è una retta (curvatura nulla), ma il modello quadratico $\bm B$ ci mette
+curvatura $\lam/|w^*_i|$: \emph{tanta} dove la componente è piccola. Questo disallineamento
+tra modello e funzione vera spinge $\mu_{\min}\to0$ e quindi $\spec\to1$. In una frase:
+\emph{IRLS è lento proprio dove il LASSO è lineare}. Empiricamente $\spec\approx0.99$, e
+quasi indipendente da $\eps$.
+\end{keybox}
+
+\noindent Caso limite opposto, utile per intuizione: se fosse $\bm B=\Hess$ avremmo
+$\nabla\Mmap=\Id-\Id=\bm0$, rate $0$, convergenza in un passo (è ciò che fa il metodo di
+Newton). IRLS è lento esattamente nella misura in cui il suo modello $\bm B$ si discosta dalla
+vera Hessiana $\Hess$.
+
+% ===================================================================
+\section{Perché la figura sembra ``non lineare''}
+\label{sec:figure}
+
+Su un semilog del gap rispetto al LASSO esatto $f^\star$ contro $k$, la curva \emph{non} è una
+singola retta. Si sovrappongono tre regimi:
+\begin{enumerate}[nosep]
+\item \textbf{Transiente iniziale veloce}: le prime iterazioni chiudono la maggior parte del
+  gap (fase pre-asintotica, tratto ripido).
+\item \textbf{Coda lineare lenta}: subentra il rate vero $\spec\approx0.99$, una retta quasi
+  orizzontale; per vederla come retta servono \emph{molte} iterazioni.
+\item \textbf{Pavimento di smussatura}: il gap rispetto a $f^\star$ non scende sotto
+  $O(\eps)\approx10^{-8}$; con poche iterazioni la curva sbatte sul pavimento \emph{prima}
+  che la coda lineare sia visibile.
+\end{enumerate}
+Sommati, danno una curva concava che a occhio sembra sublineare. La verifica corretta è
+misurare il gap rispetto al minimo \emph{smussato} $f_\eps^\star$ (non $f^\star$), su molte
+iterazioni: lì il rapporto per-iterazione $g_{k+1}/g_k$ \emph{si stabilizza} attorno a
+$\approx0.995$ e oscilla senza crescere $\Rightarrow$ lineare, solo lento. Una sublineare
+avrebbe $g_{k+1}/g_k$ in crescita monotona verso $1$.
+
+% ===================================================================
+\section{Avvertenze critiche (limiti della dimostrazione)}
+\label{sec:caveats}
+
+Da tenere a mente, anche all'orale:
+\begin{enumerate}
+\item \textbf{Rate locale, non globale.} Ostrowski garantisce attrazione e rate lineare in un
+  \emph{intorno} di $\wstar$. La convergenza \emph{globale} della successione si argomenta a
+  parte (monotonia MM $+$ forte convessità $+$ coercività $\Rightarrow$ ogni punto di
+  accumulazione è il minimo unico). Sono due affermazioni distinte.
+\item \textbf{Ipotesi ``nessuna componente sul bordo'' $|w^*_i|=\eps$.} Necessaria per la
+  $C^1$-regolarità di $\Mmap$; è generica ma assunta, non dimostrata sul nostro problema.
+\item \textbf{$\spec\approx0.99$ misurato su una sola istanza.} Per robustezza andrebbe
+  confermato su piu' dataset/seed; la (quasi) indipendenza da $\eps$ è verificata, la
+  variabilità tra istanze no. Ridurre il claim oppure rieseguire.
+\item \textbf{Citazione da non usare.} Il rate lineare \emph{non} segue dal Teorema~5.3 di
+  Daubechies et al.\ (quello assume la \emph{null space property} per sparse recovery
+  \emph{sottodeterminato}): il nostro regime è \emph{sovradeterminato} e fortemente convesso.
+  La giustificazione corretta è quella di questo documento: forte convessità del problema
+  smussato $+$ teoria locale standard MM/Ostrowski.
+\item \textbf{Gap relativi.} Per i confronti numerici usare gap \emph{relativi}
+  ($|f-f^\star|/|f^\star|$): un gap assoluto di $10^{-6}$ è minuscolo se $f^\star\sim10^4$ e
+  enorme se $f^\star\sim10^{-3}$.
+\end{enumerate}
+
+% ===================================================================
+\section*{Riepilogo in cinque frasi (per l'orale)}
+\addcontentsline{toc}{section}{Riepilogo in cinque frasi}
+\begin{enumerate}[leftmargin=*]
+\item IRLS è un'iterazione a punto fisso $\Mmap(\w)=\Q(\w)^{-1}\bvec$, MM su un problema
+  smussato $f_\eps$ (Huber sul termine $L_1$), fortemente convesso perché $\X$ ha rango pieno.
+\item Differenziando la mappa nel punto fisso si ottiene
+  $\nabla\Mmap(\wstar)=\Id-\Q(\wstar)^{-1}\nabla^2 f_\eps(\wstar)$, la matrice di contrazione MM.
+\item $\Q(\wstar)$ e $\nabla^2 f_\eps(\wstar)$ sono SPD e la loro differenza è
+  $\lam\,\diag(1/|w^*_i|)$ sulle attive, $0$ sulle pinned, quindi $\succeq0$.
+\item Ne segue che gli autovalori di $\Q^{-1}\nabla^2 f_\eps$ stanno in $(0,1]$, quelli di
+  $\nabla\Mmap$ in $[0,1)$, dunque $\spec(\nabla\Mmap(\wstar))=1-\mu_{\min}<1$: per Ostrowski,
+  convergenza lineare locale.
+\item Il rate è vicino a $1$ perché sulle componenti attive $|w_i|$ ha curvatura nulla mentre
+  il modello quadratico no: $\mu_{\min}\to0$ quando $|w^*_i|\to0$. Quindi IRLS converge
+  linearmente ma lentamente; la figura sembra sublineare per transiente $+$ pavimento di
+  smussatura, non perché lo sia.
+\end{enumerate}
+
+\end{document}
