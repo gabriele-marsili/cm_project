@@ -20,9 +20,7 @@ correctness oracles, never as the solver under test.
 ```
 src/                 core implementation (the graded part)
 tests/               pytest unit tests + correctness checks vs sklearn
-test_basic.py        standalone smoke test, no pytest needed
 experiments/         scripts that produce the report figures/tables
-experiments/old/     earlier runs, kept for traceability
 results/figures/     generated PDFs
 results/tables/      generated CSVs
 ```
@@ -50,7 +48,6 @@ Tests:
 
 ```bash
 python -m pytest tests/ -q     # full suite
-python test_basic.py           # quick smoke test, prints PASS/FAIL
 ```
 
 Experiments — each script is standalone and writes into `results/`:
@@ -71,10 +68,17 @@ The script names map to what they measure:
 
 ## Dependencies
 
-`numpy`, `scipy`, `scikit-learn`, `matplotlib`, `pytest`. Three experiments
-(`experiment_real_data`, `experiment_delta0_families`,
-`experiment_warm_vs_cold_real_data`) also use `cvxpy` to cross-check f* with a
-second solver. Developed on Python 3.12.
+Install the core dependencies with:
+
+```bash
+pip install -r requirements.txt
+```
+
+This pulls `numpy`, `scipy`, `scikit-learn`, `matplotlib`. To run the test suite
+add `pytest`; three experiments (`experiment_real_data`,
+`experiment_delta0_families`, `experiment_warm_vs_cold_real_data`) optionally use
+`cvxpy` to cross-check f* with a second solver (the core results reproduce
+without it). Developed on Python 3.12.
 
 Reproducibility: every generator and split takes a `random_state`, so the
 figures and tables in `results/` regenerate from the seeds in the scripts.
